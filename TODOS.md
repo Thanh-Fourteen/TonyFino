@@ -352,7 +352,7 @@ MÔI TRƯỜNG — CẠM BẪY:
 
 - [x] `git init` + `user.name`/`user.email` cấp repo, `.gitignore` (chặn `raw_rolly/`, `dist/`, `*.jks`, `key.properties`; **không** chặn `drift_schemas/`, `test/fixtures/`, `*.g.dart`), commit đầu gồm `TODOS.md`
 - [x] Dời `~/Android/Sdk/system-images` sang `/mnt/data1tb/android-dev/`, symlink lại, `sdkmanager --list_installed` vẫn đúng
-- [ ] `sudo apt install clang ninja-build` — ⏳ **Tony chạy**: `sudo` cần mật khẩu nên không tự động được. `flutter doctor` đã xác nhận thiếu cả `clang++` lẫn `ninja`. Blocker cứng cho spike sqlite3mc ở Phase 3
+- [x] `sudo apt install clang ninja-build` — Tony đã cài 2026-08-21. clang 18.1.3 + ninja 1.11.1. Đã smoke-test: clang biên dịch được `.so` cho linux-x64 và `dlopen` gọi được — đúng đường sqlite3mc sẽ đi ở Phase 3
 - [x] Tải `system-images;android-36;google_apis;x86_64`, tạo AVD `tonyfino36` (RAM 4096MB)
 - [x] `tool/env.sh`, `tool/emulator.sh`, `tool/clean.sh`
 - [ ] Keystore `~/keystores/tonyfino-release.jks` + sao lưu 3 nơi, đọc được từ chính vị trí sao lưu — ⏳ keystore đã tạo (RSA 4096 PKCS12) và **3 bản sao đều đã xác minh fingerprint**, nhưng cả ba vẫn nằm trên cùng một máy. **Tony chạy**: chép `~/keystores/tonyfino-keystore-backup-2026-08-21.tar.gz.gpg` ra điện thoại/cloud/USB và lưu mật khẩu vào trình quản lý mật khẩu

@@ -144,3 +144,15 @@ Nghĩa là ở Phase 3, `flutter create` phát ra **đúng** `compileSdk 36` / `
 Phase 3 vẫn phải tự tay thêm: `applicationId`, `applicationIdSuffix ".dev"`,
 release signing đọc `key.properties` và fail lớn khi thiếu, `allowBackup="false"`,
 `dataExtractionRules`, và khai báo `fonts:`.
+
+## 2026-08-21 · Phase 1 · clang/ninja đã cài — blocker E3 gỡ xong
+Tony tự chạy `sudo apt install -y clang ninja-build`. Kết quả: **clang 18.1.3**, **ninja 1.11.1**.
+
+Đã smoke-test đúng đường mà Dart build hook sẽ đi, chứ không chỉ nhìn `--version`:
+biên dịch một file C thành shared library cho `linux-x64` bằng `clang -shared -fPIC`,
+rồi `dlopen` và gọi hàm qua `ctypes` — chạy đúng. Đây chính là chuỗi mà `sqlite3` với
+`user_defines.source = sqlite3mc` sẽ thực hiện khi `flutter test` chạy trên host ở Phase 3.
+
+`flutter doctor` vẫn báo đỏ mục "Linux toolchain" vì thiếu `libgtk-3-dev` và `mesa-utils`.
+**Không liên quan** — hai thứ đó chỉ cần khi build app Flutter cho *Linux desktop*, mà dự án
+này chỉ nhắm Android rồi iOS. Không cài.
