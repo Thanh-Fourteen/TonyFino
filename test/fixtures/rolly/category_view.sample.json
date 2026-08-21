@@ -1,0 +1,38 @@
+[
+  {
+    "id": 501,
+    "created_at": "2026-05-01T00:00:00+00:00",
+    "title": "Ăn uống",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "icon_data": null,
+    "type": "Expense",
+    "icon_image_url": "https://example/food.png",
+    "icon_id": null,
+    "wallet_id": 9001,
+    "input_count": 2
+  },
+  {
+    "id": 502,
+    "created_at": "2026-05-01T00:00:00+00:00",
+    "title": "Cà phê",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "icon_data": null,
+    "type": "Expense",
+    "icon_image_url": "https://example/coffee.png",
+    "icon_id": null,
+    "wallet_id": 9001,
+    "input_count": 1
+  },
+  {
+    "id": 601,
+    "created_at": "2026-05-01T00:00:00+00:00",
+    "title": "Lương",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "icon_data": null,
+    "type": "Income",
+    "icon_image_url": "https://example/salary.png",
+    "icon_id": null,
+    "wallet_id": 9001,
+    "input_count": 1
+  }
+]

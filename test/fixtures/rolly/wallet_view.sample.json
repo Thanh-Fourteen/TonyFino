@@ -1,0 +1,20 @@
+[
+  {
+    "id": 9001,
+    "created_at": "2026-05-01T00:00:00+00:00",
+    "name": "Ví thu chi",
+    "initial_balance": 3000000.0,
+    "currency_code": "VND",
+    "currency_symbol": "₫",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "member_count": 1,
+    "to_be_deleted": false,
+    "type": "cash",
+    "credit_limit": 0.0,
+    "due_date": null,
+    "total_expense": 160000.0,
+    "total_income": 15000000.0,
+    "total_transfer_out": 5000000.0,
+    "total_transfer_in": 0
+  }
+]
