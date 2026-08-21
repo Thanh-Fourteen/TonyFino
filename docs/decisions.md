@@ -237,3 +237,14 @@ hình chuẩn: compile cao, target ổn định.
 Cũng phải bật `buildFeatures { resValues = true }` (AGP 9 tắt mặc định) để `resValue` cấp
 `app_name` khác nhau cho bản dev vs release. Và bỏ `kotlinOptions.jvmTarget` (Kotlin 2.3 biến
 nó thành lỗi) — Java 17 trong `compileOptions` là đủ.
+
+## 2026-08-21 · Phase 3 · Renderer trên emulator = Impeller (OpenGLES)
+`flutter run` trên emulator tonyfino36 log rõ:
+`Using the Impeller rendering backend (OpenGLES)`.
+
+Không phải Skia, cũng không phải Impeller-Vulkan. Trên SwiftShader (máy không có GPU dùng được,
+xem E5) Flutter 3.44 rơi về Impeller-GLES và chạy được. Nghĩa là:
+- App KHỞI ĐỘNG và render bình thường trên emulator — không cần cờ `--enable-impeller=false`.
+- Golden test (Phase 5+) chạy dưới Impeller-GLES trên emulator. Vì đây vẫn là Impeller (khác
+  engine với Skia mà một số CshelfI runner dùng), coi golden trên emulator là tham khảo layout;
+  pixel-perfect vẫn nên xác thực bằng dogfood APK trên máy thật (Redmi, GPU thật). Khớp H7.

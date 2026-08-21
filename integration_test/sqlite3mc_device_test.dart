@@ -17,7 +17,7 @@ void main() {
     db.execute("PRAGMA key = '$key';");
     db.execute('CREATE TABLE t (id INTEGER PRIMARY KEY, note TEXT);');
     db.execute("INSERT INTO t (note) VALUES ('bí mật trên máy');");
-    db.dispose();
+    db.close();
 
     final txt = String.fromCharCodes(
         File(path).readAsBytesSync().where((b) => b >= 32 && b < 127));
@@ -26,7 +26,7 @@ void main() {
     db = sqlite3.open(path);
     db.execute("PRAGMA key = '$key';");
     expect(db.select('SELECT note FROM t;').single['note'], 'bí mật trên máy');
-    db.dispose();
+    db.close();
     File(path).deleteSync();
   });
 }

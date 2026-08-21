@@ -18,7 +18,7 @@ void main() {
     final cipher = db.select('PRAGMA cipher;');
     db.execute('CREATE TABLE t (id INTEGER PRIMARY KEY, note TEXT);');
     db.execute("INSERT INTO t (note) VALUES ('bí mật tài chính');");
-    db.dispose();
+    db.close();
 
     // 2) file trên đĩa KHÔNG được chứa plaintext
     final bytes = File(path).readAsBytesSync();
@@ -32,14 +32,14 @@ void main() {
     db.execute("PRAGMA key = '$key';");
     final rows = db.select('SELECT note FROM t;');
     expect(rows.single['note'], 'bí mật tài chính');
-    db.dispose();
+    db.close();
 
     // 4) mở lại SAI key -> phải thất bại
     db = sqlite3.open(path);
     db.execute("PRAGMA key = 'wrong-key';");
     expect(() => db.select('SELECT note FROM t;'), throwsA(anything),
         reason: 'sai key thì không đọc được');
-    db.dispose();
+    db.close();
 
     dir.deleteSync(recursive: true);
     // ghi lại tên cipher để biết build nào được link
