@@ -1,0 +1,94 @@
+name: tonyfino
+description: "App quản lý chi tiêu cá nhân — bản thay thế Rolly, offline-first, tiếng Việt."
+publish_to: "none"
+
+# versionName theo phase (D4). versionCode = số sau dấu +, tăng tay mỗi lần cài lên máy thật.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # ── State + navigation ──
+  flutter_riverpod: ^3.4.2
+  go_router: ^17.5.0
+
+  # ── Database (mã hoá qua sqlite3mc, khai báo ở hooks bên dưới) ──
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  sqlite3: ^3.5.2
+
+  # ── Nền tảng / lưu trữ ──
+  path_provider: ^2.1.6
+  flutter_secure_storage: ^11.0.0
+
+  # ── Tiền + i18n ──
+  intl: ^0.20.2
+  decimal: ^3.2.6
+
+  # ── UI ──
+  material_symbols_icons: ^4.2960.0
+  fl_chart: ^1.2.0
+  animations: ^2.1.0
+  skeletonizer: ^2.1.3
+  animated_flip_counter: ^0.3.4
+  dynamic_color: ^2.1.0
+  flutter_animate: ^4.5.2
+
+  # ── Export / backup / import ──
+  share_plus: ^13.3.0
+  file_picker: ^12.0.0
+  csv: ^8.0.0
+
+  # ── Parser tiếng Việt ──
+  diacritic: ^0.1.6
+  clock: ^1.1.2
+
+  # ── Mạng (chỉ dùng cho AI fallback ở Phase 12, mặc định tắt) ──
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+#  riverpod_lint: (xung đột analyzer với build_runner trên Flutter 3.44.1 — xem decisions)
+  build_runner: ^2.4.0
+  drift_dev: ^2.34.0
+  alchemist: ^0.14.0
+  sqlite3_test: ^0.2.1
+
+# ── Dart build hooks: bundle SQLite bản SQLite3MultipleCiphers (mã hoá tại chỗ) ──
+# Đây là thứ khiến `PRAGMA key` hoạt động. Spike F1 chứng minh nó build được.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
+
+flutter:
+  uses-material-design: true
+  generate: true # bật gen l10n từ ARB
+
+  fonts:
+    # Be Vietnam Pro — chữ. Font tĩnh, thiết kế riêng cho dấu tiếng Việt.
+    - family: BeVietnamPro
+      fonts:
+        - asset: assets/fonts/BeVietnamPro-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/BeVietnamPro-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/BeVietnamPro-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BeVietnamPro-Bold.ttf
+          weight: 700
+    # Inter — số tiền. File variable duy nhất (opsz 14–32, wght 100–900, có tnum).
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf

@@ -190,3 +190,50 @@ Ghi chú: peerAPI của Android luôn báo **port 1** — đó là listener gi�
 Hệ quả cho Phase 6/12/14: `tailscale serve` phơi nội dung ra cho **mọi** node trong tailnet, kể cả
 node đó. Với APK thì chấp nhận được; với bất cứ thứ gì nhạy cảm thì phải mã hoá payload chứ đừng
 trông vào phạm vi mạng. Và tuyệt đối không dùng `tailscale funnel` — nó phơi ra Internet công cộng.
+
+## 2026-08-21 · Phase 3 · SPIKE F1 THÀNH CÔNG — sqlite3mc chạy cả host lẫn Android
+Cổng rủi ro nhất (H4/E3) đã vượt qua **sạch**, không phải dùng phương án lùi.
+
+- **Host** (`flutter test test/spike/sqlite3mc_spike_test.dart`): clang biên dịch sqlite3mc cho
+  linux-x64 qua Dart build hooks, `PRAGMA key` mã hoá thật — file trên đĩa KHÔNG chứa plaintext
+  ("bí mật tài chính" không tìm thấy trong bytes), sai key thì `SELECT` ném lỗi.
+- **Emulator API 36** (`flutter test integration_test/sqlite3mc_device_test.dart`): NDK biên dịch
+  sqlite3mc cho x86_64 Android, cùng test mã hoá pass.
+
+Kết luận: **v1 SẼ mã hoá DB tại chỗ** bằng sqlite3mc + `PRAGMA key`, không cần lùi sang chỉ-mã-hoá-backup.
+Khoá 32-byte sẽ nằm trong flutter_secure_storage (Phase 4).
+
+Cách kích hoạt (đã xác nhận cú pháp trong sqlite3-3.5.2/doc/hook.md):
+```yaml
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
+```
+
+## 2026-08-21 · Phase 3 · Toolchain: bỏ riverpod codegen, dùng provider viết tay
+Flutter 3.44.1 ghim `meta 1.18.0` / `test_api 0.7.11`. Bản mới nhất của `riverpod_generator 4.x`
+và `riverpod_lint 3.1.8` cần `analyzer 13.3+` (→ meta 1.18.3), xung đột không giải được với
+`build_runner` + `flutter_test` SDK. Đã cô lập bằng probe pubspec: chỉ cần
+`drift_dev 2.34.5 + flutter_riverpod 3.x` cùng lúc là vỡ.
+
+Quyết định (không chắp vá, không ép version xung đột):
+- **Giữ `flutter_riverpod 3.4.2`** (bản mới, có Notifier hợp nhất) — nhưng **viết provider bằng tay**,
+  KHÔNG dùng `@riverpod` codegen. Riverpod chính thức coi codegen là tùy chọn.
+- **Bỏ `riverpod_annotation`, `riverpod_generator`, `riverpod_lint`.**
+- **`drift_dev` lùi patch 2.34.5 → 2.34.0** (vẫn cùng dòng 2.34, khớp `drift 2.34.3` runtime),
+  `build_runner` để pub tự chọn → 2.15.1, `analyzer 12.1.0` (meta 1.18.0 ✓).
+- Bù cho việc mất `riverpod_lint`: grep-lint tự viết (đã bắt buộc trong TODOS) chặn đúng thứ
+  ta cần — `dart:io`/`Platform.`/`DateTime.now()` trong features, `material.dart` trong theme/tokens.
+
+Thêm lại riverpod codegen/lint khi nào nâng Flutter lên bản dùng meta ≥1.18.3.
+
+## 2026-08-21 · Phase 3 · compileSdk 37, targetSdk 36
+`flutter_secure_storage 11.0.0` yêu cầu **compileSdk 37** (Android 16 QPR). Đã tải platform
+android-37. Đặt `compileSdk = 37` (chỉ để biên dịch) nhưng giữ **`targetSdk = 36`** — bản đã
+test trên emulator, hành vi runtime ổn định, thoả hạn chót Play "≥36 từ 31/08/2026". Đây là cấu
+hình chuẩn: compile cao, target ổn định.
+
+Cũng phải bật `buildFeatures { resValues = true }` (AGP 9 tắt mặc định) để `resValue` cấp
+`app_name` khác nhau cho bản dev vs release. Và bỏ `kotlinOptions.jvmTarget` (Kotlin 2.3 biến
+nó thành lỗi) — Java 17 trong `compileOptions` là đủ.

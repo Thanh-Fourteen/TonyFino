@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Loại trừ DB mã hoá + khoá secure-storage khỏi mọi kênh sao lưu/chuyển máy.
+     Lý do: (1) DB chứa dữ liệu tài chính, không để rời máy dạng có thể giải mã ngoài ý muốn;
+     (2) EncryptedSharedPreferences của flutter_secure_storage nếu bị restore sang máy khác
+         mà không có khoá Keystore tương ứng sẽ ném InvalidKeyException — "app mở ra DB rỗng".
+     Sao lưu thật của app đi qua file backup có chủ đích (Phase 4), không qua kênh hệ thống. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" />
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+        <exclude domain="sharedpref" path="FlutterSecureStorage_BACKUP.xml" />
+        <exclude domain="file" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" />
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+        <exclude domain="sharedpref" path="FlutterSecureStorage_BACKUP.xml" />
+        <exclude domain="file" path="." />
+    </device-transfer>
+</data-extraction-rules>
