@@ -1,0 +1,61 @@
+# ─── Flutter / Dart ────────────────────────────────────────────────────────
+build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/*
+!.vscode/settings.json
+.DS_Store
+
+# ─── Android ───────────────────────────────────────────────────────────────
+android/local.properties
+android/.gradle/
+android/captures/
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.apk
+*.aab
+
+# ─── iOS ───────────────────────────────────────────────────────────────────
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.*
+
+# ─── BÍ MẬT — mất là mất khả năng cập nhật app vĩnh viễn (D3) ──────────────
+android/key.properties
+*.jks
+*.keystore
+.env
+.env.*
+
+# ─── DỮ LIỆU TÀI CHÍNH THẬT — không bao giờ commit (Phase 2) ───────────────
+raw_rolly/
+
+# ─── Artefact build đã ký, phục vụ qua tailscale (Phase 14) ────────────────
+dist/
+
+# ─── State runtime của trình chạy phase — máy nào chạy thì khác nấy ────────
+.autoclick/
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CỐ Ý KHÔNG IGNORE — những thứ này BẮT BUỘC phải nằm trong git:
+#
+#   drift_schemas/      snapshot schema từng version. Không có nó thì
+#                       migration test vô nghĩa, và app giữ lịch sử tài chính
+#                       nhiều năm mà không có migration được test là tự sát.
+#   test/fixtures/      corpus parser 300+ ca (Phase 7) + fixture Rolly ẩn danh.
+#                       Cần lịch sử blame vì sẽ tinh chỉnh hàng tháng.
+#   *.g.dart            file sinh bởi build_runner — commit để phát hiện
+#   *.drift.dart        codegen drift khi đổi version package.
+#   assets/fonts/       Be Vietnam Pro + Inter, bundle cục bộ (không google_fonts).
+# ═══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,146 @@
+# TonyFino — Nhật ký quyết định
+
+Ghi lại **quyết định và lý do**, để sau này không ai lật lại một lựa chọn vì đã quên vì sao nó được chọn. Đặc tả đầy đủ nằm trong [`TODOS.md`](../TODOS.md); file này là lịch sử.
+
+---
+
+## D1 — Tên & applicationId
+**Chốt:** tên hiển thị `TonyFino`; `applicationId = dev.tony.tonyfino`; bản debug thêm `applicationIdSuffix ".dev"` và label `TonyFino (dev)`.
+
+**Vì sao:** `applicationId` **bất biến trọn đời app** — đổi sau là Android coi như app khác, cài song song, dữ liệu cũ mắc kẹt. `dev.*` là quy ước cho app cá nhân không sở hữu tên miền; chiếm chỗ `com.*` trên một cái tên mình không kiểm soát thì tệ hơn.
+
+Suffix `.dev` **không phải chuyện thẩm mỹ**: nó khiến bản trên emulator và bản thật là hai package Android riêng, hai thư mục dữ liệu riêng. Nghĩa là không đời nào một bản debug xoá nhầm lịch sử tài chính thật, và cài được cả hai trên cùng máy.
+
+---
+
+## D2 — `git init` ngay từ đầu
+**Chốt:** khởi tạo git ở Phase 1. Identity cấp repo: `Tony <thanhfourteen@gmail.com>` (khớp git global đang dùng).
+
+**Vì sao:** ba thứ trong dự án này bắt buộc phải có lịch sử — `drift_schemas/*.json` (không vào git thì migration test vô nghĩa), corpus parser 300+ ca (sẽ tinh chỉnh hàng tháng, cần blame), và file `*.g.dart` sinh tự động (cần diff sạch để phát hiện codegen trôi khi nâng version package).
+
+`.gitignore` chặn `raw_rolly/` (dữ liệu tài chính thật), `dist/`, `*.jks`, `key.properties`. **Cố ý không chặn** `drift_schemas/`, `test/fixtures/`, `*.g.dart`, `assets/fonts/`.
+
+---
+
+## D3 — Keystore phát hành riêng, không dùng debug keystore
+**Chốt:** `~/keystores/tonyfino-release.jks`, RSA 4096, PKCS12, hiệu lực 10000 ngày. Mật khẩu ngẫu nhiên 40 ký tự. Gradle **fail lớn** nếu thiếu `android/key.properties`.
+
+**Đây là quyết định rủi ro cao nhất tài liệu này.** Trên Android, APK ký bằng key khác với bản đang cài thì buộc phải gỡ cài trước — mà gỡ cài là **xoá sạch dữ liệu**. Với app giữ bản sao duy nhất lịch sử tài chính, đổi key ký là một sự kiện mất dữ liệu.
+
+**Vì sao không dùng debug keystore:** `~/.android/debug.keystore` tự sinh lại nếu bị xoá. Xoá `~/.android` một lần — cài lại máy, dọn SDK, đổi máy — là mọi bản build sau đó thành uninstall-only. Hỏng âm thầm, phát hiện muộn, thảm hoạ. Tệ hơn: **template Gradle của Flutter lặng lẽ rơi về `signingConfigs.debug` khi thiếu `key.properties`**, nên "build được" không cho bạn tín hiệu nào rằng đang đi đường mong manh. Phải chặn tường minh ở Phase 3.
+
+**Sao lưu — đã tạo và xác minh fingerprint từ chính vị trí sao lưu (2026-08-21):**
+
+| # | Vị trí | Trạng thái |
+|---|---|---|
+| 1 | `~/keystores/tonyfino-release.jks` (SSD) | ✅ đã xác minh |
+| 2 | `/mnt/data1tb/backups/tonyfino/` (ổ vật lý khác) | ✅ đã xác minh |
+| 3 | `~/keystores/tonyfino-keystore-backup-2026-08-21.tar.gz.gpg` (AES256) | ✅ giải mã ra và xác minh |
+
+SHA256: `A7:98:A2:9D:62:67:C1:C3:F6:3B:77:4B:79:04:56:28:F9:7F:67:93:B7:3D:E5:F4:32:8B:1D:89:00:E4:32:4A`
+
+> ⚠️ **Bản 3 hiện vẫn nằm trên chính máy này** nên chưa thật sự là nơi thứ ba. Tony cần chép nó ra ngoài (điện thoại / cloud / USB) và lưu mật khẩu vào trình quản lý mật khẩu. Chưa làm thì thực chất mới có **hai** bản sao trên hai đĩa cùng một máy.
+
+**Giảm nhẹ thật sự là ở kiến trúc, không phải ở quy trình:** vòng export → xoá → import phải được **test** từ Phase 4, không phải Phase 13. Restore chạy được thì mất keystore hạ từ "thảm hoạ" xuống "phiền phức". Càng quan trọng vì `allowBackup="false"` (bắt buộc, do lỗi `InvalidKeyException` của `flutter_secure_storage`) khiến Google auto-backup và `adb backup` đều không cứu được — **file backup trong app là đường phục hồi duy nhất tồn tại**.
+
+---
+
+## D4 — Đánh version
+`versionCode` là số nguyên tăng đơn điệu, tăng tay mỗi lần cài lên máy thật. `versionName` semver theo phase, `1.0.0` ở bản giao đầu. Mọi build nhúng `--dart-define=GIT_SHA=…`, hiện ở Settings → About.
+
+**Vì sao:** tự deploy không qua store thì "APK nào đang nằm trên máy?" thành câu hỏi thật chỉ sau hai tuần. Không dùng versionCode theo ngày (`20260821`) — một khi đã dùng là mắc kẹt với số 8 chữ số vĩnh viễn; không dùng `git rev-list --count` — hỏng nếu lịch sử bị viết lại. `schemaVersion` của drift **độc lập**, không gắn với version app.
+
+---
+
+## D5 — Cắt 4 package khỏi v1
+Bỏ `workmanager`, `flutter_local_notifications`, `permission_handler`, `local_auth` khỏi phạm vi v1.
+
+**Vì sao:** cả bốn phục vụ tính năng đã hoãn (nhắc hoá đơn, khoá vân tay). Mỗi cái là một plugin 0.x nằm chắn đường tới APK đầu tiên. Auto-backup v1 dùng **kiểm tra khi app resume** — vốn đã là đường chính đáng tin, `workmanager` chỉ là đai an toàn thêm (OEM Android và iOS BGTaskScheduler đều giết định kỳ tuỳ hứng).
+
+---
+
+## D6 — Universal APK, không `--split-per-abi`
+**Vì sao:** emulator là `x86_64`, Redmi Note 13 Pro là `arm64-v8a`. Split nghĩa là **file đã test kỹ không phải file đem cài**. Quan trọng gấp bội ở dự án này vì sqlite3mc **biên dịch từ nguồn C theo từng ABI** qua Dart build hooks. Đổi lại ~8 MB — không đáng bận tâm khi sideload.
+
+---
+
+## D7 — Số dư là giá trị dẫn xuất, không bao giờ lưu
+Không có cột `balance` ở bất cứ đâu. Balance = `SUM(amount_minor)` phát qua drift `Stream`.
+
+**Vì sao:** than phiền số 1 về Rolly, áp đảo, là **số dư sai và không cập nhật sau khi thêm giao dịch**. Đó không phải một bug cần cẩn thận — đó là một quyết định schema. Không có cache thì không thể sai. Kèm theo: mọi write trả `Result<T, AppError>`, zero fire-and-forget, lỗi hiện blocking dialog và ghi vào bảng `app_events`.
+
+---
+
+## D8 — AI proxy host trên tailnet, không dùng Cloudflare Worker
+**Vì sao:** Worker là endpoint public giữ key tính tiền ⇒ kéo theo rủi ro lạm dụng, phải tự viết quota/rate-limit, phải đặt trần chi tiêu, phải có tài khoản Cloudflare + `wrangler login` (cần browser — máy chỉ có Firefox). Trong khi đó **điện thoại đã ở trên tailnet**, `tailscale serve` mặc định chỉ trong tailnet ⇒ đã xác thực ở tầng mạng theo danh tính thiết bị, **APK không chứa credential nào**. Base URL cấu hình được trong Settings nên đổi sang Worker sau này là cắm-vào-là-chạy.
+
+**Quyền riêng tư:** free tier Gemini **dùng prompt để train**, mà prompt ở đây là `"Ăn trưa với sếp 250k"` gắn với người thật. Nên: dùng key **paid tier** (ở mức fallback-của-fallback chỉ vài xu/tháng) **và** mặc định TẮT cloud fallback.
+
+---
+
+## D9 — Không fork, không mua template
+**Vì sao:** đã rà toàn bộ GitHub. App Flutter finance **đẹp** thì đều copyleft — Cashew GPL-3.0 (4.5k★, và bundle cả font Avenir có bản quyền thương mại), Monekin AGPL-3.0, BeeCount Business Source. App **license dùng được** thì đều nhìn tầm thường — sossoldi MIT, totals MIT, waterfly-iii MIT. Không có cái nào vừa đẹp vừa dùng được.
+
+Template CodeCanyon $7–29 là code Flutter-3.0-era `setState`/GetX với màu hardcode rải khắp widget; gắn vào Riverpod 3 + drift + `ThemeExtension` tốn công hơn viết mới, chưa kể không template nào nghĩ tới tiếng Việt. ~15 widget riêng ≈ 2–3 ngày, và đó chính là chỗ tạo khác biệt.
+
+---
+
+## D10 — Lưu `categoryColorId INTEGER`, không lưu chuỗi hex
+**Vì sao:** đây là sai lầm **không thể đảo ngược** phổ biến nhất trong app quản lý chi tiêu. Lưu hex thì dark mode sai, không đổi được cả bảng màu trong một file, không thêm được theme AMOLED hay tương phản cao sau này. Lưu ID rồi resolve qua `ThemeExtension` thì tất cả những cái đó thành miễn phí.
+
+---
+
+# Quyết định phát sinh trong lúc thực hiện
+
+## 2026-08-21 · Phase 1 · Keystore dùng PKCS12 thay vì JKS
+`keytool` cảnh báo JKS là định dạng độc quyền và khuyến nghị PKCS12. Đã chuyển. **Fingerprint SHA256 giữ nguyên** — cùng một khoá, chỉ đổi vỏ chứa. Gradle đọc PKCS12 y hệt; giữ đuôi `.jks` để đường dẫn trong tài liệu không đổi.
+
+## 2026-08-21 · Phase 1 · Chia đĩa SSD/HDD thay vì dời tất
+Máy có SSD Kingston 109 GB (còn 25 GB) và HDD Apple 5400rpm 916 GB (còn 503 GB). Ý định ban đầu là "dời cache sang ổ 1TB cho rộng", nhưng `cat /sys/block/sdb/queue/rotational` = `1` — nó là **đĩa quay**, không phải SSD.
+
+Nên chỉ dời **kho lạnh**: `~/Android/Sdk/system-images` (4,2 GB, chỉ đọc tuần tự lúc emulator boot) → `/mnt/data1tb/android-dev/system-images`, symlink lại. `~/.gradle`, `~/.pub-cache`, `~/.android/avd`, `build/` **ở lại SSD** vì chúng là IO ngẫu nhiên nặng.
+
+Kết quả: SSD 25 GB → **29 GB trống**, và image API 36 (~2 GB) tải về cũng rơi thẳng sang HDD.
+
+## 2026-08-21 · Phase 1 · Xác minh font bằng dữ liệu, không bằng niềm tin
+Research cảnh báo `DM Sans` và `Figtree` không có bộ tiếng Việt, và để ngỏ câu hỏi Be Vietnam Pro có `tnum` hay không. Đã kiểm bằng `fontTools` trên chính file đã tải:
+
+| Font | 134 ký tự có dấu | `₫ — ·` | `tnum` | Trục biến thiên |
+|---|---|---|---|---|
+| BeVietnamPro-Regular/Medium/SemiBold/Bold | ✅ 134/134 | ✅ | — | (tĩnh) |
+| Inter-Variable | ✅ 134/134 | ✅ | **✅** | `opsz 14–32`, `wght 100–900` |
+
+Xác nhận cặp font đã chọn là đúng: **Be Vietnam Pro không có `tnum`** — đúng như nghi ngờ — nên Inter gánh toàn bộ chữ số, và Inter thì có đủ cả `tnum` lẫn tiếng Việt. Ảnh render thử ở mọi cỡ không cho thấy tofu hay cắt dấu.
+
+## 2026-08-21 · Phase 1 · `clang`/`ninja` chưa cài — chưa gỡ được
+`sudo` trên máy này cần mật khẩu nên không chạy `apt install` tự động được. **Đây là blocker cứng cho Phase 3** (Dart build hooks gọi `clang`, không phải `gcc`; thiếu là `flutter test` biên dịch sqlite3mc cho `linux-x64` sẽ hỏng). Tony phải tự chạy:
+
+```bash
+sudo apt install -y clang ninja-build
+```
+
+Phương án lùi nếu không muốn cài: NDK có sẵn clang tại `~/Android/Sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang`, và `ninja` có tại `~/Android/Sdk/cmake/3.22.1/bin/ninja`. Cả hai có thể đưa vào `PATH` qua `tool/env.sh`. **Chưa kiểm chứng** clang của NDK build được host `linux-x64` hay không — nếu Tony chọn đường này, phải thử ngay trong spike F1 ở Phase 3 trước khi tin.
+
+## 2026-08-21 · Phase 1 · Template Flutter 3.44.1 đã mặc định đúng — không cần ghi đè
+
+Phần "nghiên cứu trước" của Phase 1 hoá ra là tin tốt. Đọc thẳng
+`packages/flutter_tools/lib/src/android/gradle_utils.dart` trong SDK cục bộ:
+
+| Hằng số | Giá trị mặc định | Plan cần | Khớp? |
+|---|---|---|---|
+| `compileSdkVersionInt` | **36** | 36 | ✅ |
+| `targetSdkVersion` | **36** | 36 | ✅ |
+| `minSdkVersionInt` | **24** | 24 | ✅ |
+| `ndkVersion` | **28.2.13676358** | (đã cài sẵn) | ✅ |
+| `templateDefaultGradleVersion` | **9.1.0** | (đã cache sẵn) | ✅ |
+| `templateAndroidGradlePluginVersion` | 9.0.1 | — | — |
+| `templateKotlinGradlePluginVersion` | 2.3.20 | — | — |
+
+Nghĩa là ở Phase 3, `flutter create` phát ra **đúng** `compileSdk 36` / `targetSdk 36` /
+`minSdk 24` mà không phải sửa gì. Hạn chót Play "target API 36 từ 2026-08-31" coi như
+đã thoả sẵn. NDK 28.2.13676358 đã có trên máy và Gradle 9.1.0 đã nằm trong
+`~/.gradle/wrapper/dists` — Phase 3 sẽ không phải tải Gradle.
+
+Phase 3 vẫn phải tự tay thêm: `applicationId`, `applicationIdSuffix ".dev"`,
+release signing đọc `key.properties` và fail lớn khi thiếu, `allowBackup="false"`,
+`dataExtractionRules`, và khai báo `fonts:`.
