@@ -502,14 +502,14 @@ Xong thì tick các checkbox của Phase 2 trong TODOS.md và báo lại ngắn 
 
 **Checklist:**
 
-- [ ] `flutter create --org dev.tony --project-name tonyfino --platforms=android,ios .`
-- [ ] `pubspec.yaml`: dep v1 đã cắt + `hooks.user_defines` sqlite3mc + khai báo `fonts:`
-- [ ] Gradle: `targetSdk 36`, `applicationId dev.tony.tonyfino`, debug suffix `.dev`, release signing **fail lớn** khi thiếu `key.properties`
-- [ ] Manifest: `allowBackup="false"` + `dataExtractionRules` loại trừ `.db`/`.db-wal`/`.db-shm` + prefs của flutter_secure_storage
-- [ ] Cây thư mục `core/ theme/ data/ features/` + `analysis_options.yaml` + grep lint chặn `dart:io`/`Platform.`/`DateTime.now()` trong `features/` và `material.dart` trong `theme/tokens/`
-- [ ] Edge-to-edge: system bar trong suốt, `systemNavigationBarContrastEnforced: false`
-- [ ] **Spike F1**: drift + sqlite3mc mở được bằng `PRAGMA key` trên **cả** emulator API 36 **lẫn** host dưới `flutter test` — hoặc đã lùi phương án và ghi vào `docs/decisions.md`
-- [ ] `flutter analyze` 0 issue, app chạy trên API 36, đã ghi lại Impeller hay Skia
+- [x] `flutter create --org dev.tony --project-name tonyfino --platforms=android,ios .`
+- [x] `pubspec.yaml`: dep v1 đã cắt + `hooks.user_defines` sqlite3mc + khai báo `fonts:`
+- [x] Gradle: `targetSdk 36`, `applicationId dev.tony.tonyfino`, debug suffix `.dev`, release signing **fail lớn** khi thiếu `key.properties`
+- [x] Manifest: `allowBackup="false"` + `dataExtractionRules` loại trừ `.db`/`.db-wal`/`.db-shm` + prefs của flutter_secure_storage
+- [x] Cây thư mục `core/ theme/ data/ features/` + `analysis_options.yaml` + grep lint chặn `dart:io`/`Platform.`/`DateTime.now()` trong `features/` và `material.dart` trong `theme/tokens/`
+- [x] Edge-to-edge: system bar trong suốt, `systemNavigationBarContrastEnforced: false`
+- [x] **Spike F1**: drift + sqlite3mc mở được bằng `PRAGMA key` trên **cả** emulator API 36 **lẫn** host dưới `flutter test` — hoặc đã lùi phương án và ghi vào `docs/decisions.md`
+- [x] `flutter analyze` 0 issue, app chạy trên API 36, đã ghi lại Impeller hay Skia
 
 **Prompt:**
 
