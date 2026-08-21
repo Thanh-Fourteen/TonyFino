@@ -434,7 +434,7 @@ Xong thì tick các checkbox của Phase 1 trong TODOS.md và báo lại ngắn 
 - [x] `docs/rolly-schema.md` — trả lời rõ: thang số tiền, quy ước dấu thu/chi, múi giờ, pagination
 - [x] `test/fixtures/rolly/sample.json` — bản ẩn danh khớp schema, có commit
 - [x] Ghi oracle nghiệm thu: tổng số giao dịch + tổng tiền từng tháng đọc từ UI Rolly
-- [ ] Ảnh chụp màn Rolly vào `docs/rolly-screens/` để đối chiếu thiết kế — ⏳ **Tony chụp**: 4 màn (danh sách giao dịch, báo cáo/biểu đồ, chat, ngân sách). Không chặn Phase 3, chỉ cần trước khi làm UI ở Phase 6/10
+- [x] ~~Ảnh chụp màn Rolly~~ — **Tony bỏ**: vẫn còn Rolly trên máy, sẽ mở app so sánh trực tiếp khi làm UI ở Phase 6/10. Không cần ảnh tĩnh
 - [x] Đối chiếu tay 10 giao dịch, đặc biệt dấu và múi giờ
 
 **Prompt:**
