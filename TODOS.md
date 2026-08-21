@@ -355,7 +355,7 @@ MÔI TRƯỜNG — CẠM BẪY:
 - [x] `sudo apt install clang ninja-build` — Tony đã cài 2026-08-21. clang 18.1.3 + ninja 1.11.1. Đã smoke-test: clang biên dịch được `.so` cho linux-x64 và `dlopen` gọi được — đúng đường sqlite3mc sẽ đi ở Phase 3
 - [x] Tải `system-images;android-36;google_apis;x86_64`, tạo AVD `tonyfino36` (RAM 4096MB)
 - [x] `tool/env.sh`, `tool/emulator.sh`, `tool/clean.sh`
-- [ ] Keystore `~/keystores/tonyfino-release.jks` + sao lưu 3 nơi, đọc được từ chính vị trí sao lưu — ⏳ keystore đã tạo (RSA 4096 PKCS12) và **3 bản sao đều đã xác minh fingerprint**, nhưng cả ba vẫn nằm trên cùng một máy. **Tony chạy**: chép `~/keystores/tonyfino-keystore-backup-2026-08-21.tar.gz.gpg` ra điện thoại/cloud/USB và lưu mật khẩu vào trình quản lý mật khẩu
+- [x] Keystore `~/keystores/tonyfino-release.jks` + sao lưu 3 nơi, đọc được từ chính vị trí sao lưu — RSA 4096 PKCS12. Bản 1 SSD, bản 2 HDD `/mnt/data1tb/backups/`, cả hai đã xác minh fingerprint. Bản 3 (gói `.tar.gz.gpg` AES256) **đã Taildrop sang `redmi-note-13-pro` 2026-08-21 12:26** → giờ đã có bản sao trên thiết bị vật lý khác
 - [x] Font Be Vietnam Pro (4 file) + Inter Variable vào `assets/fonts/`
 - [x] `docs/decisions.md` ghi D1–D10
 

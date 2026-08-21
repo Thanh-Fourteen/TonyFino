@@ -156,3 +156,37 @@ rồi `dlopen` và gọi hàm qua `ctypes` — chạy đúng. Đây chính là c
 `flutter doctor` vẫn báo đỏ mục "Linux toolchain" vì thiếu `libgtk-3-dev` và `mesa-utils`.
 **Không liên quan** — hai thứ đó chỉ cần khi build app Flutter cho *Linux desktop*, mà dự án
 này chỉ nhắm Android rồi iOS. Không cài.
+
+## 2026-08-21 · Phase 1 · Bản sao keystore đã ra khỏi máy — Taildrop và cái bẫy SAF
+Đã Taildrop `tonyfino-keystore-backup-2026-08-21.tar.gz.gpg` sang `redmi-note-13-pro` lúc 12:26.
+Giờ keystore tồn tại trên **hai thiết bị vật lý độc lập**, không phải ba bản trên cùng một thùng máy.
+
+**Vì sao hai lần đầu treo, ghi lại để lần sau không mất thời gian:** phía gửi hoàn toàn khoẻ —
+`TaildropTarget = 1 (Available)`, tailnet có sẵn cap `file-sharing`, `tailscale ping` pong 272ms.
+Nguyên nhân nằm ở máy nhận: từ tailscale-android **1.84**, file đến phải ghi qua Storage Access
+Framework. Chưa từng cấp thư mục thì `ShareFileHelper.openFileWriter()` gọi
+`waitUntilTaildropDirReady()` — hàm này `await()` một `CompletableDeferred` **không có timeout**,
+nên handler treo vĩnh viễn và bên gửi không nhận được lỗi nào.
+
+Nặng hơn: nếu từng huỷ hộp thoại chọn thư mục một lần, `notifyDirectoryReady()` không bao giờ được
+gọi, cờ `directoryReady.isActive` kẹt `true`, và guard trong code chặn luôn mọi lần hiện hộp thoại
+sau đó. Mở lại app bao nhiêu lần cũng vô ích — phải **force-stop** mới reset.
+
+Cách sửa: force-stop Tailscale → Settings → Permissions → **Taildrop directory access** →
+*Pick a different directory* → Downloads. Trước khi cấp, dòng đó hiện `No access`.
+App **không có** nút bật/tắt Taildrop; việc cấp thư mục chính là bước "bật", chỉ là bị giấu kỹ.
+
+**Chẩn đoán nhanh cho lần sau:**
+```bash
+tailscale status --json | jq -r '.Peer[] | "\(.HostName) TaildropTarget=\(.TaildropTarget)"'
+#   1 = Available (phía gửi OK)   9 = OwnedByOtherUser   5 = Offline
+curl -v --max-time 10 -X PUT --data 'x' 'http://<ip-máy-nhận>:1/v0/put/probe.txt'
+#   kết nối được nhưng treo  => handler bên nhận bị chặn, không phải lỗi mạng
+```
+Ghi chú: peerAPI của Android luôn báo **port 1** — đó là listener giả, netstack chặn lấy. Bình thường.
+
+**Phát hiện phụ đáng lưu:** node `pc.tail6efea7.ts.net` trong tailnet thuộc tài khoản khác
+(`nguyenvanthanhdat1810@`), `TaildropTarget = 9 OwnedByOtherUser`. Nghĩa là tailnet này **dùng chung**.
+Hệ quả cho Phase 6/12/14: `tailscale serve` phơi nội dung ra cho **mọi** node trong tailnet, kể cả
+node đó. Với APK thì chấp nhận được; với bất cứ thứ gì nhạy cảm thì phải mã hoá payload chứ đừng
+trông vào phạm vi mạng. Và tuyệt đối không dùng `tailscale funnel` — nó phơi ra Internet công cộng.
