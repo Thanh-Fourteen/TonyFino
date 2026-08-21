@@ -22,7 +22,7 @@ TABLES = {
     'monthly_category_sums_with_total': True, 'chat_history_with_input_view': True,
     'input_savings_view': True, 'savings': True, 'savings_with_total': True,
     'budget': True, 'debt_with_total': True, 'recurring_transactions_view': True,
-    'categorisation_rule': False,
+    'categorisation_rule': False, 'subcategory': True,
 }
 
 def parse_curl(path):

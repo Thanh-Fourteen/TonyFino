@@ -7,7 +7,7 @@ Ghi từ dữ liệu **thật** kéo về ngày 2026-08-21, không đoán. Ngu�
 - Backend: **Supabase / PostgREST**. Bảng nằm schema `public`.
 - Rolly gọi giao dịch là **`input`**, không phải "transaction". Đây là lý do dò tên "transactions" lúc đầu trả 404.
 - Truy vấn phải **lọc `user_id=eq.<uuid>`** — không lọc thì server trả 500 (RLS + bảng dùng chung mọi user).
-- Đã kéo về `raw_rolly/`: `input` (362), `category_view` (21), `wallet_view` (1), `monthly_category_sums_with_total` (50), `chat_history_with_input_view` (741), `input_savings_view` (8), `savings`/`savings_with_total`, `categorisation_rule` (41). `budget`/`debt`/`recurring` đều rỗng (Tony chưa dùng).
+- Đã kéo về `raw_rolly/`: `input` (362), `category_view` (21), `wallet_view` (1), `monthly_category_sums_with_total` (50), `chat_history_with_input_view` (741), `input_savings_view` (8), `savings`/`savings_with_total`, `categorisation_rule` (41), `subcategory` (30). `budget`/`debt`/`recurring` đều rỗng (Tony chưa dùng).
 
 ---
 
@@ -105,6 +105,10 @@ Bằng chứng: tổng `Savings` tự cộng từ `input` = **86.400.000**, như
 - Danh mục gắn với **`type`** (danh mục chi vs danh mục thu tách riêng).
 - `title` là tiếng Việt: `"Chưa được phân loại"`, `"Thực phẩm"`, `"Giặt đồ"`, `"Làm đẹp"`, `"Điện tử"`, …
 - `icon_image_url` trỏ tới ảnh PNG trên Supabase Storage của Rolly — TonyFino sẽ thay bằng icon riêng (D10: lưu `categoryColorId` + iconCode, không lưu URL).
+
+## Bảng `subcategory` — danh mục con
+
+30 bản, phủ đủ 27 subcategory mà giao dịch tham chiếu. Field: `id`, `category_id` (FK sang `category_view`), `title`, `wallet_id`, `user_id`, `created_at`. Giao dịch trỏ tới đây qua `input.subcategory_id`. Đã kéo về `raw_rolly/subcategory.json`.
 
 ## Bảng `wallet_view` — ví
 
