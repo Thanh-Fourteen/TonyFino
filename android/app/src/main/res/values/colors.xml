@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget màn hình chính (Phase 21) — copy tay từ bảng màu light trong
+         TODOS.md § Design system (card/hairline/onSurface/onSurfaceVariant/
+         primary), vì RemoteViews không đọc được ThemeExtension của Flutter. -->
+    <color name="widget_surface">#FFFFFF</color>
+    <color name="widget_hairline">#E4E4E9</color>
+    <color name="widget_on_surface">#16161A</color>
+    <color name="widget_on_surface_variant">#61616B</color>
+    <color name="widget_primary">#0F6C87</color>
+</resources>

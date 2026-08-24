@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon (Android 8+): launcher tự mask nền+foreground theo hình
+     dạng của từng OEM (tròn / squircle / giọt nước). <monochrome> là lớp
+     themed icon của Android 13+ — hệ thống tự tô theo màu wallpaper, nên
+     lớp đó là silhouette có mặt KHOÉT THỦNG, không phải bản màu thu nhỏ. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

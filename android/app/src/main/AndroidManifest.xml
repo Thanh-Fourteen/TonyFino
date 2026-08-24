@@ -1,8 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Chụp ảnh hoá đơn đính kèm (Phase 17, `image_picker`) — chỉ CAMERA,
+         KHÔNG cần quyền đọc bộ nhớ nào cho chọn từ thư viện ảnh (Android
+         Photo Picker hệ thống từ API 21+ trong image_picker 1.x không cần
+         READ_MEDIA_IMAGES/READ_EXTERNAL_STORAGE). `required="false"` vì máy
+         không có camera vẫn cài/dùng app được — chỉ ẩn/vô hiệu tuỳ chọn
+         "Chụp ảnh", vẫn chọn được từ thư viện. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- Nhập giọng nói (Phase 18, `speech_to_text`) — RECORD_AUDIO cho
+         micro; INTERNET vì `SpeechRecognizer` cấp hệ điều hành CÓ THỂ dùng
+         dịch vụ từ xa tuỳ gói ngôn ngữ đã tải trên máy (khác ML Kit OCR ở
+         dưới, luôn 100% cục bộ) — xem docs/decisions.md § Phase 18. App
+         KHÔNG tự gọi mạng ở bất kỳ tính năng nào khác (D8: AI fallback Phase
+         22 mặc định TẮT) — quyền này chỉ phục vụ chính native SpeechRecognizer. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="false"
         android:fullBackupContent="@xml/full_backup_content"
         android:dataExtractionRules="@xml/data_extraction_rules">
@@ -27,7 +44,24 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Widget màn hình chính (Phase 21) — action riêng mà
+                 `HomeWidgetLaunchIntent` (package home_widget) gắn vào
+                 PendingIntent khi chạm widget, để plugin phân biệt được "mở
+                 từ widget" khỏi "mở từ launcher" nếu Dart cần đọc lại sau. -->
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.LAUNCH"/>
+            </intent-filter>
         </activity>
+        <!-- Widget "Chi tiêu từ đầu tháng" (Phase 21). exported=true bắt buộc
+             từ Android 12 cho mọi receiver khớp một intent-filter. -->
+        <receiver android:name=".SpendingWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/spending_widget_info"/>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

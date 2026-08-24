@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/widget_container"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/spending_widget_background"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/widget_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Chi tiêu từ đầu tháng"
+        android:textSize="12sp"
+        android:textColor="@color/widget_on_surface_variant" />
+
+    <TextView
+        android:id="@+id/widget_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@color/widget_on_surface"
+        tools:text="−2.721.000 ₫" />
+
+    <TextView
+        android:id="@+id/widget_updated_at"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="10sp"
+        android:textColor="@color/widget_on_surface_variant"
+        tools:text="Cập nhật lúc 21:04:12" />
+</LinearLayout>

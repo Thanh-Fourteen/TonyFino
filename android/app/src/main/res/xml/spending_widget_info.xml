@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- updatePeriodMillis là lưới an toàn thụ động — Android không đảm bảo chạy
+     đúng chu kỳ này và có sàn tối thiểu ~30 phút theo tài liệu chính thức.
+     Đường cập nhật CHÍNH là chủ động: `HomeWidget.updateWidget()` gọi ngay khi
+     `SpendingWidgetService.sync()` chạy (Dart, mỗi khi monthSummaryProvider
+     phát giá trị mới) — xem Phase 21 "Xác minh" trong TODOS.md để biết độ trễ
+     đo được thật trên emulator. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="90dp"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/spending_widget"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/spending_widget_description">
+</appwidget-provider>

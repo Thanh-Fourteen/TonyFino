@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bản dark của widget_*.xml (values/colors.xml) — cùng bảng màu dark
+         trong TODOS.md § Design system. Widget hệ thống tự chọn qua qualifier
+         values-night, không cần code Kotlin theo dõi theme. -->
+    <color name="widget_surface">#14161A</color>
+    <color name="widget_hairline">#2A2F36</color>
+    <color name="widget_on_surface">#EDEEF0</color>
+    <color name="widget_on_surface_variant">#9BA1A6</color>
+    <color name="widget_primary">#63D3E8</color>
+</resources>

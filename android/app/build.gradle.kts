@@ -29,6 +29,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Phase 12: `flutter_local_notifications` đòi desugaring core library
+        // (dùng java.time API trên minSdk 24, dưới API 26 gốc không có).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -81,4 +84,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Cặp với `isCoreLibraryDesugaringEnabled` ở trên.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

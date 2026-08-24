@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget màn hình chính (Phase 21) — nhãn hiện trong bảng chọn widget của launcher. -->
+    <string name="spending_widget_description">Chi tiêu từ đầu tháng — TonyFino</string>
+</resources>

@@ -1,0 +1,18 @@
+name: tonyfino_ai_proxy
+description: >
+  Proxy nội bộ chạy TRÊN MÁY của Tony, expose qua `tailscale serve --set-path
+  /tonyfino-ai/` (D8, Phase 23). KHÔNG phải một phần của app Flutter (không ở
+  trong lib/) — một CLI Dart độc lập, tách khỏi TonyFino để không kéo
+  dart:io/HttpServer vào cây phụ thuộc app. Nhận request từ
+  `lib/data/services/ai/tailnet_fallback.dart`, gọi Gemini API bằng khoá
+  paid-tier của Tony (không bao giờ đóng gói trong APK), trả JSON phẳng.
+publish_to: "none"
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  http: ^1.6.0
+
+dev_dependencies:
+  test: ^1.25.0
