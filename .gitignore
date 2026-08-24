@@ -41,6 +41,12 @@ android/key.properties
 # ─── DỮ LIỆU TÀI CHÍNH THẬT — không bao giờ commit (Phase 2) ───────────────
 raw_rolly/
 
+# ─── Quay màn hình app Rolly (24MB) — tài liệu tham khảo UX, KHÔNG commit ──
+# Vừa là nội dung của sản phẩm người khác, vừa là 24MB nhị phân không diff
+# được, phình repo vĩnh viễn. Những gì rút ra từ nó đã nằm trong
+# docs/rolly-uiux-research.md dưới dạng chữ.
+rolly.mp4
+
 # ─── Artefact build đã ký, phục vụ qua tailscale (Phase 14) ────────────────
 dist/
 
