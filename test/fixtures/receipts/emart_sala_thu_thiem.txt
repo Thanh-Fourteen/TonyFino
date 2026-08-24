@@ -1,0 +1,41 @@
+# Hoá đơn Emart Sala Thủ Thiêm 23/08/2026 — chép từ ảnh Tony chụp, ĐÃ BỎ
+# dòng mã tham chiếu thanh toán. Giữ nguyên cấu trúc thật (nhãn "Tổng số",
+# mã vạch EAN-13 cạnh mỗi dòng hàng, dấu phân cách nghìn) vì đó chính là
+# thứ bộ trích xuất phải xử lý đúng — xem receipt_ocr_real_receipt_test.dart.
+emart
+www.emart.com.vn
+Emart Sala Thủ Thiêm
+Điện thoại:(028) 3588 6999
+MST:0316940306
+10 Mai Chí Thọ, P.An Khánh, TP.HCM
+Hoạt động từ : 07h30 - 22h30
+01002  23-08-2026 21:27  PDS:0004-0311
+Tên sản phẩm     Đơn giá    SL    Số tiền
+01) VAT08 SNACK POCA SỢI NƯA VỊ MALA CAY N
+1200108005566              63,900     1     63,900
+02) VAT08 T.ỚT CHINSU CHAI EO 500G
+8936136116143              34,900     1     34,900
+03) VAT08 PHỞ GẠO LỨT HỮU CƠ B.CHI 200G
+8934863371729              28,500     1     28,500
+04) VAT08 NN 7UP SODA CHANH LON 320ML
+8934588752117               9,100     2     18,200
+05) VAT08 BVS LAURIER SLIMGUARD 25CM 16M
+8851818708266              78,000     1     78,000
+06) VAT08 XXT COCKTAIL CP XK GÓI 250G
+8935058911645              36,900     1     36,900
+07) VAT08 BÁNH BABY CHOUX MATCHA
+2371930000000              22,800     1     22,800
+08) VAT08 MÌ XỐT KEM BULGOGI KORENO GÓI 100G
+8936028643252              12,500     1     12,500
+09) VAT08 MÌ XÀO GÀ PHỞ MAI KORENO VOLCANO 118G
+8936028641104              13,600     1     13,600
+10) VAT08 MÌ CHAMPONG NONGSHIM 124G
+0311461519O5               26,900     1     26,900
+11) VAT08 SNACK QUẨY XOẮN CAY 140G
+8802876204603              24,900     1     24,900
+12) VAT08 SNACK NACHO VỊ P.MAI CHEDDAR NB 155G
+8809189924136              52,900     1     52,900
+Tổng số                                   414,000
+                                          414,000
+Số tiền hạng mục đánh thuế                383,334
+Thuế giá trị gia tăng                      30,666

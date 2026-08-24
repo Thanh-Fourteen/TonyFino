@@ -1,0 +1,311 @@
+{"input":"cà phê 15k","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cà phê 15 nghìn hôm qua","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cà phê 15 tr thứ 2","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cà phê 15 triệu","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cà phê 1.500.000 hôm qua","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"xăng 35k","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xăng 35 nghìn hôm qua","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"xăng 35 tr thứ 2","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"xăng 35 triệu","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xăng 3.500.000 hôm qua","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"tiền điện 50k","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tiền điện 50 nghìn hôm qua","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"tiền điện 50 tr thứ 2","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"tiền điện 50 triệu","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tiền điện 5.000.000 hôm qua","expected":[{"amountMinor":5000000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"bỉm 120k","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"bỉm 120 nghìn hôm qua","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"bỉm 120 tr thứ 2","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"bỉm 120 triệu","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"bỉm 12.000.000 hôm qua","expected":[{"amountMinor":12000000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"quần áo 200k","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"quần áo 200 nghìn hôm qua","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"quần áo 200 tr thứ 2","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"quần áo 200 triệu","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"quần áo 20.000.000 hôm qua","expected":[{"amountMinor":20000000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"tai nghe 15k","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tai nghe 15 nghìn hôm qua","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"tai nghe 15 tr thứ 2","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"tai nghe 15 triệu","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tai nghe 1.500.000 hôm qua","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"thuốc 35k","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"thuốc 35 nghìn hôm qua","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"thuốc 35 tr thứ 2","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"thuốc 35 triệu","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"thuốc 3.500.000 hôm qua","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cắt tóc 50k","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cắt tóc 50 nghìn hôm qua","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cắt tóc 50 tr thứ 2","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cắt tóc 50 triệu","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cắt tóc 5.000.000 hôm qua","expected":[{"amountMinor":5000000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"học phí 120k","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"học phí 120 nghìn hôm qua","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"học phí 120 tr thứ 2","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"học phí 120 triệu","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"học phí 12.000.000 hôm qua","expected":[{"amountMinor":12000000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"xem phim 200k","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xem phim 200 nghìn hôm qua","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"xem phim 200 tr thứ 2","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"xem phim 200 triệu","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xem phim 20.000.000 hôm qua","expected":[{"amountMinor":20000000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"sửa chữa 15k","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"sửa chữa 15 nghìn hôm qua","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"sửa chữa 15 tr thứ 2","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"sửa chữa 15 triệu","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"sửa chữa 1.500.000 hôm qua","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"lương 35k","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 35 nghìn hôm qua","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"lương 35 tr thứ 2","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"lương 35 triệu","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 3.500.000 hôm qua","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cà phê 50k thứ 2","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cà phê 50 nghìn","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cà phê 50 tr hôm qua","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cà phê 50 triệu thứ 2","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cà phê 5.000.000","expected":[{"amountMinor":5000000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xăng 120k thứ 2","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"xăng 120 nghìn","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xăng 120 tr hôm qua","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"xăng 120 triệu thứ 2","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"xăng 12.000.000","expected":[{"amountMinor":12000000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tiền điện 200k thứ 2","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"tiền điện 200 nghìn","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tiền điện 200 tr hôm qua","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"tiền điện 200 triệu thứ 2","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"tiền điện 20.000.000","expected":[{"amountMinor":20000000,"amountConfident":true,"categoryKey":"nha_cua","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"bỉm 15k thứ 2","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"bỉm 15 nghìn","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"bỉm 15 tr hôm qua","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"bỉm 15 triệu thứ 2","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"bỉm 1.500.000","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"gia_dinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"quần áo 35k thứ 2","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"quần áo 35 nghìn","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"quần áo 35 tr hôm qua","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"quần áo 35 triệu thứ 2","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"quần áo 3.500.000","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"mua_sam","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tai nghe 50k thứ 2","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"tai nghe 50 nghìn","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"tai nghe 50 tr hôm qua","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"tai nghe 50 triệu thứ 2","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"tai nghe 5.000.000","expected":[{"amountMinor":5000000,"amountConfident":true,"categoryKey":"dien_tu","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"thuốc 120k thứ 2","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"thuốc 120 nghìn","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"thuốc 120 tr hôm qua","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"thuốc 120 triệu thứ 2","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"thuốc 12.000.000","expected":[{"amountMinor":12000000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cắt tóc 200k thứ 2","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cắt tóc 200 nghìn","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cắt tóc 200 tr hôm qua","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cắt tóc 200 triệu thứ 2","expected":[{"amountMinor":200000000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cắt tóc 20.000.000","expected":[{"amountMinor":20000000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"học phí 15k thứ 2","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"học phí 15 nghìn","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"học phí 15 tr hôm qua","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"học phí 15 triệu thứ 2","expected":[{"amountMinor":15000000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"học phí 1.500.000","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"giao_duc","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xem phim 35k thứ 2","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"xem phim 35 nghìn","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xem phim 35 tr hôm qua","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"xem phim 35 triệu thứ 2","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"xem phim 3.500.000","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"sửa chữa 50k thứ 2","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"sửa chữa 50 nghìn","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"sửa chữa 50 tr hôm qua","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"sửa chữa 50 triệu thứ 2","expected":[{"amountMinor":50000000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"sửa chữa 5.000.000","expected":[{"amountMinor":5000000,"amountConfident":true,"categoryKey":"phat_sinh","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 120k thứ 2","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"lương 120 nghìn","expected":[{"amountMinor":120000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 120 tr hôm qua","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"lương 120 triệu thứ 2","expected":[{"amountMinor":120000000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"lương 12.000.000","expected":[{"amountMinor":12000000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 ngàn","expected":[{"amountMinor":8000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua xe 8 củ","expected":[{"amountMinor":8000000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8000 vnd","expected":[{"amountMinor":8000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8000đ","expected":[{"amountMinor":8000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8.000","expected":[{"amountMinor":8000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8,000","expected":[{"amountMinor":8000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 20 ngàn","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua xe 20 củ","expected":[{"amountMinor":20000000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 20000 vnd","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 20000đ","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 20.000","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 20,000","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 35 ngàn","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua xe 35 củ","expected":[{"amountMinor":35000000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 35000 vnd","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 35000đ","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 35.000","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 35,000","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 99 ngàn","expected":[{"amountMinor":99000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua xe 99 củ","expected":[{"amountMinor":99000000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 99000 vnd","expected":[{"amountMinor":99000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 99000đ","expected":[{"amountMinor":99000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 99.000","expected":[{"amountMinor":99000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 99,000","expected":[{"amountMinor":99000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 250 ngàn","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua xe 250 củ","expected":[{"amountMinor":250000000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 250000 vnd","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 250000đ","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 250.000","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 250,000","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 999 ngàn","expected":[{"amountMinor":999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua xe 999 củ","expected":[{"amountMinor":999000000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 999000 vnd","expected":[{"amountMinor":999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 999000đ","expected":[{"amountMinor":999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 999.000","expected":[{"amountMinor":999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 999,000","expected":[{"amountMinor":999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr1","expected":[{"amountMinor":1100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu 1","expected":[{"amountMinor":1100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu một","expected":[{"amountMinor":1100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr2","expected":[{"amountMinor":1200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu 2","expected":[{"amountMinor":1200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu hai","expected":[{"amountMinor":1200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr5","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu 5","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu năm","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr7","expected":[{"amountMinor":1700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu 7","expected":[{"amountMinor":1700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu bảy","expected":[{"amountMinor":1700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr9","expected":[{"amountMinor":1900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu 9","expected":[{"amountMinor":1900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu chín","expected":[{"amountMinor":1900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr120","expected":[{"amountMinor":1120000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr250","expected":[{"amountMinor":1250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr500","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1tr999","expected":[{"amountMinor":1999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 1 triệu rưỡi","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 1tr rưỡi","expected":[{"amountMinor":1500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr1","expected":[{"amountMinor":2100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu 1","expected":[{"amountMinor":2100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu một","expected":[{"amountMinor":2100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr2","expected":[{"amountMinor":2200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu 2","expected":[{"amountMinor":2200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu hai","expected":[{"amountMinor":2200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr5","expected":[{"amountMinor":2500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu 5","expected":[{"amountMinor":2500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu năm","expected":[{"amountMinor":2500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr7","expected":[{"amountMinor":2700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu 7","expected":[{"amountMinor":2700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu bảy","expected":[{"amountMinor":2700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr9","expected":[{"amountMinor":2900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu 9","expected":[{"amountMinor":2900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 triệu chín","expected":[{"amountMinor":2900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr120","expected":[{"amountMinor":2120000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr250","expected":[{"amountMinor":2250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr500","expected":[{"amountMinor":2500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2tr999","expected":[{"amountMinor":2999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 2 triệu rưỡi","expected":[{"amountMinor":2500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 2tr rưỡi","expected":[{"amountMinor":2500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr1","expected":[{"amountMinor":3100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu 1","expected":[{"amountMinor":3100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu một","expected":[{"amountMinor":3100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr2","expected":[{"amountMinor":3200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu 2","expected":[{"amountMinor":3200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu hai","expected":[{"amountMinor":3200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr5","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu 5","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu năm","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr7","expected":[{"amountMinor":3700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu 7","expected":[{"amountMinor":3700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu bảy","expected":[{"amountMinor":3700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr9","expected":[{"amountMinor":3900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu 9","expected":[{"amountMinor":3900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 triệu chín","expected":[{"amountMinor":3900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr120","expected":[{"amountMinor":3120000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr250","expected":[{"amountMinor":3250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr500","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3tr999","expected":[{"amountMinor":3999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 3 triệu rưỡi","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 3tr rưỡi","expected":[{"amountMinor":3500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr1","expected":[{"amountMinor":5100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu 1","expected":[{"amountMinor":5100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu một","expected":[{"amountMinor":5100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr2","expected":[{"amountMinor":5200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu 2","expected":[{"amountMinor":5200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu hai","expected":[{"amountMinor":5200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr5","expected":[{"amountMinor":5500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu 5","expected":[{"amountMinor":5500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu năm","expected":[{"amountMinor":5500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr7","expected":[{"amountMinor":5700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu 7","expected":[{"amountMinor":5700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu bảy","expected":[{"amountMinor":5700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr9","expected":[{"amountMinor":5900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu 9","expected":[{"amountMinor":5900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5 triệu chín","expected":[{"amountMinor":5900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr120","expected":[{"amountMinor":5120000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr250","expected":[{"amountMinor":5250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr500","expected":[{"amountMinor":5500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 5tr999","expected":[{"amountMinor":5999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 5 triệu rưỡi","expected":[{"amountMinor":5500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 5tr rưỡi","expected":[{"amountMinor":5500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr1","expected":[{"amountMinor":8100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu 1","expected":[{"amountMinor":8100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu một","expected":[{"amountMinor":8100000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr2","expected":[{"amountMinor":8200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu 2","expected":[{"amountMinor":8200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu hai","expected":[{"amountMinor":8200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr5","expected":[{"amountMinor":8500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu 5","expected":[{"amountMinor":8500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu năm","expected":[{"amountMinor":8500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr7","expected":[{"amountMinor":8700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu 7","expected":[{"amountMinor":8700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu bảy","expected":[{"amountMinor":8700000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr9","expected":[{"amountMinor":8900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu 9","expected":[{"amountMinor":8900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8 triệu chín","expected":[{"amountMinor":8900000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr120","expected":[{"amountMinor":8120000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr250","expected":[{"amountMinor":8250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr500","expected":[{"amountMinor":8500000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 8tr999","expected":[{"amountMinor":8999000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 8 triệu rưỡi","expected":[{"amountMinor":8500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"lương 8tr rưỡi","expected":[{"amountMinor":8500000,"amountConfident":true,"categoryKey":"luong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ mười nghìn","expected":[{"amountMinor":10000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ mười một nghìn","expected":[{"amountMinor":11000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ mười lăm nghìn","expected":[{"amountMinor":15000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ hai mươi nghìn","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ hai mươi mốt nghìn","expected":[{"amountMinor":21000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ hai mươi tư nghìn","expected":[{"amountMinor":24000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ hai mươi lăm nghìn","expected":[{"amountMinor":25000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ ba mươi nghìn","expected":[{"amountMinor":30000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ năm mươi nghìn","expected":[{"amountMinor":50000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ chín mươi chín nghìn","expected":[{"amountMinor":99000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ một trăm linh năm nghìn","expected":[{"amountMinor":105000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ một trăm lẻ năm nghìn","expected":[{"amountMinor":105000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ hai trăm nghìn","expected":[{"amountMinor":200000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ hai trăm năm mươi nghìn","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 2 trăm 50 nghìn","expected":[{"amountMinor":250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu 2 trăm 50 nghìn","expected":[{"amountMinor":1250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 1 triệu hai trăm năm mươi nghìn","expected":[{"amountMinor":1250000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ 3 trăm nghìn","expected":[{"amountMinor":300000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"mua đồ năm trăm ba mươi nghìn","expected":[{"amountMinor":530000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cà phê 35k thứ 2","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-17","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 3","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-18","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 4","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-19","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 5","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 6","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 7","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-15","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 3 tuần trước","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-11","dateExplicit":true}]}
+{"input":"cà phê 35k thứ 5 tuần sau","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-27","dateExplicit":true}]}
+{"input":"cà phê 35k chủ nhật","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-16","dateExplicit":true}]}
+{"input":"cà phê 35k hôm kia","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-19","dateExplicit":true}]}
+{"input":"cà phê 35k ngày mai","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-22","dateExplicit":true}]}
+{"input":"cà phê 35k 12/3","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-03-12","dateExplicit":true}]}
+{"input":"cà phê 35k 1/1","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-01-01","dateExplicit":true}]}
+{"input":"cà phê 35k 25/12","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-12-25","dateExplicit":true}]}
+{"input":"cà phê 35k 9/6/2025","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2025-06-09","dateExplicit":true}]}
+{"input":"cà phê 35k sáng nay","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"cà phê 35k trưa nay","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"cà phê 35k chiều nay","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"cà phê 35k tối nay","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"cà phê 35k khuya nay","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"cà phê 35k tối qua","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"Café 30k, xem phim 100k","expected":[{"amountMinor":30000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false},{"amountMinor":100000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cà phê 35k và xăng 50k","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false},{"amountMinor":50000,"amountConfident":true,"categoryKey":"di_chuyen","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"ăn sáng 30k; ăn trưa 50k; ăn tối 40k","expected":[{"amountMinor":30000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false},{"amountMinor":50000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false},{"amountMinor":40000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"cắt tóc 100k, mua thuốc 35k, xem phim 90k hôm qua","expected":[{"amountMinor":100000,"amountConfident":true,"categoryKey":"lam_dep","dateIso":"2026-08-21","dateExplicit":false},{"amountMinor":35000,"amountConfident":true,"categoryKey":"suc_khoe","dateIso":"2026-08-21","dateExplicit":false},{"amountMinor":90000,"amountConfident":true,"categoryKey":"giai_tri","dateIso":"2026-08-20","dateExplicit":true}]}
+{"input":"gõ thử xem sao","expected":[{"amountMinor":null,"amountConfident":false,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"chưa nghĩ ra gì cả","expected":[{"amountMinor":null,"amountConfident":false,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"xin chào","expected":[{"amountMinor":null,"amountConfident":false,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"hôm nay vui quá","expected":[{"amountMinor":null,"amountConfident":false,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":true}]}
+{"input":"ăn trưa ngon lắm dc 35k","expected":[{"amountMinor":35000,"amountConfident":true,"categoryKey":"an_uong","dateIso":"2026-08-21","dateExplicit":false}]}
+{"input":"ko nhớ mua gì hết 20k","expected":[{"amountMinor":20000,"amountConfident":true,"categoryKey":null,"dateIso":"2026-08-21","dateExplicit":false}]}

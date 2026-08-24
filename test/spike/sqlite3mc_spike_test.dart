@@ -23,8 +23,11 @@ void main() {
     // 2) file trên đĩa KHÔNG được chứa plaintext
     final bytes = File(path).readAsBytesSync();
     final asText = String.fromCharCodes(bytes.where((b) => b >= 32 && b < 127));
-    expect(asText.contains('bí mật'), isFalse,
-        reason: 'DB mã hoá không được lộ plaintext trên đĩa');
+    expect(
+      asText.contains('bí mật'),
+      isFalse,
+      reason: 'DB mã hoá không được lộ plaintext trên đĩa',
+    );
     expect(asText.contains('CREATE TABLE'), isFalse);
 
     // 3) mở lại đúng key -> đọc được
@@ -37,8 +40,11 @@ void main() {
     // 4) mở lại SAI key -> phải thất bại
     db = sqlite3.open(path);
     db.execute("PRAGMA key = 'wrong-key';");
-    expect(() => db.select('SELECT note FROM t;'), throwsA(anything),
-        reason: 'sai key thì không đọc được');
+    expect(
+      () => db.select('SELECT note FROM t;'),
+      throwsA(anything),
+      reason: 'sai key thì không đọc được',
+    );
     db.close();
 
     dir.deleteSync(recursive: true);

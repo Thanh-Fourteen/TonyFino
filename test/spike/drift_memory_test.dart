@@ -10,8 +10,10 @@ void main() {
     final executor = DatabaseConnection(db);
     // dùng trực tiếp low-level để khỏi cần generated code ở phase này
     await executor.executor.ensureOpen(_NoopUser());
-    final result = await executor.executor
-        .runSelect('SELECT 35000 AS amount_minor, ? AS note', ['cà phê 35k']);
+    final result = await executor.executor.runSelect(
+      'SELECT 35000 AS amount_minor, ? AS note',
+      ['cà phê 35k'],
+    );
     expect(result.single['amount_minor'], 35000);
     expect(result.single['note'], 'cà phê 35k');
     await executor.executor.close();
