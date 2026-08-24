@@ -1,0 +1,24 @@
+-- Tìm kiếm không dấu (Phase 17) trên `note_ascii` (cột bóng đã có từ Phase
+-- 4). Bảng ảo FTS5 duy nhất trong app — drift's Dart Table DSL (tables.dart)
+-- KHÔNG có API cho virtual table (đọc source `dsl/columns.dart`, xác nhận
+-- không đoán — xem docs/decisions.md § Phase 17 "Tìm kiếm FTS5"), khai qua
+-- `.drift` file là cách DUY NHẤT để drift_dev biết đây là một
+-- `DatabaseSchemaEntity` thật (nằm trong snapshot JSON, `schema_versions.
+-- steps.dart`, và ma trận test migration tự sinh) thay vì một side-effect
+-- SQL thô nằm ngoài mọi công cụ đó.
+--
+-- KHÔNG dùng kiểu bảng "external content" (content='transactions',
+-- content_rowid='id') + trigger đồng bộ tay — kiểu đó cần 3 trigger SQL để
+-- giữ đồng bộ ở MỌI đường ghi vào `transactions` (quick-add, import, nhân
+-- đôi, tách dòng, sửa tay...), rủi ro y hệt lớp lỗi "hai widget cùng khái
+-- niệm nhưng chỉ một cái được nối logic" đã gặp ở Phase 8. Thay vào đó, bảng
+-- này KHÔNG external-content — tự giữ bản sao `note_ascii` + một cột
+-- `transaction_id UNINDEXED` để tra ngược, đồng bộ tường minh ở
+-- `TransactionRepository` (CÙNG một `_db.transaction()` với mỗi lần
+-- insert/update/delete giao dịch) — đúng chỗ `note_ascii` chính nó đã luôn
+-- được đồng bộ từ Phase 4 ("giữ đồng bộ ở tầng repository, không ở DB",
+-- xem `tables.dart`), không phải một cơ chế mới.
+CREATE VIRTUAL TABLE transactions_fts USING fts5(
+  note_ascii,
+  transaction_id UNINDEXED
+) AS TransactionsFts;
