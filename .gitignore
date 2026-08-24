@@ -47,6 +47,18 @@ dist/
 # ─── State runtime của trình chạy phase — máy nào chạy thì khác nấy ────────
 .autoclick/
 
+# ─── Proxy AI fallback (Phase 23) — state runtime máy này, không commit ────
+ai_proxy/.server.pid
+ai_proxy/.server.log
+ai_proxy/.dart_tool/
+ai_proxy/.packages
+
+# ─── Golden test: chỉ commit ảnh CI (Ahem, ổn định xuyên nền tảng). Ảnh ────
+# platform (chữ thật) phụ thuộc máy dev, KHÔNG commit — xem test/flutter_test_config.dart
+test/**/goldens/linux/
+test/**/goldens/macos/
+test/**/goldens/windows/
+
 # ═══════════════════════════════════════════════════════════════════════════
 # CỐ Ý KHÔNG IGNORE — những thứ này BẮT BUỘC phải nằm trong git:
 #

@@ -3,7 +3,7 @@ description: "App quản lý chi tiêu cá nhân — bản thay thế Rolly, off
 publish_to: "none"
 
 # versionName theo phase (D4). versionCode = số sau dấu +, tăng tay mỗi lần cài lên máy thật.
-version: 0.1.0+1
+version: 1.0.1+42
 
 environment:
   sdk: ^3.12.0
@@ -20,13 +20,19 @@ dependencies:
   go_router: ^17.5.0
 
   # ── Database (mã hoá qua sqlite3mc, khai báo ở hooks bên dưới) ──
-  drift: ^2.34.3
+  # PIN CHÍNH XÁC (không phải ^) và PHẢI khớp patch với drift_dev bên dưới —
+  # lệch patch làm cả CLI `dart run drift_dev ...` biên dịch lỗi, không riêng
+  # `make-migrations` (xem docs/decisions.md § Phase 4, 2026-08-21).
+  drift: 2.34.0
   drift_flutter: ^0.3.1
   sqlite3: ^3.5.2
 
   # ── Nền tảng / lưu trữ ──
   path_provider: ^2.1.6
+  path: ^1.9.1
   flutter_secure_storage: ^11.0.0
+  shared_preferences: ^2.5.5
+  package_info_plus: ^10.1.0
 
   # ── Tiền + i18n ──
   intl: ^0.20.2
@@ -38,20 +44,67 @@ dependencies:
   animations: ^2.1.0
   skeletonizer: ^2.1.3
   animated_flip_counter: ^0.3.4
-  dynamic_color: ^2.1.0
+  # PIN CHÍNH XÁC ở 1.9.0, KHÔNG `^2.x` — dynamic_color 2.0.0 migrate sang
+  # `package:material_ui`'s RIÊNG `ColorScheme` (một class hoàn toàn khác,
+  # KHÔNG cùng type với `package:flutter/material.dart`'s `ColorScheme` mà
+  # `appTheme` dùng) — `DynamicColorBuilder` 2.x trả về kiểu không gán được
+  # cho `appTheme(dynamicScheme: ...)`, lỗi biên dịch xác nhận trực tiếp qua
+  # `flutter analyze`, không đoán. 1.9.0 là bản CUỐI CÙNG trước migration đó.
+  # Xem docs/decisions.md § Phase 17 "Dynamic color".
+  dynamic_color: 1.9.0
   flutter_animate: ^4.5.2
+  # Ảnh hoá đơn đính kèm (Phase 17) — CHỈ giữ ảnh, không OCR (Phase 18 riêng).
+  image_picker: ^1.2.2
 
   # ── Export / backup / import ──
   share_plus: ^13.3.0
   file_picker: ^12.0.0
+  # file_picker 12 KHÔNG re-export AndroidSAFOptions/FilePickerAndroidOptions
+  # qua barrel `file_picker.dart` dù chính android_file_picker mới là nơi
+  # takePersistableUriPermission() thật sự chạy (H6) — phải import trực tiếp.
+  android_file_picker: ^1.0.1
   csv: ^8.0.0
+
+  # ── Bảo mật & tự động hoá (Phase 12) ──
+  workmanager: ^0.10.9
+  local_auth: ^3.0.2
+  # `local_auth`'s LocalAuthException/LocalAuthExceptionCode sống ở đây —
+  # khai trực tiếp thay vì phụ thuộc re-export ngầm (cùng lý do
+  # android_file_picker ở trên: không đảm bảo còn re-export ở major sau).
+  local_auth_platform_interface: ^1.1.0
+  flutter_local_notifications: ^22.3.0
+  # `timezone`: `flutter_local_notifications` cần TZDateTime cho zonedSchedule
+  # — dùng trực tiếp trong `recurring_reminder_service.dart`, khai rõ thay vì
+  # phụ thuộc bản transitive.
+  timezone: ^0.11.1
+  permission_handler: ^13.0.1
 
   # ── Parser tiếng Việt ──
   diacritic: ^0.1.6
   clock: ^1.1.2
 
-  # ── Mạng (chỉ dùng cho AI fallback ở Phase 12, mặc định tắt) ──
+  # ── Mạng (chỉ dùng cho AI fallback ở Phase 23, mặc định tắt) ──
   http: ^1.6.0
+
+  # ── Widget màn hình chính (Phase 21) ──
+  # 0.9.3 xác nhận qua CHANGELOG.md thật trên GitHub (không theo trí nhớ) —
+  # 0.7.0+1 đã fix lỗi mở app từ widget trên Android 15, 0.9.2 hỗ trợ AGP 9.x
+  # (khớp Gradle 9.1/9.5 của dự án). Package KHÔNG vẽ hộ widget — chỉ là cầu
+  # nối lưu dữ liệu (SharedPreferences) + gọi cập nhật; giao diện widget vẫn
+  # 100% Kotlin/RemoteViews tự viết, đúng D9. Xem docs/decisions.md § Phase 21.
+  home_widget: ^0.9.3
+
+  # ── Quét hoá đơn OCR & giọng nói (Phase 18) ──
+  # ML Kit chạy HOÀN TOÀN cục bộ (Play Services), không cần mạng — tiếng Việt
+  # có dấu là ngôn ngữ chính thức của bộ nhận dạng script Latin (xác nhận từ
+  # trang "Supported languages" của Google, xem docs/decisions.md § Phase 18),
+  # không cần cài thêm gói ngôn ngữ nào (những gói Chinese/Devanagari/Japanese/
+  # Korean chỉ dành cho 4 script khác Latin).
+  google_mlkit_text_recognition: ^0.17.1
+  # speech_to_text KHÔNG đảm bảo on-device 100% như ML Kit — gọi thẳng
+  # SpeechRecognizer cấp hệ điều hành, có thể cần mạng tuỳ gói ngôn ngữ đã tải
+  # trên máy (xem docs/decisions.md § Phase 18 — cần khai INTERNET permission).
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:
@@ -61,9 +114,22 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 #  riverpod_lint: (xung đột analyzer với build_runner trên Flutter 3.44.1 — xem decisions)
   build_runner: ^2.4.0
-  drift_dev: ^2.34.0
+  # PIN CHÍNH XÁC, phải khớp patch với `drift` ở trên (xem comment cạnh đó).
+  drift_dev: 2.34.0
   alchemist: ^0.14.0
   sqlite3_test: ^0.2.1
+  # `InMemorySharedPreferencesAsync` (Phase 8) — `SharedPreferencesAsync()`
+  # ném lỗi đồng bộ trong widget test nếu không set platform instance trước;
+  # package chính không re-export lớp fake này nên phải khai trực tiếp.
+  shared_preferences_platform_interface: ^2.4.2
+  # Cùng lý do — Phase 9: `FilePickerPlatform.instance` fake để widget test
+  # lái được cả luồng "chọn file" mà không cần native file picker thật.
+  file_picker_platform_interface: ^3.0.1
+  cross_file: ^0.3.5+4
+  # Cùng lý do — Phase 17: `PathProviderPlatform.instance` fake trỏ về một
+  # thư mục tạm THẬT (`Directory.systemTemp`) để test round-trip backup ảnh
+  # hoá đơn (`ReceiptImageService`) chạy được trên host, không cần thiết bị.
+  path_provider_platform_interface: ^2.1.2
 
 # ── Dart build hooks: bundle SQLite bản SQLite3MultipleCiphers (mã hoá tại chỗ) ──
 # Đây là thứ khiến `PRAGMA key` hoạt động. Spike F1 chứng minh nó build được.
@@ -75,6 +141,17 @@ hooks:
 flutter:
   uses-material-design: true
   generate: true # bật gen l10n từ ARB
+
+  # Icon 3D (MIT — Microsoft Fluent Emoji, xem assets/icons3d/NOTICE.md).
+  # 3 file gốc: khoảnh khắc ăn mừng + điểm nhấn streak.
+  # categories/: icon danh mục, dùng ở MỌI nơi có CategoryAvatar.
+  assets:
+    - assets/icons3d/party_popper_3d.png
+    - assets/icons3d/trophy_3d.png
+    - assets/icons3d/fire_3d.png
+    # Bộ icon 3D cho danh mục (Microsoft Fluent Emoji, MIT — xem
+    # assets/icons3d/NOTICE.md). Nạp cả thư mục: tên file = iconCode.
+    - assets/icons3d/categories/
 
   fonts:
     # Be Vietnam Pro — chữ. Font tĩnh, thiết kế riêng cho dấu tiếng Việt.

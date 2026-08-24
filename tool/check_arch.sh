@@ -13,7 +13,7 @@ if grep -rnE "import 'dart:io'|import \"dart:io\"" lib/features/ 2>/dev/null; th
   viol "lib/features/ import dart:io — phải qua interface ở core/ hoặc data/services/"; fi
 if grep -rnE '\bPlatform\.(is|environment|operating)' lib/features/ 2>/dev/null | grep -v '// *ignore'; then
   viol "lib/features/ dùng Platform. — dùng defaultTargetPlatform hoặc interface"; fi
-if grep -rnE '\bDateTime\.now\(\)' lib/features/ lib/core/ lib/data/ 2>/dev/null | grep -v '// *ignore'; then
+if grep -rnE '\bDateTime\.now\(\)' lib/features/ lib/core/ lib/data/ 2>/dev/null | grep -vE '^\s*\S+:\s*//' | grep -v '// *ignore'; then
   viol "dùng DateTime.now() — phải qua Clock được inject (package:clock)"; fi
 
 echo "── Luật migration material_ui: lib/theme/tokens/ không import material.dart ──"

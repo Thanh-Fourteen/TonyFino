@@ -1,0 +1,3 @@
+tags:
+  golden:
+    description: Golden test (alchemist) — so ảnh, không chạy trên CI thiếu font.

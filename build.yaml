@@ -1,0 +1,22 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          databases:
+            app_database: lib/data/db/database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/data/db/generated/
+          # Phase 17: bảng ảo `transactions_fts` (FTS5, xem transactions_fts.drift)
+          # — thiếu khai báo module này thì drift_dev không phân tích được cú
+          # pháp `CREATE VIRTUAL TABLE ... USING fts5(...)`/`MATCH` (lỗi
+          # "Unknown column"/deserialize nội bộ, xác nhận trực tiếp bằng cách
+          # chạy build_runner TRƯỚC khi thêm dòng này rồi so sánh output).
+          # Khoá `sql.options` (không phải `sqlite` cấp cao nhất) — CLI
+          # `make-migrations` báo lỗi "cannot be used together the `sql`
+          # option" nếu dùng khoá `sqlite`, xác nhận bằng cách chạy CLI đó
+          # và đọc thông điệp lỗi, không đoán.
+          sql:
+            options:
+              modules:
+                - fts5
