@@ -23,6 +23,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Chọn danh mục cho dòng con đang mở đầu tiên.
+  ///
+  /// Sheet chọn danh mục CỐ Ý ở lại khi bấm một danh mục cha CÒN danh mục
+  /// con (nếu không thì hàng danh mục con không bao giờ hiện ra kịp — xem
+  /// `lib/ui/two_level_category_picker_sheet.dart`), nên muốn dừng ở mức
+  /// cha thì phải bấm nút chốt.
+  Future<void> pickCategoryForLine(WidgetTester tester, String name) async {
+    await tester.tap(find.text('Chọn danh mục').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(name).last);
+    await tester.pumpAndSettle();
+    final confirm = find.text('Dùng "$name"');
+    if (confirm.evaluate().isNotEmpty) {
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+    }
+  }
+
   testWidgets(
     'tách giao dịch — tổng khớp lưu thành công, categoryId cha = null',
     (tester) async {
@@ -46,16 +64,9 @@ void main() {
       final amountFields = find.byType(TextField).evaluate().length;
       expect(amountFields, greaterThanOrEqualTo(3)); // tổng + 2 dòng con
 
-      // Chọn danh mục cho từng dòng qua dialog "Chọn danh mục cho dòng này".
-      await tester.tap(find.text('Chọn danh mục').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(categories[0].name).last);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Chọn danh mục').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(categories[1].name).last);
-      await tester.pumpAndSettle();
+      // Chọn danh mục cho từng dòng qua sheet "Chọn danh mục cho dòng này".
+      await pickCategoryForLine(tester, categories[0].name);
+      await pickCategoryForLine(tester, categories[1].name);
 
       // Điền số tiền cho 2 dòng con (tổng khớp 30000).
       final lineAmountFields = find.byType(TextField);
@@ -89,10 +100,7 @@ void main() {
     await tester.tap(find.text('Tách giao dịch'));
     await tester.pumpAndSettle(); // đã tự có dòng #1 (xem test trên)
 
-    await tester.tap(find.text('Chọn danh mục').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(categories[0].name).last);
-    await tester.pumpAndSettle();
+    await pickCategoryForLine(tester, categories[0].name);
 
     await tester.enterText(
       find.byType(TextField).at(1),

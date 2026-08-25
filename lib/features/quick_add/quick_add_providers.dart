@@ -12,8 +12,8 @@ import '../../data/services/ai/tailnet_fallback.dart';
 import '../settings/settings_controller.dart';
 import '../transactions/transactions_providers.dart';
 import 'domain/ai_parse_fallback.dart';
+import 'domain/category_keyword_entries.dart';
 import 'domain/models/session_draft_card.dart';
-import 'domain/parser/normalizer.dart';
 import 'domain/parser/parser.dart';
 
 /// Bản mặc định của Phase 8 — `NoopFallback` khi `cloudFallbackEnabled` còn
@@ -56,22 +56,10 @@ final categoryKeywordEntriesProvider =
           .watch(categoryRepositoryProvider)
           .watchAllKeywords()
           .map(
-            (rows) => [
-              for (final category in categories)
-                CategoryKeywordEntry(
-                  categoryKey: category.id.toString(),
-                  keyword: category.name,
-                  keywordAscii: normalize(category.name).ascii,
-                  weight: 2.0,
-                ),
-              for (final row in rows)
-                CategoryKeywordEntry(
-                  categoryKey: row.categoryId.toString(),
-                  keyword: row.keyword,
-                  keywordAscii: row.keywordAscii,
-                  weight: row.weight,
-                ),
-            ],
+            (rows) => buildCategoryKeywordEntries(
+              categories: categories,
+              keywordRows: rows,
+            ),
           );
     });
 

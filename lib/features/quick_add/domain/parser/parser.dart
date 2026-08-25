@@ -75,7 +75,25 @@ ParsedDraft _parseSegment(
       .map((t) => t.text)
       .join(' ');
 
-  final category = matchCategory(leftoverText, categoryKeywords);
+  // Nhãn buổi nằm TRONG cụm ngày ("trưa nay", "tối qua") đã bị `findDate`
+  // cắt khỏi token, nên nếu chỉ đưa `leftoverText` cho bộ khớp thì "hủ tíu
+  // trưa nay 30k" mất sạch chữ "trưa" và không bao giờ xuống được danh mục
+  // con "Ăn trưa …", trong khi "hủ tíu trưa 30k" (không có "nay") thì lại
+  // xuống được — cùng một ý, hai kết quả khác nhau. Nối lại đúng lời hứa ở
+  // doc comment của [TimeOfDayLabel]: buổi là TÍN HIỆU PHÂN LOẠI.
+  //
+  // Chỉ nối vào chuỗi đem đi CHẤM ĐIỂM. `leftoverText` giữ nguyên vì nó còn
+  // là note của giao dịch và là thứ vòng lặp học ghi vào `category_keywords`
+  // (`correctCategory`) — nhét thêm chữ vào đó là làm bẩn dữ liệu học.
+  final timeOfDayWord = date.timeOfDayLabel == null
+      ? null
+      : timeOfDayWords.entries
+            .firstWhere((e) => e.value == date.timeOfDayLabel)
+            .key;
+  final category = matchCategory(
+    timeOfDayWord == null ? leftoverText : '$leftoverText $timeOfDayWord',
+    categoryKeywords,
+  );
 
   return ParsedDraft(
     rawText: rawSegment,

@@ -18,6 +18,7 @@ import '../../ui/app_bottom_sheet.dart';
 import '../../ui/app_chip.dart';
 import '../../ui/category_avatar.dart';
 import '../../ui/two_level_category_picker.dart';
+import '../../ui/two_level_category_picker_sheet.dart';
 import '../tags/tags_providers.dart';
 import '../wallets/wallets_providers.dart';
 import 'day_label.dart';
@@ -354,33 +355,15 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     // Cùng bộ chọn hai tầng với phần danh mục chính — trước đây đây là một
     // `SimpleDialog` liệt kê phẳng toàn bộ danh mục, tức là chỗ DUY NHẤT
     // trong luồng ghi khoản vẫn còn làm phẳng sau khi form chính đã sửa.
-    final pickedId = await showAppBottomSheet<int>(
+    // Dùng `showTwoLevelCategoryPickerSheet` chứ không tự dựng sheet: sheet
+    // tự dựng ở đây từng `pop` ngay trong `onChanged`, nên hàng danh mục
+    // CON không bao giờ kịp hiện ra (cùng bug với sheet ở màn chat).
+    final pickedId = await showTwoLevelCategoryPickerSheet(
       context: context,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: sheetContext.space.screenHorizontal,
-          vertical: sheetContext.space.lg,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Chọn danh mục cho dòng này',
-                style: sheetContext.text.titleLarge,
-              ),
-              SizedBox(height: sheetContext.space.lg),
-              TwoLevelCategoryPicker(
-                categories: categories,
-                kind: _isExpense ? 'expense' : 'income',
-                selectedId: line.categoryId,
-                onChanged: (id) => Navigator.of(sheetContext).pop(id),
-              ),
-            ],
-          ),
-        ),
-      ),
+      categories: categories,
+      kind: _isExpense ? 'expense' : 'income',
+      selectedCategoryId: line.categoryId,
+      title: 'Chọn danh mục cho dòng này',
     );
     if (pickedId == null) return;
     setState(() => line.categoryId = pickedId);

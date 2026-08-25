@@ -18,14 +18,6 @@ const Map<String, int> _weekdayWords = {
   'bảy': 7,
 };
 
-const Map<String, TimeOfDayLabel> _timeOfDayWords = {
-  'sáng': TimeOfDayLabel.morning,
-  'trưa': TimeOfDayLabel.noon,
-  'chiều': TimeOfDayLabel.afternoon,
-  'tối': TimeOfDayLabel.evening,
-  'khuya': TimeOfDayLabel.lateNight,
-};
-
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 class DateMatch {
@@ -78,7 +70,7 @@ DateMatch? _tryParseDateAt(List<Token> tokens, int idx, DateTime today) {
   // dưới dạng cụm 2 token CÓ "nay"/"qua" đi kèm, KHÔNG bắt từ buổi đứng một
   // mình — "sáng" đứng riêng rất hay là một phần của từ khoá danh mục
   // ("ăn sáng"), bắt nhầm sẽ cắt mất tín hiệu phân loại.
-  if (t0.type == TokenType.word && _timeOfDayWords.containsKey(t0.text)) {
+  if (t0.type == TokenType.word && timeOfDayWords.containsKey(t0.text)) {
     if (idx + 1 < tokens.length && tokens[idx + 1].type == TokenType.word) {
       final w1 = tokens[idx + 1].text;
       if (w1 == 'nay' || w1 == 'qua') {
@@ -89,7 +81,7 @@ DateMatch? _tryParseDateAt(List<Token> tokens, int idx, DateTime today) {
           date: ParsedDate(
             date: date,
             explicit: true,
-            timeOfDayLabel: _timeOfDayWords[t0.text],
+            timeOfDayLabel: timeOfDayWords[t0.text],
           ),
           startIndex: idx,
           endIndex: idx + 2,

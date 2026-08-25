@@ -10,6 +10,20 @@ library;
 /// [DateTime] đã resolve. Cố tình tách riêng thay vì đoán một giờ cụ thể.
 enum TimeOfDayLabel { morning, noon, afternoon, evening, lateNight }
 
+/// Từ chỉ buổi → nhãn. Dùng ở HAI chỗ, cố ý để chung một nguồn:
+///  * `date_parser` nhận dạng cụm `"<buổi> nay"` / `"<buổi> qua"`;
+///  * `categoryKeywordEntriesProvider` sinh tín hiệu phân loại cho danh mục
+///    CON có tên chứa từ buổi ("Ăn trưa", "Đồ ăn sáng"…) — chính là lời hứa
+///    ở doc comment của [TimeOfDayLabel] mà trước đây chưa ai nối dây, nên
+///    "hủ tíu trưa 30k" dừng ở danh mục cha.
+const Map<String, TimeOfDayLabel> timeOfDayWords = {
+  'sáng': TimeOfDayLabel.morning,
+  'trưa': TimeOfDayLabel.noon,
+  'chiều': TimeOfDayLabel.afternoon,
+  'tối': TimeOfDayLabel.evening,
+  'khuya': TimeOfDayLabel.lateNight,
+};
+
 /// Một khoản tiền đã tìm thấy trong chuỗi — số tiền LUÔN LÀ ĐỘ LỚN không dấu
 /// (VND, `currencyScale = 0`). Dấu thu/chi KHÔNG được quyết định ở đây —
 /// đó là việc của danh mục khớp được (`Categories.kind`) ở tầng gọi (Luật
@@ -59,12 +73,19 @@ class CategoryKeywordEntry {
     required this.keyword,
     required this.keywordAscii,
     this.weight = 1.0,
+    this.parentKey,
   });
 
   final String categoryKey;
   final String keyword;
   final String keywordAscii;
   final double weight;
+
+  /// `categoryKey` của danh mục CHA, `null` nếu đây là danh mục gốc — đủ để
+  /// `category_matcher` dựng lại cây hai tầng và chấm điểm theo NHÁNH (xem
+  /// doc comment ở đó) mà tầng parser thuần vẫn không phải biết gì về drift.
+  /// Mọi entry của cùng một `categoryKey` phải mang cùng một `parentKey`.
+  final String? parentKey;
 }
 
 /// Một danh mục khớp được cho phần chữ còn lại của draft, kèm điểm số

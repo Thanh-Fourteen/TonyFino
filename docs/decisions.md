@@ -1836,3 +1836,118 @@ crash, dữ liệu thật (hero card, mục tiêu CCTG, 4 giao dịch liên kế
 có test tự động nào tái hiện được race điều kiện đa-isolate này (bản chất cần 2 tiến trình OS thật,
 đúng lý do bug tồn tại "vô hình" suốt từ Phase 21 tới giờ dù test suite luôn xanh) — bằng chứng DUY
 NHẤT là diễn tập trên thiết bị thật, đúng lý do Phase 24 yêu cầu diễn tập này chứ không chỉ tin test.
+
+## 2026-08-25 · Sau v1.0.1 · "hủ tíu trưa 30k" không xuống được danh mục con — hai bug độc lập cùng chặn tầng hai
+
+**Tony báo**: *"Tôi nhấn 'hủ tíu trưa 30k' chỉ có thể chọn được thư mục đồ ăn, chưa chọn được thư mục
+con là đồ ăn trưa."* Sổ thật của Tony có sẵn `Thức ăn & Đồ uống › Ăn trưa thiết yếu` (một trong 30
+danh mục con nhập từ Rolly, xem `dist/tonyfino_subcategory_bundle.json`), nên đây không phải chuyện
+thiếu dữ liệu. Đào ra **ba** nguyên nhân tách biệt, không cái nào là hệ quả của cái nào.
+
+### 1. Bộ khớp danh mục chấm điểm PHẲNG, nên cha luôn đè con
+`category_matcher.matchCategory` argmax trên từng `categoryKey` rời rạc, hoàn toàn không biết
+`categories.parentCategoryId` tồn tại. Với "hủ tíu trưa": cha ăn 6.0 điểm (`hủ tíu`, từ khoá seed),
+con ăn 4.8 (`trưa`) → cha thắng, và **không có câu nào** đủ sức đưa xuống con trừ khi câu chứa
+nguyên tên con.
+
+**Chốt:** chấm điểm **theo NHÁNH**. Cộng điểm mọi con về nhánh của cha → chọn nhánh thắng (quyết định
+quan trọng nhất: sai nhánh là sai hẳn danh mục) → trong nhánh, con nào có điểm riêng cao nhất thì lấy
+con, không con nào có điểm thì lấy cha. `CategoryKeywordEntry` thêm `parentKey` để tầng parser thuần
+dựng lại được cây mà vẫn không phụ thuộc drift.
+
+**Vì sao không đơn giản "ưu tiên con":** con của một nhánh THUA sẽ cướp mất câu — "gửi xe trưa 5k"
+phải là Di chuyển, không phải bữa trưa. Cộng về nhánh trước rồi mới xét trong nhánh giữ được cả hai
+tính chất; có test riêng cho đúng ca này.
+
+### 2. Không có gì nối chữ "trưa" trong câu với danh mục con tên "Ăn trưa …"
+Tên đầy đủ của danh mục đã là từ khoá 2.0 (quyết định trước đó, § "TÊN danh mục là từ khoá mạnh nhất")
+— nhưng không ai viết "ăn trưa thiết yếu 30k", người ta viết tên món + đúng một chữ "trưa".
+
+**Chốt:** `categoryKeywordEntriesProvider` sinh thêm từ khoá cho **danh mục CON** có tên chứa một từ
+chỉ buổi, lấy từ đúng tập đóng `timeOfDayWords` đã có sẵn trong parser (`sáng/trưa/chiều/tối/khuya`),
+trọng số 1.2. Hoạt động với mọi cách đặt tên ("Ăn trưa", "Đồ ăn trưa", "Ăn trưa thiết yếu") vì so theo
+TỪ trong tên, không so cả tên.
+
+**Vì sao chỉ tập từ đóng, không tách mọi từ trong tên con:** tách "đồ"/"tiền"/"khác" thành từ khoá là
+đúng lớp lỗi mà `category_seed.dart` đã trả giá bằng dữ liệu đo thật với `'ăn'`/`'nước'`/`'cháo'` trần
+— thêm câu sai nhiều hơn câu đúng. Buổi trong ngày thì rõ nghĩa và đã được parser mô hình hoá sẵn.
+
+**Vì sao không seed thêm danh mục con "Ăn sáng/trưa/tối" mặc định:** Tony đã có bộ con riêng, seed
+thêm là tạo danh mục trùng ý nghĩa trong sổ thật. Cơ chế tổng quát chạy trên danh mục Tony đang có.
+
+### 3. Nhãn buổi nằm trong cụm NGÀY thì bị cắt mất trước khi tới bộ khớp
+`findDate` nuốt "trưa nay"/"tối qua" nguyên cụm, nên "hủ tíu trưa 30k" xuống được con còn "hủ tíu
+**trưa nay** 30k" thì không — cùng một ý, hai kết quả. `TimeOfDayLabel` vốn có doc comment ghi rõ nó
+là "TÍN HIỆU cho category_matcher", nhưng chưa ai nối dây.
+
+**Chốt:** `parser.dart` nối lại từ chỉ buổi vào chuỗi đem đi CHẤM ĐIỂM. `leftoverText` **giữ nguyên**
+— nó còn là note của giao dịch và là thứ vòng lặp học ghi vào `category_keywords`, nhét thêm chữ vào
+đó là làm bẩn dữ liệu học.
+
+### 4. Sheet chọn danh mục "chọn xong đóng ngay" làm tầng hai không bao giờ hiện ra
+Đây mới là thứ chặn Tony **sửa tay**. `TwoLevelCategoryPicker` đúng — hàng danh mục con của nó chỉ
+hiện SAU KHI đã chọn một cha — nhưng cả hai chỗ mở nó dạng sheet (`showCategoryPickerSheet` ở màn
+chat, sheet chọn danh mục cho dòng tách ở `transaction_form_sheet`) đều `Navigator.pop` ngay trong
+`onChanged`. Đúng cái frame hàng con lẽ ra hiện lên thì sheet đã đóng. Tầng hai chỉ nhìn thấy được
+khi thẻ VỐN ĐÃ mang sẵn một danh mục con.
+
+**Chốt:** một sheet dùng chung `lib/ui/two_level_category_picker_sheet.dart` giữ lựa chọn trong state
+của chính nó, chỉ đóng khi lựa chọn đã dứt điểm: chọn CON → đóng; chọn CHA không có con → đóng (giữ
+nguyên tốc độ cũ); chọn CHA có con → ở lại, hiện hàng con + nút chốt `Dùng "…"` cho người muốn dừng ở
+mức cha. Cả hai chỗ gọi chuyển sang dùng nó — cùng lý do đã gom `TwoLevelCategoryPicker` về một widget
+ở Phase 25: sửa từng chỗ một là chắp vá và chắc chắn sót.
+
+**Xác minh**: 15 test mới, mỗi test đã kiểm là **ĐỎ trên bản trước khi sửa** (`git stash push lib/`,
+chạy lại) chứ không chỉ xanh sau khi sửa — 5 test đơn vị cho chấm điểm theo nhánh, 6 test qua cây sản
+xuất thật (`QuickAddScreen` + DB thật) gồm cả tên con thật "Ăn trưa thiết yếu" và ca "không được kéo
+sang nhánh khác", 4 test widget cho sheet hai tầng. `transaction_split_test` phải sửa theo (nó chọn
+danh mục cha CÓ con và dựa vào việc sheet đóng ngay) — dùng nút chốt mới. 999/999 test xanh,
+`flutter analyze` không thêm cảnh báo nào, `check_arch.sh` PASS.
+
+**Chưa kiểm trên máy**: emulator `tonyfino36` chưa bật trong phiên này (`adb devices` rỗng), nên toàn
+bộ bằng chứng ở trên là test tự động. Cần một lượt bấm tay đúng câu "hủ tíu trưa 30k" trên sổ thật
+trước khi coi là xong.
+
+## 2026-08-25 (tiếp) · Tony thử tiếp: "bún chả ăn sáng", "Ốc chung Oxytoxin" — hai lỗ hổng còn lại
+
+Đo trước, sửa sau: dựng `test/tooling/probe_subcategory_match.dart` chạy bộ khớp thật lên SỔ THẬT
+(12 danh mục gốc seed + 30 danh mục con nhập từ Rolly, ánh xạ y hệt importer Phase 9) rồi in câu nào
+rơi vào đâu. "bún chả ăn sáng" đã đúng ngay nhờ tín hiệu buổi; "Ốc chung Oxytoxin" thì không.
+
+### 5. Chỉ tách TỪNG TỪ trong tên danh mục con là không đủ — có ca chỉ CỤM mới phân biệt được
+Sổ Tony có `Gia đình › Oxytocin` VÀ `Ăn uống › Ăn chung oxytocin` — hai danh mục cùng chứa một tên
+riêng, khác nhau đúng chữ "chung". Xét từng từ rời thì "chung" bị loại (quá phổ thông) và "oxytocin"
+bị loại (dùng chung giữa hai danh mục), nên "ốc chung oxytocin" rơi vào Gia đình — sai.
+
+**Chốt:** ngoài từng từ đặc trưng, sinh thêm một entry là **CỤM** còn lại của tên con sau khi bỏ các
+từ đã có trong tên cha ("Ăn chung oxytocin" dưới "Ăn uống" → `chung oxytocin`). Cụm không cần lọc
+"dùng chung giữa nhiều danh mục": đủ dài là đã đủ đặc trưng, và điểm `weight × độ dài` tự thưởng cho
+cụm dài. Ba bộ lọc cho từ rời (bỏ từ trùng tên cha, bỏ từ xuất hiện ở nhiều danh mục — trừ từ chỉ
+buổi, bỏ từ ≤3 ký tự và từ chức năng) giữ nguyên và có ghi rõ lý do từng cái tại chỗ.
+
+### 6. Tên riêng gõ sai một ký tự thì trượt hoàn toàn
+Tony gõ "Oxyto**x**in", danh mục là "Oxyto**c**in" — so khớp chuỗi con thì đây là hai chuỗi không
+liên quan.
+
+**Chốt:** đổi so khớp từ *substring có đệm khoảng trắng* sang **so khớp theo TỪ**, và cho phép một từ
+trong dãy sai/thiếu/thừa **đúng một ký tự** — nhưng CHỈ với từ **≥ 6 ký tự** (`kFuzzyMinWordLength`),
+và điểm nhân 0.8 (`kFuzzyMatchScoreFactor`) để khớp đúng luôn thắng khớp mờ.
+
+**Vì sao ngưỡng 6 ký tự là thứ giữ nó khỏi phá mọi thứ:** tiếng Việt bỏ dấu đầy cặp từ ngắn cách nhau
+một ký tự (`xang`/`xong`, `bun`/`bum`, `me`/`mo`) — mờ ở đó là mời gọi khớp bậy. Từ 6 ký tự trở lên
+gần như luôn là tên riêng/từ mượn (`oxytocin`, `katinat`, `starbucks`), đúng chỗ người ta gõ sai.
+Có test riêng cho ca "xong viec roi" KHÔNG được khớp `xăng`.
+
+**Vì sao so theo từ chứ không nới substring:** ràng buộc biên từ (từ khoá `"xe"` không được khớp giữa
+`"xem"`) là thứ phải giữ; so theo từ giữ được nó *và* mở đường cho khớp mờ trong cụm nhiều từ, việc
+đệm-khoảng-trắng-rồi-`indexOf` không làm được.
+
+**Xác minh hồi quy trên dữ liệu thật, không chỉ test tự viết**: `audit_category_keywords.dart` chạy
+bộ khớp lên 209 ghi chú Tony đã gõ trong Rolly cho **ĐÚNG=146 THIẾU=28 SAI=34 trước và sau, y hệt** —
+đổi cả cơ chế so khớp mà không làm xấu tầng seed. Thêm 9 test hồi quy (2 ca Tony đưa + tên riêng
+đứng một mình + 6 test đơn vị cho khớp mờ), tất cả đã kiểm là đỏ trên bản trước. 1008/1008 xanh,
+`flutter analyze` giữ nguyên 15 info có sẵn, `check_arch.sh` PASS.
+
+Phần dựng từ khoá tách khỏi provider thành `lib/features/quick_add/domain/category_keyword_entries.dart`
+(hàm thuần) chính vì lý do trên: nó quyết định câu nào rơi vào danh mục nào, nên phải chạy được trong
+công cụ soi trên sổ thật mà không cần dựng Riverpod/DB.
