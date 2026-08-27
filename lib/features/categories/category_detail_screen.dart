@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../ui/amount_visibility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -296,6 +298,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                       for (final child in children)
                         _SubcategoryTile(category: child),
                   SizedBox(height: context.space.lg),
+                  _LearnedKeywords(categoryId: categoryId),
+                  SizedBox(height: context.space.lg),
                   Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: context.space.screenHorizontal,
@@ -524,4 +528,119 @@ String? _subLabel(TransactionWithCategory twc, Map<int, Category> byId) {
   final c = twc.category;
   if (c == null || c.parentCategoryId == null) return null;
   return c.name;
+}
+
+/// Mục "Từ khoá đã học" — thứ app dùng để đoán danh mục cho câu chữ ở màn
+/// chat, và giờ XEM và GỠ được.
+///
+/// 🚨 Vì sao cần: vòng lặp học chỉ biết CỘNG (khoá mới 1.5, mỗi lần đúng
+/// +0.5, trần 5.0). Trước bản này nó còn chạy âm thầm, nên một lần sửa nhầm
+/// là app nhớ cái sai vĩnh viễn và cách duy nhất để đè là dạy đúng nhiều
+/// lần cho tới khi điểm vượt lên. Xoá được một dòng là lối thoát duy nhất
+/// cho ca đó.
+class _LearnedKeywords extends ConsumerWidget {
+  const _LearnedKeywords({required this.categoryId});
+
+  final int categoryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final keywordsAsync = ref.watch(categoryKeywordsProvider(categoryId));
+    final keywords = keywordsAsync.value ?? const <CategoryKeyword>[];
+    if (keywords.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.space.screenHorizontal,
+          ),
+          child: Row(
+            children: [
+              Text('Từ khoá đã học', style: context.text.titleMedium),
+              SizedBox(width: context.space.xs),
+              Text(
+                '${keywords.length}',
+                style: context.text.labelMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: context.space.xs),
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.space.screenHorizontal,
+          ),
+          child: Text(
+            'Gõ những từ này ở màn nhập nhanh sẽ tự vào danh mục này. '
+            'Số bên cạnh là độ mạnh — càng cao càng chắc.',
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+        SizedBox(height: context.space.sm),
+        for (final keyword in keywords)
+          ListTile(
+            dense: true,
+            title: Text(keyword.keyword),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  keyword.weight.toStringAsFixed(1),
+                  style: context.text.labelMedium?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(kIconDelete, size: 20),
+                  tooltip: 'Quên từ này',
+                  onPressed: () => _forget(context, ref, keyword),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _forget(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryKeyword keyword,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repo = ref.read(categoryRepositoryProvider);
+    final result = await repo.deleteKeyword(keyword.id);
+    result.when(
+      ok: (_) {
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Đã quên "${keyword.keyword}".'),
+            action: SnackBarAction(
+              label: 'Hoàn tác',
+              // Học lại đúng khoá đó với trọng số CŨ — không phải 1.5 mặc
+              // định, nếu không "hoàn tác" sẽ âm thầm hạ điểm một khoá đã
+              // được dạy nhiều lần.
+              onPressed: () => unawaited(
+                repo.restoreKeyword(
+                  categoryId: keyword.categoryId,
+                  keyword: keyword.keyword,
+                  weight: keyword.weight,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      err: (error) {
+        messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      },
+    );
+  }
 }

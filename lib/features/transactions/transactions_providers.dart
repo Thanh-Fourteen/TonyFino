@@ -60,6 +60,14 @@ final categoriesProvider = StreamProvider<List<Category>>((ref) {
   return ref.watch(categoryRepositoryProvider).watchAll(walletId: walletId);
 });
 
+/// Từ khoá (seed + đã học) của MỘT danh mục — nguồn cho mục "Từ khoá đã
+/// học" ở `CategoryDetailScreen`, nơi Tony xem và gỡ được thứ vòng lặp học
+/// đã nhớ.
+final categoryKeywordsProvider =
+    StreamProvider.family<List<CategoryKeyword>, int>((ref, categoryId) {
+      return ref.watch(categoryRepositoryProvider).watchKeywordsFor(categoryId);
+    });
+
 /// Danh mục CHƯA lưu trữ — dùng cho MỌI bộ chọn "chọn danh mục cho một
 /// khoản MỚI" (Phase 13). `categoriesProvider` (không lọc) vẫn dùng cho
 /// tra cứu/hiển thị lịch sử/lọc báo cáo — một giao dịch cũ gắn danh mục đã

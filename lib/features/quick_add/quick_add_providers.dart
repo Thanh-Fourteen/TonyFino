@@ -335,14 +335,13 @@ class QuickAddController extends Notifier<QuickAddState> {
       (c) => c.copyWith(categoryId: newCategoryId, categoryConfirmed: true),
     );
 
-    unawaited(
-      ref
-          .read(categoryRepositoryProvider)
-          .recordKeywordCorrection(
-            categoryId: newCategoryId,
-            leftoverText: before.leftoverText,
-          ),
-    );
+    // 🚨 KHÔNG học âm thầm ở đây nữa.
+    //
+    // Trước bản này, mỗi lần sửa danh mục là cả cụm `leftoverText` bị ghi
+    // ngay vào `category_keywords` mà Tony không hề biết — sửa nhầm một lần
+    // là app âm thầm nhớ cái sai, và không có chỗ nào xem hay gỡ. Giờ
+    // `DraftCard` hỏi ("Nhớ … ?") rồi mới gọi [learnFromCorrection]; không
+    // bấm gì = không học gì.
 
     final after = _findCard(messageId, cardId);
     if (after != null && after.isSaved) {
@@ -357,6 +356,19 @@ class QuickAddController extends Notifier<QuickAddState> {
             note: after.leftoverText.isEmpty ? null : after.leftoverText,
           );
     }
+  }
+
+  /// Ghi nhận vòng lặp học SAU KHI người dùng đồng ý ở snackbar/sheet —
+  /// mỗi phần tử [keywords] là một tín hiệu độc lập (xem
+  /// `CategoryRepository.learnKeywords`).
+  Future<void> learnFromCorrection({
+    required int categoryId,
+    required List<String> keywords,
+  }) async {
+    if (keywords.isEmpty) return;
+    await ref
+        .read(categoryRepositoryProvider)
+        .learnKeywords(categoryId: categoryId, keywords: keywords);
   }
 
   Future<void> correctDate(

@@ -105,6 +105,97 @@ void main() {
     expect(after.length, before.length);
   });
 
+  test('🚨 hasKeyword — danh mục có HAI khoá trùng nhau sau khi bỏ dấu vẫn trả '
+      'lời được, không ném "Too many elements"', () async {
+    // Seed "Ăn uống" có cả "bách hoá xanh" lẫn "bách hóa xanh" — hai cách
+    // viết dấu, cùng ra `bach hoa xanh`. `getSingleOrNull` ném ở đúng ca
+    // này và làm gãy luồng sửa danh mục ở màn chat.
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repo = CategoryRepository(db);
+    final anUong = await (db.select(
+      db.categories,
+    )..where((c) => c.name.equals('Ăn uống'))).getSingle();
+
+    expect(
+      await repo.hasKeyword(categoryId: anUong.id, keyword: 'bách hoá xanh'),
+      isTrue,
+    );
+    // Không phân biệt dấu: hỏi bằng cách viết nào cũng ra.
+    expect(
+      await repo.hasKeyword(categoryId: anUong.id, keyword: 'BACH HOA XANH'),
+      isTrue,
+    );
+    expect(
+      await repo.hasKeyword(categoryId: anUong.id, keyword: 'chưa từng có'),
+      isFalse,
+    );
+  });
+
+  test('learnKeywords — mỗi phần tử thành một khoá RIÊNG', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repo = CategoryRepository(db);
+    final diChuyen = await (db.select(
+      db.categories,
+    )..where((c) => c.name.equals('Di chuyển'))).getSingle();
+
+    await repo.learnKeywords(
+      categoryId: diChuyen.id,
+      keywords: ['hủ tíu', 'trưa'],
+    );
+
+    final rows = await (db.select(
+      db.categoryKeywords,
+    )..where((k) => k.categoryId.equals(diChuyen.id))).get();
+    final learned = rows.map((k) => k.keyword).toSet();
+    expect(learned, containsAll(['hủ tíu', 'trưa']));
+  });
+
+  test('deleteKeyword rồi restoreKeyword giữ NGUYÊN trọng số cũ', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repo = CategoryRepository(db);
+    final diChuyen = await (db.select(
+      db.categories,
+    )..where((c) => c.name.equals('Di chuyển'))).getSingle();
+
+    // Dạy ba lần → 1.5 + 0.5 + 0.5 = 2.5.
+    for (var i = 0; i < 3; i++) {
+      await repo.recordKeywordCorrection(
+        categoryId: diChuyen.id,
+        leftoverText: 'hủ tíu',
+      );
+    }
+    final before =
+        await (db.select(db.categoryKeywords)..where(
+              (k) =>
+                  k.categoryId.equals(diChuyen.id) & k.keyword.equals('hủ tíu'),
+            ))
+            .getSingle();
+    expect(before.weight, closeTo(2.5, 0.001));
+
+    expect((await repo.deleteKeyword(before.id)).isOk, isTrue);
+    expect(
+      await repo.hasKeyword(categoryId: diChuyen.id, keyword: 'hủ tíu'),
+      isFalse,
+    );
+
+    await repo.restoreKeyword(
+      categoryId: diChuyen.id,
+      keyword: before.keyword,
+      weight: before.weight,
+    );
+    final after =
+        await (db.select(db.categoryKeywords)..where(
+              (k) =>
+                  k.categoryId.equals(diChuyen.id) & k.keyword.equals('hủ tíu'),
+            ))
+            .getSingle();
+    // Hoàn tác KHÔNG được âm thầm hạ một khoá đã dạy ba lần về 1.5.
+    expect(after.weight, closeTo(2.5, 0.001));
+  });
+
   test(
     'watchAllKeywords — có sẵn ~300 khoá seed và phản ánh khoá học mới',
     () async {

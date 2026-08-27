@@ -1951,3 +1951,44 @@ bộ khớp lên 209 ghi chú Tony đã gõ trong Rolly cho **ĐÚNG=146 THIẾU
 Phần dựng từ khoá tách khỏi provider thành `lib/features/quick_add/domain/category_keyword_entries.dart`
 (hàm thuần) chính vì lý do trên: nó quyết định câu nào rơi vào danh mục nào, nên phải chạy được trong
 công cụ soi trên sổ thật mà không cần dựng Riverpod/DB.
+
+## 2026-08-27 · Vòng lặp học: HỎI trước khi nhớ, nhớ theo CỤM, và gỡ được
+
+Tony đề xuất: sửa danh mục xong thì hỏi có muốn lưu hành vi để lần sau không nhầm. Hai phần ba việc
+đó đã chạy từ Phase 8 — `correctCategory` gọi `recordKeywordCorrection` mỗi lần sửa. Nhưng nó chạy
+**âm thầm**, và đó chính là chỗ hỏng.
+
+### Ba khuyết điểm của vòng lặp học cũ
+1. **Nhớ sau lưng người dùng.** Không có dấu hiệu nào cho biết app vừa học gì.
+2. **Nhớ cả cụm `leftoverText` làm MỘT khoá.** Sửa "hủ tíu trưa" → nhớ nguyên chuỗi đó; lần sau gõ
+   "hủ tíu" hay "bún chả trưa" học được đúng con số không.
+3. **Chỉ cộng, không gỡ.** Sửa nhầm một lần là nhớ cái sai, và cách duy nhất để đè là dạy đúng nhiều
+   lần cho tới khi trọng số vượt lên. Không màn nào liệt kê từ khoá đã học.
+
+### Chốt
+**Hỏi bằng snackbar 6 giây, không bấm gì = không học gì** (`DraftCard._offerToLearn`). Snackbar chứ
+không phải dialog là cố ý: sửa danh mục là việc làm liên tục, chặn tay mỗi lần bằng một hộp thoại
+Có/Không biến tính năng giúp đỡ thành phiền toái. Hai lối ra: *Nhớ* (lưu ngay đề xuất mặc định) và
+*Chọn từ* (mở sheet tinh chỉnh). Không hỏi lại thứ đã nhớ rồi (`CategoryRepository.hasKeyword`).
+
+**Nhớ theo CỤM LIÊN TIẾP, không theo từ rời** (`groupIntoPhrases`). 🚨 Tiếng Việt ghép từ bằng khoảng
+trắng: chọn từng từ rồi lưu từng từ sẽ tách "hủ tíu" thành "hủ" và "tíu" — hai chuỗi một mình vô
+nghĩa, lại khớp bậy vào "hủ nút"/"tíu tít". Bỏ một từ ở GIỮA thì cụm đứt làm hai: "bún chả với tee"
+bỏ "với" cho ra `bún chả` và `tee`, KHÔNG phải `bún chả tee` (chuỗi đó không tồn tại trong câu nào,
+`category_matcher` đòi các từ phải liên tiếp).
+
+**Bộ lọc từ khi HỌC rộng hơn bộ lọc khi TỰ RÚT** — cố ý, đừng gộp. `_isNoiseWord` (dùng cho việc app
+tự rút từ trong tên danh mục con) bỏ mọi từ ≤3 ký tự vì ở đó đoán sai là âm thầm làm hỏng phân loại.
+Áp ngưỡng đó vào đây thì "phở", "ốc", "bún" — những món tên ngắn nhất — sẽ bị im lặng từ chối dạy.
+Khi học thì chỉ loại từ chức năng (`_learnStopWords`: và, với, cho, của…).
+
+**Mục "Từ khoá đã học" trong `CategoryDetailScreen`** — liệt kê kèm trọng số, xoá từng dòng, có Hoàn
+tác. `restoreKeyword` giữ NGUYÊN trọng số cũ thay vì gọi lại `learnKeywords`: hoàn tác mà âm thầm hạ
+một khoá đã dạy ba lần (2.5) về mặc định (1.5) thì không phải hoàn tác.
+
+**Bug bắt được khi viết test**: `hasKeyword` ban đầu dùng `getSingleOrNull` → ném `Bad state: Too many
+elements` giữa luồng sửa danh mục, vì một danh mục HOÀN TOÀN có thể có hai khoá trùng nhau sau khi bỏ
+dấu — seed "Ăn uống" có cả "bách hoá xanh" lẫn "bách hóa xanh". Đã có test khoá đúng ca đó.
+
+**Xác minh**: 1014 test xanh (thêm 6 test mới, gồm cả test cũ "học từ khoá" phải viết lại vì hành vi
+đổi có chủ ý), `flutter analyze` giữ nguyên 15 info có sẵn, `check_arch.sh` PASS.

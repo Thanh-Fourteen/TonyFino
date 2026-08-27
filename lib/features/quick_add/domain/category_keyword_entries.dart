@@ -138,6 +138,32 @@ Iterable<String> _wordsOf(String name) => normalize(
   name,
 ).ascii.split(RegExp(r'[^a-z0-9]+')).where((w) => w.isNotEmpty);
 
+/// Tách [text] thành các TỪ đáng đem đi nhớ, giữ nguyên dấu tiếng Việt để
+/// hiện lên cho người dùng chọn.
+///
+/// Trả về `(word: từ có dấu, suggested: có nên tick sẵn không)` — từ nhiễu
+/// vẫn hiện ra (người dùng có thể muốn nhớ đúng nó) nhưng không tick sẵn.
+/// Dùng ở sheet "Nhớ từ nào" sau khi người dùng sửa danh mục ở màn chat.
+///
+/// 🚨 Bộ lọc ở đây RỘNG HƠN [_isNoiseWord] một cách CÓ CHỦ ĐÍCH, đừng gộp
+/// hai cái làm một. [_isNoiseWord] lọc cho việc app TỰ rút từ trong tên
+/// danh mục — ở đó đoán sai là âm thầm làm hỏng phân loại, nên nó bỏ luôn
+/// mọi từ ≤3 ký tự. Ở đây thì NGƯỜI DÙNG đang chủ động dạy một câu họ vừa
+/// gõ, mà "phở", "ốc", "bún" đều là từ khoá tốt — áp ngưỡng độ dài vào đây
+/// nghĩa là im lặng từ chối dạy đúng những món ăn tên ngắn nhất. Chỉ loại
+/// từ chức năng, thứ không bao giờ chỉ vào một danh mục nào.
+List<({String word, bool suggested})> keywordCandidates(String text) {
+  final words = text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+  final seen = <String>{};
+  final result = <({String word, bool suggested})>[];
+  for (final word in words) {
+    final ascii = normalize(word).ascii.trim();
+    if (ascii.isEmpty || !seen.add(ascii)) continue;
+    result.add((word: word, suggested: !_learnStopWords.contains(ascii)));
+  }
+  return result;
+}
+
 /// Từ quá ngắn hoặc quá phổ thông để nói lên bất cứ điều gì về danh mục.
 ///
 /// Ngưỡng 3 ký tự KHÔNG phải con số tuỳ tiện: bỏ dấu xong, gần như mọi âm
@@ -146,6 +172,60 @@ Iterable<String> _wordsOf(String name) => normalize(
 /// phân biệt được gì, rút từ chính tên danh mục trong sổ Tony.
 bool _isNoiseWord(String asciiWord) =>
     asciiWord.length <= 3 || _noiseWords.contains(asciiWord);
+
+/// Gom các từ ĐÃ CHỌN thành những CỤM LIÊN TIẾP theo đúng thứ tự trong câu
+/// gốc — mỗi cụm là một từ khoá sẽ được học.
+///
+/// 🚨 Tiếng Việt ghép từ bằng khoảng trắng, nên chọn từng từ rồi lưu từng
+/// từ là làm hỏng nghĩa: "hủ tíu" tách ra thành "hủ" và "tíu" — hai chuỗi
+/// một mình vô nghĩa, lại còn khớp bậy vào "hủ nút", "tíu tít". Gom liên
+/// tiếp thì "hủ tíu trưa" chọn cả ba từ ra đúng MỘT khoá `hủ tíu trưa`.
+///
+/// Bỏ một từ ở GIỮA thì cụm đứt làm hai — "bún chả với tee" bỏ "với" cho ra
+/// `bún chả` và `tee`, KHÔNG phải `bún chả tee` (chuỗi đó không có trong
+/// câu nào cả, `category_matcher` đòi các từ phải liên tiếp).
+List<String> groupIntoPhrases(String text, Set<String> selectedWords) {
+  final phrases = <String>[];
+  var current = <String>[];
+  for (final word in text.trim().split(RegExp(r'\s+'))) {
+    if (word.isEmpty) continue;
+    if (selectedWords.contains(word)) {
+      current.add(word);
+    } else if (current.isNotEmpty) {
+      phrases.add(current.join(' '));
+      current = [];
+    }
+  }
+  if (current.isNotEmpty) phrases.add(current.join(' '));
+  return phrases;
+}
+
+/// Từ chức năng — nối câu, chỉ định, số đếm. Không bao giờ là tín hiệu
+/// danh mục dù người dùng có gõ bao nhiêu lần.
+const _learnStopWords = {
+  'va',
+  'voi',
+  'cho',
+  'cua',
+  'o',
+  'tai',
+  'thi',
+  'la',
+  'roi',
+  'nay',
+  'nua',
+  'luon',
+  'cai',
+  'mot',
+  'cung',
+  'de',
+  've',
+  'cac',
+  'nhung',
+  'ma',
+  'khi',
+  'do',
+};
 
 const _noiseWords = {
   'khac', // "Điện tử › Khác"

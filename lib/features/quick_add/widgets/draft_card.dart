@@ -27,7 +27,9 @@ import '../../../ui/category_two_tier_label.dart';
 import '../../../ui/money_text.dart';
 import '../domain/models/session_draft_card.dart';
 import '../quick_add_providers.dart';
+import '../domain/category_keyword_entries.dart';
 import 'category_picker_sheet.dart';
+import 'learn_keywords_sheet.dart';
 import 'saved_transaction_row.dart';
 
 /// Thẻ xác nhận — KHÔNG phải bong bóng chat, thẻ giao dịch full-width. Ba
@@ -311,9 +313,112 @@ class _DraftCardState extends ConsumerState<DraftCard>
       selectedCategoryId: widget.card.categoryId,
     );
     if (picked == null || !mounted) return;
+    final leftoverText = widget.card.leftoverText;
     await ref
         .read(quickAddControllerProvider.notifier)
         .correctCategory(widget.messageId, widget.card.id, picked);
+    if (!mounted) return;
+    await _offerToLearn(categoryId: picked, leftoverText: leftoverText);
+  }
+
+  /// 🚨 HỎI trước khi nhớ, không nhớ sau lưng người dùng.
+  ///
+  /// Trước bản này việc sửa danh mục âm thầm ghi cả cụm chữ vào
+  /// `category_keywords`: Tony không biết app đang học gì, và một lần sửa
+  /// nhầm là nhớ luôn cái sai mà không có chỗ nào gỡ. Giờ: snackbar 6 giây,
+  /// KHÔNG bấm gì = KHÔNG học gì.
+  ///
+  /// Snackbar (không phải dialog) là cố ý — sửa danh mục là việc người dùng
+  /// làm liên tục, chặn tay mỗi lần bằng một hộp thoại Có/Không sẽ biến một
+  /// tính năng giúp đỡ thành phiền toái.
+  Future<void> _offerToLearn({
+    required int categoryId,
+    required String leftoverText,
+  }) async {
+    final candidates = keywordCandidates(leftoverText);
+    final suggestedWords = {
+      for (final c in candidates)
+        if (c.suggested) c.word,
+    };
+    // Học theo CỤM liên tiếp, không theo từ rời — "hủ tíu" phải ở nguyên
+    // một khoá (xem `groupIntoPhrases`).
+    final suggested = groupIntoPhrases(leftoverText, suggestedWords);
+    if (suggested.isEmpty) return;
+
+    // Đã nhớ đủ những từ này rồi thì đừng hỏi lại — hỏi một câu mà câu trả
+    // lời không đổi được gì là làm phiền.
+    final repo = ref.read(categoryRepositoryProvider);
+    var allKnown = true;
+    for (final word in suggested) {
+      if (!await repo.hasKeyword(categoryId: categoryId, keyword: word)) {
+        allKnown = false;
+        break;
+      }
+    }
+    if (allKnown || !mounted) return;
+
+    final categoryLabel = twoTierCategoryLabel(_category, {
+      for (final c in widget.categories) c.id: c,
+    });
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        // `SnackBar.action` chỉ nhận MỘT nút, mà ở đây cần hai lối ra khác
+        // nhau ("nhớ ngay" và "để tôi chọn từ"), nên cả hai nằm trong
+        // `content`. Text co lại bằng `Expanded` để tên danh mục dài không
+        // đẩy nút ra khỏi màn.
+        content: Row(
+          children: [
+            Expanded(
+              child: Text('Nhớ "${suggested.join('", "')}" → $categoryLabel?'),
+            ),
+            TextButton(
+              onPressed: () {
+                messenger.hideCurrentSnackBar();
+                unawaited(
+                  _pickWordsToLearn(
+                    categoryId: categoryId,
+                    leftoverText: leftoverText,
+                    categoryLabel: categoryLabel,
+                    suggestedWords: suggestedWords.toList(),
+                  ),
+                );
+              },
+              child: const Text('Chọn từ'),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: 'Nhớ',
+          onPressed: () => unawaited(_learn(categoryId, suggested)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickWordsToLearn({
+    required int categoryId,
+    required String leftoverText,
+    required String categoryLabel,
+    required List<String> suggestedWords,
+  }) async {
+    if (!mounted) return;
+    final picked = await showLearnKeywordsSheet(
+      context: context,
+      leftoverText: leftoverText,
+      categoryLabel: categoryLabel,
+      initiallySelected: suggestedWords,
+    );
+    if (picked == null || picked.isEmpty) return;
+    await _learn(categoryId, picked);
+  }
+
+  Future<void> _learn(int categoryId, List<String> words) async {
+    await ref
+        .read(quickAddControllerProvider.notifier)
+        .learnFromCorrection(categoryId: categoryId, keywords: words);
   }
 
   Future<void> _editDate(BuildContext context) async {

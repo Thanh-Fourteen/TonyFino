@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tonyfino/core/money/money.dart';
 import 'package:tonyfino/data/db/database.dart';
+import 'package:tonyfino/data/repositories/category_repository.dart';
 import 'package:tonyfino/data/repositories/transaction_repository.dart';
 import 'package:tonyfino/features/categories/categories_screen.dart';
 
@@ -22,6 +23,50 @@ void main() {
     await pumpApp(tester, db: db, child: const CategoriesScreen());
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    '🚨 mục "Từ khoá đã học" hiện khoá của danh mục và XOÁ được — lối thoát '
+    'duy nhất khi vòng lặp học nhớ nhầm',
+    (tester) async {
+      final repo = CategoryRepository(db);
+      final anUong = await (db.select(
+        db.categories,
+      )..where((c) => c.name.equals('Ăn uống'))).getSingle();
+      await repo.learnKeywords(
+        categoryId: anUong.id,
+        keywords: ['một từ nhớ nhầm'],
+      );
+
+      await pumpCategories(tester);
+      await tester.tap(find.text('Ăn uống').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Từ khoá đã học'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('một từ nhớ nhầm'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('một từ nhớ nhầm'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'một từ nhớ nhầm'),
+          matching: find.byType(IconButton),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        await repo.hasKeyword(
+          categoryId: anUong.id,
+          keyword: 'một từ nhớ nhầm',
+        ),
+        isFalse,
+      );
+      expect(find.textContaining('Đã quên'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     '🚨 bấm danh mục CẤP GỐC → mở màn chi tiết, hiện đúng breakdown + danh sách con + giao dịch',

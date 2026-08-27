@@ -34,8 +34,8 @@ const double kLearnedKeywordInitialWeight = 1.5;
 
 /// Mỗi lần người dùng sửa LẶP LẠI cùng một khoá, tăng thêm — dạy nhiều lần
 /// càng chắc càng thắng — nhưng có trần để một khoá học không lấn át vĩnh
-/// viễn nếu người dùng đổi ý ở lần sau (Phase 8 chỉ cộng, không có UI xoá
-/// khoá đã học ở v1 — chấp nhận được, xem TODOS.md Backlog "quản lý danh mục").
+/// viễn nếu người dùng đổi ý ở lần sau. Từ bản 1.0.3 xoá được từng khoá đã
+/// học trong `CategoryDetailScreen` (trước đó chỉ cộng, không gỡ được).
 const double kLearnedKeywordIncrement = 0.5;
 const double kLearnedKeywordMaxWeight = 5.0;
 
@@ -321,6 +321,108 @@ class CategoryRepository {
   /// danh mục nên id ổn định suốt vòng đời).
   Stream<List<CategoryKeyword>> watchAllKeywords() {
     return _db.select(_db.categoryKeywords).watch();
+  }
+
+  /// Từ khoá đã học/seed của MỘT danh mục, mới nhất trước — nguồn cho mục
+  /// "Từ khoá đã học" ở `CategoryDetailScreen`.
+  Stream<List<CategoryKeyword>> watchKeywordsFor(int categoryId) {
+    final query = _db.select(_db.categoryKeywords)
+      ..where((k) => k.categoryId.equals(categoryId))
+      ..orderBy([
+        (k) => OrderingTerm.desc(k.weight),
+        (k) => OrderingTerm.desc(k.id),
+      ]);
+    return query.watch();
+  }
+
+  /// `true` nếu danh mục này ĐÃ có đúng khoá đó — dùng để không hỏi lại
+  /// "có muốn nhớ không" cho thứ đã nhớ rồi.
+  Future<bool> hasKeyword({
+    required int categoryId,
+    required String keyword,
+  }) async {
+    final trimmed = keyword.trim();
+    if (trimmed.isEmpty) return false;
+    // 🚨 `getSingleOrNull` là SAI ở đây: một danh mục HOÀN TOÀN có thể có
+    // hai khoá khác nhau mà trùng nhau sau khi bỏ dấu — seed "Ăn uống" có cả
+    // "bách hoá xanh" lẫn "bách hóa xanh" (hai cách viết dấu, cùng ra
+    // `bach hoa xanh`). Dùng `getSingleOrNull` thì hàm này ném
+    // `Bad state: Too many elements` giữa luồng sửa danh mục.
+    final rows =
+        await (_db.select(_db.categoryKeywords)
+              ..where(
+                (k) =>
+                    k.categoryId.equals(categoryId) &
+                    k.keywordAscii.equals(foldToAscii(trimmed)),
+              )
+              ..limit(1))
+            .get();
+    return rows.isNotEmpty;
+  }
+
+  /// Xoá MỘT từ khoá (đã học hoặc seed). Không có "hoàn tác" ở tầng này —
+  /// UI gọi hàm này phải tự lo hoàn tác nếu cần.
+  Future<Result<void, AppError>> deleteKeyword(int id) async {
+    try {
+      await (_db.delete(
+        _db.categoryKeywords,
+      )..where((k) => k.id.equals(id))).go();
+      return const Ok(null);
+    } catch (e) {
+      final error = AppError('Không xoá được từ khoá.', cause: e);
+      await _logError(error);
+      return Err(error);
+    }
+  }
+
+  /// Chèn lại một khoá vừa bị xoá, GIỮ NGUYÊN trọng số cũ — dành riêng cho
+  /// nút "Hoàn tác" sau khi quên một từ. Khác [learnKeywords]: hàm kia luôn
+  /// bắt đầu từ [kLearnedKeywordInitialWeight], nên dùng nó để hoàn tác sẽ
+  /// âm thầm hạ điểm một khoá đã được dạy nhiều lần.
+  Future<Result<void, AppError>> restoreKeyword({
+    required int categoryId,
+    required String keyword,
+    required double weight,
+  }) async {
+    try {
+      await _db
+          .into(_db.categoryKeywords)
+          .insert(
+            CategoryKeywordsCompanion.insert(
+              categoryId: categoryId,
+              keyword: keyword,
+              keywordAscii: foldToAscii(keyword),
+              weight: Value(weight),
+            ),
+          );
+      return const Ok(null);
+    } catch (e) {
+      final error = AppError('Không khôi phục được từ khoá.', cause: e);
+      await _logError(error);
+      return Err(error);
+    }
+  }
+
+  /// Học NHIỀU khoá cùng lúc cho một danh mục — mỗi phần tử là một tín hiệu
+  /// ĐỘC LẬP, không phải một cụm phải khớp trọn.
+  ///
+  /// 🚨 Vì sao nhiều khoá rời chứ không một cụm: sửa "hủ tíu trưa" thành
+  /// "Ăn trưa thiết yếu" mà chỉ nhớ nguyên chuỗi thì lần sau gõ "hủ tíu"
+  /// hay "bún chả trưa" học được đúng con số không. Nhớ `hủ tíu` và `trưa`
+  /// thành hai khoá rời thì `category_matcher` cộng dồn điểm: có đủ hai từ
+  /// là chắc nhất, có một từ vẫn là tín hiệu thật.
+  Future<Result<void, AppError>> learnKeywords({
+    required int categoryId,
+    required List<String> keywords,
+  }) async {
+    for (final keyword in keywords) {
+      final result = await recordKeywordCorrection(
+        categoryId: categoryId,
+        leftoverText: keyword,
+      );
+      if (result is Err<void, AppError>) return result;
+    }
+    return const Ok(null);
   }
 
   /// Vòng lặp học: chèn `leftoverText` làm từ khoá mới (trọng số

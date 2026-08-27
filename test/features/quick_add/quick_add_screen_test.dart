@@ -193,7 +193,7 @@ void main() {
   });
 
   testWidgets(
-    'sửa danh mục trên thẻ chờ → ghi vào transaction thật VÀ học từ khoá',
+    'sửa danh mục trên thẻ chờ → ghi vào transaction thật, HỎI trước khi học',
     (tester) async {
       await pumpQuickAdd(tester);
 
@@ -221,9 +221,37 @@ void main() {
       expect(saved, hasLength(1));
       expect(saved.single.categoryId, diChuyen.id);
 
-      // Vòng lặp học: leftoverText ("phở") phải được chèn vào
-      // category_keywords gắn với danh mục MỚI vừa chọn — đây là toàn bộ cơ
-      // chế "AI biết học" của Phase 8 (zero ML, zero mạng).
+      // 🚨 KHÔNG học âm thầm nữa: sửa danh mục xong, app HỎI trước.
+      // Không bấm gì = không nhớ gì.
+      final learnedBefore = await (db.select(
+        db.categoryKeywords,
+      )..where((k) => k.categoryId.equals(diChuyen.id))).get();
+      expect(
+        learnedBefore.any((k) => k.keywordAscii.contains('pho')),
+        isFalse,
+        reason: 'chưa bấm "Nhớ" thì không được ghi gì vào category_keywords',
+      );
+      expect(find.textContaining('Nhớ "phở"'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'bấm "Nhớ" trên snackbar → mới thật sự học từ khoá cho danh mục mới',
+    (tester) async {
+      await pumpQuickAdd(tester);
+      await sendMessage(tester, 'phở 35k');
+
+      final categories = await db.select(db.categories).get();
+      final diChuyen = categories.firstWhere((c) => c.name == 'Di chuyển');
+
+      await tester.tap(find.widgetWithText(AppChip, 'Ăn uống'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(AppChip, 'Di chuyển'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Nhớ'));
+      await tester.pumpAndSettle();
+
       final learned = await (db.select(
         db.categoryKeywords,
       )..where((k) => k.categoryId.equals(diChuyen.id))).get();
@@ -231,11 +259,44 @@ void main() {
         learned.any((k) => k.keywordAscii.contains('pho')),
         isTrue,
         reason:
-            'phải học được "phở" → Di chuyển sau khi user sửa tay, '
-            'thực tế học được: ${learned.map((k) => k.keyword)}',
+            'sau khi Tony đồng ý, "phở" → Di chuyển phải nằm trong '
+            'category_keywords; thực tế: ${learned.map((k) => k.keyword)}',
       );
     },
   );
+
+  testWidgets('nút "Chọn từ" mở sheet, bỏ bớt từ rồi nhớ đúng phần đã chọn', (
+    tester,
+  ) async {
+    await pumpQuickAdd(tester);
+    await sendMessage(tester, 'hủ tíu trưa 30k');
+
+    final categories = await db.select(db.categories).get();
+    final diChuyen = categories.firstWhere((c) => c.name == 'Di chuyển');
+
+    await tester.tap(find.widgetWithText(AppChip, 'Ăn uống'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(AppChip, 'Di chuyển'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Chọn từ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nhớ từ nào?'), findsOneWidget);
+
+    // Bỏ tick "trưa", chỉ nhớ "hủ tíu".
+    await tester.tap(find.widgetWithText(AppChip, 'trưa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Nhớ'));
+    await tester.pumpAndSettle();
+
+    final learned = await (db.select(
+      db.categoryKeywords,
+    )..where((k) => k.categoryId.equals(diChuyen.id))).get();
+    final words = learned.map((k) => k.keyword).toSet();
+    // Cụm giữ nguyên "hủ tíu" — KHÔNG tách thành "hủ" + "tíu".
+    expect(words, contains('hủ tíu'));
+    expect(words.any((w) => w.contains('trưa')), isFalse);
+  });
 
   testWidgets(
     'sửa danh mục KHÔNG được xoá mất thẻ khác đang chờ trong CÙNG phiên',
