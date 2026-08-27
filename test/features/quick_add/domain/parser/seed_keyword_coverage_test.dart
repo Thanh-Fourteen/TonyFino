@@ -6,6 +6,7 @@
 // của Tony (`test/tooling/audit_category_keywords.dart` soi 209 ghi chú).
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tonyfino/data/db/seed/category_seed.dart';
+import 'package:tonyfino/data/repositories/category_repository.dart';
 import 'package:tonyfino/features/quick_add/domain/parser/category_matcher.dart';
 import 'package:tonyfino/features/quick_add/domain/parser/normalizer.dart';
 import 'package:tonyfino/features/quick_add/domain/parser/parse_result.dart';
@@ -105,5 +106,32 @@ void main() {
     // "bình an"/"an toàn"/"an kỳ" không được rơi vào Ăn uống.
     expect(matchCategory('an kỳ', keywords)?.categoryKey, isNot('an_uong'));
     expect(matchCategory('bình an', keywords)?.categoryKey, isNot('an_uong'));
+  });
+
+  test('🚨 MỌI trọng số seed phải NHẸ HƠN khoá học đầu tiên (1.5)', () {
+    // `CategoryDetailScreen` phân biệt "bạn đã dạy" với "mặc định" bằng
+    // ĐÚNG ngưỡng này (bảng `category_keywords` không có cột nguồn). Thêm
+    // một seed nặng >= 1.5 là màn đó lặng lẽ xếp nhầm nhóm — test này đỏ
+    // trước khi chuyện đó xảy ra.
+    for (final category in defaultCategorySeeds) {
+      for (final keyword in category.keywords) {
+        expect(
+          keyword.weight,
+          lessThan(kLearnedKeywordInitialWeight),
+          reason:
+              'seed "${keyword.keyword}" (${category.name}) nặng '
+              '${keyword.weight} — nó sẽ bị hiểu nhầm là từ Tony tự dạy',
+        );
+      }
+    }
+    for (final sub in defaultSubcategorySeeds) {
+      for (final keyword in sub.keywords) {
+        expect(
+          keyword.weight,
+          lessThan(kLearnedKeywordInitialWeight),
+          reason: 'seed con "${keyword.keyword}" (${sub.name})',
+        );
+      }
+    }
   });
 }

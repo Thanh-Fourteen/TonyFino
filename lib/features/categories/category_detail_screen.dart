@@ -8,6 +8,7 @@ import '../../core/money/money.dart';
 import '../../core/providers/database_providers.dart';
 import '../../core/time/clock_provider.dart';
 import '../../data/db/database.dart';
+import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart'
     show TransactionWithCategory;
 import '../../theme/context_ext.dart';
@@ -114,6 +115,19 @@ class CategoryDetailScreen extends ConsumerWidget {
     // dịch" — mọi thứ dính đến con-của-con phải biến mất, vì Phase 13 chốt
     // danh mục chỉ sâu 1 cấp.
     final isLeaf = category.parentCategoryId != null;
+    // 🚨 HAI LỐI VÀO, HAI MỤC ĐÍCH KHÁC HẲN NHAU.
+    //
+    // Vào từ Báo cáo (`range != null`) là để ĐỌC SỐ: "Ăn uống tháng này hết
+    // bao nhiêu, chia ra sao". Vào từ Quản lý → Danh mục là để SỬA CẤU
+    // TRÚC: thêm/đổi danh mục con, soát từ khoá app đã học.
+    //
+    // Trộn hai thứ vào một màn thì lối vào báo cáo phải cuộn qua danh sách
+    // danh mục con rồi tới bảng từ khoá mới thấy giao dịch — Tony nói thẳng
+    // là "khó xem hơn". Bảng "Theo danh mục con" thì GIỮ ở cả hai lối vào:
+    // đó chính là câu trả lời cho "chia ra sao".
+    //
+    // Cùng một nguyên tắc đã tách `ManageScreen` khỏi `SettingsScreen`.
+    final isManaging = this.range == null;
     final now = ref.watch(clockProvider).now();
     final range =
         this.range ?? ReportRange.preset(ReportRangePreset.allTime, now);
@@ -170,7 +184,10 @@ class CategoryDetailScreen extends ConsumerWidget {
       ),
       // FAB CÓ NHÃN: một dấu cộng trần trên màn "Chi tiết danh mục" không
       // nói được nó thêm CÁI GÌ — người dùng đoán là thêm giao dịch.
-      floatingActionButton: isLeaf
+      // FAB "Danh mục con" cũng là việc QUẢN LÝ — che mất góc dưới phải của
+      // danh sách giao dịch ở lối vào báo cáo mà chẳng ai vào đó để tạo
+      // danh mục.
+      floatingActionButton: isLeaf || !isManaging
           ? null
           : FloatingActionButton.extended(
               onPressed: () => showCategoryEditSheet(
@@ -260,7 +277,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             ),
                           ),
                         ],
-                        if (!isLeaf) ...[
+                        if (!isLeaf && isManaging) ...[
                           SizedBox(height: context.space.md),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -281,7 +298,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (!isLeaf)
+                  if (!isLeaf && isManaging)
                     if (children.isEmpty)
                       Padding(
                         padding: EdgeInsets.symmetric(
@@ -297,8 +314,10 @@ class CategoryDetailScreen extends ConsumerWidget {
                     else
                       for (final child in children)
                         _SubcategoryTile(category: child),
-                  SizedBox(height: context.space.lg),
-                  _LearnedKeywords(categoryId: categoryId),
+                  if (isManaging) ...[
+                    SizedBox(height: context.space.lg),
+                    _LearnedKeywords(categoryId: categoryId),
+                  ],
                   SizedBox(height: context.space.lg),
                   Padding(
                     padding: EdgeInsets.symmetric(
@@ -530,24 +549,51 @@ String? _subLabel(TransactionWithCategory twc, Map<int, Category> byId) {
   return c.name;
 }
 
-/// Mục "Từ khoá đã học" — thứ app dùng để đoán danh mục cho câu chữ ở màn
-/// chat, và giờ XEM và GỠ được.
+/// Mục "Từ khoá" — thứ app dùng để đoán danh mục cho câu chữ ở màn chat,
+/// và giờ XEM và GỠ được.
 ///
 /// 🚨 Vì sao cần: vòng lặp học chỉ biết CỘNG (khoá mới 1.5, mỗi lần đúng
 /// +0.5, trần 5.0). Trước bản này nó còn chạy âm thầm, nên một lần sửa nhầm
 /// là app nhớ cái sai vĩnh viễn và cách duy nhất để đè là dạy đúng nhiều
-/// lần cho tới khi điểm vượt lên. Xoá được một dòng là lối thoát duy nhất
-/// cho ca đó.
-class _LearnedKeywords extends ConsumerWidget {
+/// lần cho tới khi điểm vượt lên. Xoá được một dòng là lối thoát duy nhất.
+///
+/// 🚨 TÁCH "bạn đã dạy" khỏi "mặc định", và ẩn nhóm mặc định đi. Một danh
+/// mục seed mang tới 85 khoá ("Ăn uống"), nên đổ phẳng tất cả ra thì thứ
+/// Tony thật sự dạy — vài dòng — chìm nghỉm giữa danh sách phải cuộn mãi,
+/// mà đó mới là thứ cần soát khi app đoán sai.
+class _LearnedKeywords extends ConsumerStatefulWidget {
   const _LearnedKeywords({required this.categoryId});
 
   final int categoryId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final keywordsAsync = ref.watch(categoryKeywordsProvider(categoryId));
-    final keywords = keywordsAsync.value ?? const <CategoryKeyword>[];
+  ConsumerState<_LearnedKeywords> createState() => _LearnedKeywordsState();
+}
+
+class _LearnedKeywordsState extends ConsumerState<_LearnedKeywords> {
+  bool _showSeeded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final keywords =
+        ref.watch(categoryKeywordsProvider(widget.categoryId)).value ??
+        const <CategoryKeyword>[];
     if (keywords.isEmpty) return const SizedBox.shrink();
+
+    // Phân biệt bằng TRỌNG SỐ, không phải bằng một cột riêng: khoá seed có
+    // trọng số tối đa 1.4, khoá học luôn bắt đầu từ
+    // `kLearnedKeywordInitialWeight` (1.5) và chỉ tăng. Giả định đó được
+    // khoá lại bằng test trong `seed_keyword_coverage_test.dart` — nếu ai
+    // đó thêm một seed nặng 1.5 thì test đỏ chứ không phải màn này lặng lẽ
+    // xếp nhầm nhóm.
+    final learned = [
+      for (final k in keywords)
+        if (k.weight >= kLearnedKeywordInitialWeight) k,
+    ];
+    final seeded = [
+      for (final k in keywords)
+        if (k.weight < kLearnedKeywordInitialWeight) k,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,18 +602,7 @@ class _LearnedKeywords extends ConsumerWidget {
           padding: EdgeInsets.symmetric(
             horizontal: context.space.screenHorizontal,
           ),
-          child: Row(
-            children: [
-              Text('Từ khoá đã học', style: context.text.titleMedium),
-              SizedBox(width: context.space.xs),
-              Text(
-                '${keywords.length}',
-                style: context.text.labelMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+          child: Text('Từ khoá', style: context.text.titleMedium),
         ),
         SizedBox(height: context.space.xs),
         Padding(
@@ -583,36 +618,105 @@ class _LearnedKeywords extends ConsumerWidget {
           ),
         ),
         SizedBox(height: context.space.sm),
-        for (final keyword in keywords)
-          ListTile(
-            dense: true,
-            title: Text(keyword.keyword),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  keyword.weight.toStringAsFixed(1),
-                  style: context.text.labelMedium?.copyWith(
-                    color: context.colors.onSurfaceVariant,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(kIconDelete, size: 20),
-                  tooltip: 'Quên từ này',
-                  onPressed: () => _forget(context, ref, keyword),
-                ),
-              ],
+        if (learned.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.space.screenHorizontal,
+            ),
+            child: Text(
+              'Bạn chưa dạy từ nào cho danh mục này. Sửa danh mục của một '
+              'thẻ ở màn nhập nhanh rồi bấm "Nhớ" là có.',
+              style: context.text.bodyMedium?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+          )
+        else ...[
+          _KeywordGroupLabel(label: 'Bạn đã dạy', count: learned.length),
+          for (final keyword in learned) _KeywordTile(keyword: keyword),
+        ],
+        if (seeded.isNotEmpty) ...[
+          SizedBox(height: context.space.xs),
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.space.screenHorizontal,
+            ),
+            child: TextButton(
+              onPressed: () => setState(() => _showSeeded = !_showSeeded),
+              child: Text(
+                _showSeeded
+                    ? 'Ẩn ${seeded.length} từ khoá mặc định'
+                    : 'Xem ${seeded.length} từ khoá mặc định',
+              ),
             ),
           ),
+          if (_showSeeded)
+            for (final keyword in seeded) _KeywordTile(keyword: keyword),
+        ],
       ],
     );
   }
+}
 
-  Future<void> _forget(
-    BuildContext context,
-    WidgetRef ref,
-    CategoryKeyword keyword,
-  ) async {
+class _KeywordGroupLabel extends StatelessWidget {
+  const _KeywordGroupLabel({required this.label, required this.count});
+
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.space.screenHorizontal,
+        vertical: context.space.xxs,
+      ),
+      child: Row(
+        children: [
+          Text(label, style: context.text.labelMedium),
+          SizedBox(width: context.space.xs),
+          Text(
+            '$count',
+            style: context.text.labelMedium?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeywordTile extends ConsumerWidget {
+  const _KeywordTile({required this.keyword});
+
+  final CategoryKeyword keyword;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      dense: true,
+      title: Text(keyword.keyword),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            keyword.weight.toStringAsFixed(1),
+            style: context.text.labelMedium?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(kIconDelete, size: 20),
+            tooltip: 'Quên từ này',
+            onPressed: () => _forget(context, ref),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _forget(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     final repo = ref.read(categoryRepositoryProvider);
     final result = await repo.deleteKeyword(keyword.id);

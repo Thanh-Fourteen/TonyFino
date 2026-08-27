@@ -9,6 +9,8 @@ import 'package:tonyfino/data/db/database.dart';
 import 'package:tonyfino/data/repositories/category_repository.dart';
 import 'package:tonyfino/data/repositories/transaction_repository.dart';
 import 'package:tonyfino/features/categories/categories_screen.dart';
+import 'package:tonyfino/features/reports/domain/report_range.dart';
+import 'package:tonyfino/features/categories/category_detail_screen.dart';
 
 import '../../support/open_test_database.dart';
 import '../../support/pump_app.dart';
@@ -25,48 +27,103 @@ void main() {
   }
 
   testWidgets(
-    '🚨 mục "Từ khoá đã học" hiện khoá của danh mục và XOÁ được — lối thoát '
-    'duy nhất khi vòng lặp học nhớ nhầm',
+    '🚨 vào từ BÁO CÁO → chỉ bảng "Theo danh mục con" + giao dịch; KHÔNG có '
+    'danh sách quản lý danh mục con, không có bảng từ khoá, không có FAB',
     (tester) async {
+      // Tony: "khi nhấn vào Ăn uống chỉ cần hiện bảng theo danh mục con,
+      // không cần bảng danh mục con và các từ khoá đã học ở dưới, vậy sẽ
+      // khó xem hơn".
       final repo = CategoryRepository(db);
       final anUong = await (db.select(
         db.categories,
       )..where((c) => c.name.equals('Ăn uống'))).getSingle();
-      await repo.learnKeywords(
-        categoryId: anUong.id,
-        keywords: ['một từ nhớ nhầm'],
+      await repo.learnKeywords(categoryId: anUong.id, keywords: ['hủ tíu']);
+      final walletId = (await db.select(db.wallets).get()).first.id;
+      final childId = await db
+          .into(db.categories)
+          .insert(
+            CategoriesCompanion.insert(
+              name: 'Ăn trưa thiết yếu',
+              kind: anUong.kind,
+              categoryColorId: anUong.categoryColorId,
+              iconCode: anUong.iconCode,
+              parentCategoryId: Value(anUong.id),
+              walletId: walletId,
+            ),
+          );
+      await TransactionRepository(db).insert(
+        amount: Money.vnd(-50000),
+        occurredAt: DateTime(2026, 8, 20),
+        walletId: walletId,
+        categoryId: childId,
       );
 
-      await pumpCategories(tester);
-      await tester.tap(find.text('Ăn uống').first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Từ khoá đã học'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text('một từ nhớ nhầm'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text('một từ nhớ nhầm'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(
-          of: find.widgetWithText(ListTile, 'một từ nhớ nhầm'),
-          matching: find.byType(IconButton),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        await repo.hasKeyword(
+      await pumpApp(
+        tester,
+        db: db,
+        child: CategoryDetailScreen(
           categoryId: anUong.id,
-          keyword: 'một từ nhớ nhầm',
+          range: ReportRange.preset(
+            ReportRangePreset.allTime,
+            DateTime(2026, 8, 27),
+          ),
+          rangeLabel: 'Toàn bộ',
         ),
-        isFalse,
       );
-      expect(find.textContaining('Đã quên'), findsOneWidget);
+      await tester.pumpAndSettle();
+
+      // Cái Tony CẦN thấy.
+      expect(find.text('Theo danh mục con'), findsOneWidget);
+      expect(find.text('Giao dịch'), findsOneWidget);
+      // Cái Tony KHÔNG cần thấy ở đây.
+      expect(find.text('Danh mục con'), findsNothing);
+      expect(find.text('Từ khoá'), findsNothing);
+      expect(find.byType(FloatingActionButton), findsNothing);
     },
   );
+
+  testWidgets('🚨 mục "Từ khoá" hiện khoá của danh mục và XOÁ được — lối thoát '
+      'duy nhất khi vòng lặp học nhớ nhầm', (tester) async {
+    final repo = CategoryRepository(db);
+    final anUong = await (db.select(
+      db.categories,
+    )..where((c) => c.name.equals('Ăn uống'))).getSingle();
+    await repo.learnKeywords(
+      categoryId: anUong.id,
+      keywords: ['một từ nhớ nhầm'],
+    );
+
+    await pumpCategories(tester);
+    await tester.tap(find.text('Ăn uống').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Từ khoá'), findsOneWidget);
+    // Nhóm "Bạn đã dạy" hiện sẵn; 85 khoá seed của "Ăn uống" phải nằm sau
+    // một nút gạt, không đổ thẳng ra màn.
+    expect(find.text('Bạn đã dạy'), findsOneWidget);
+    expect(find.textContaining('từ khoá mặc định'), findsOneWidget);
+    expect(find.text('cà phê'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('một từ nhớ nhầm'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('một từ nhớ nhầm'), findsOneWidget);
+
+    await tester.tap(
+      find.descendant(
+        of: find.widgetWithText(ListTile, 'một từ nhớ nhầm'),
+        matching: find.byType(IconButton),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      await repo.hasKeyword(categoryId: anUong.id, keyword: 'một từ nhớ nhầm'),
+      isFalse,
+    );
+    expect(find.textContaining('Đã quên'), findsOneWidget);
+  });
 
   testWidgets(
     '🚨 bấm danh mục CẤP GỐC → mở màn chi tiết, hiện đúng breakdown + danh sách con + giao dịch',
