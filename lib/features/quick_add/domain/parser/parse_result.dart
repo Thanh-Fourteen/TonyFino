@@ -98,6 +98,43 @@ class CategoryMatch {
   final double score;
 }
 
+/// Một mục tiêu tiết kiệm đang hoạt động, ở dạng thuần Dart cho
+/// `savings_matcher` — bản sao của `SavingsGoals` (Phase 16) đúng những
+/// trường cần để nhận ra tên trong câu. `goalKey` là khoá ổn định
+/// (`id.toString()` ở tầng gọi), cùng quy ước với [CategoryKeywordEntry].
+class SavingsTargetEntry {
+  const SavingsTargetEntry({
+    required this.goalKey,
+    required this.name,
+    required this.nameAscii,
+  });
+
+  final String goalKey;
+  final String name;
+
+  /// Tên đã bỏ dấu + hạ chữ thường (`normalize(name).ascii` ở tầng gọi) —
+  /// so khớp luôn chạy trên bản này để "quỹ mua nhà" khớp "quy mua nha".
+  final String nameAscii;
+}
+
+/// Ý định "cất tiền vào / rút tiền ra khỏi một mục tiêu tiết kiệm" đọc được
+/// từ một đoạn tin nhắn.
+///
+/// Đây KHÔNG phải một danh mục: giao dịch sinh ra mang `goalId` và KHÔNG có
+/// `categoryId`, đúng cách màn Quỹ (Phase 16) đang ghi — nhờ vậy nó tự động
+/// không bị tính vào Chi/Thu của báo cáo, mà rơi vào ô "đã cất đi" (xem
+/// `TransactionRepository.watchMonthToDateSummary`).
+class SavingsMatch {
+  const SavingsMatch({required this.goalKey, required this.isWithdrawal});
+
+  final String goalKey;
+
+  /// `true` = RÚT tiền về ví ("rút 2tr từ tiết kiệm") — dòng THU gắn cùng
+  /// `goalId`, làm tiến độ mục tiêu giảm đúng số đó (xem
+  /// `TransactionFormPrefill.forGoalWithdrawal`). `false` = cất vào.
+  final bool isWithdrawal;
+}
+
 /// Một giao dịch được rút ra từ một đoạn tin nhắn — có thể có NHIỀU
 /// [ParsedDraft] cho một tin nhắn (`segmenter.dart`). KHÔNG BAO GIỜ tự động
 /// commit — luôn cần thẻ xác nhận sửa được ở tầng UI (Luật #7).
@@ -108,6 +145,7 @@ class ParsedDraft {
     required this.amount,
     required this.date,
     required this.category,
+    this.savings,
   });
 
   /// Đoạn gốc (đã cắt khỏi tin nhắn nhiều khoản, chưa chuẩn hoá) ứng với
@@ -129,7 +167,14 @@ class ParsedDraft {
 
   /// `null` nghĩa là không khớp danh mục nào — UI hiện "Chưa phân loại"
   /// (đã có sẵn từ Phase 6), không phải lỗi.
+  ///
+  /// LUÔN `null` khi [savings] khác `null`: một dòng để dành không thuộc
+  /// danh mục nào cả (xem [SavingsMatch]), nên hai trường này loại trừ nhau.
   final CategoryMatch? category;
+
+  /// Khác `null` khi câu nói rõ đây là tiền cất vào/rút ra một mục tiêu tiết
+  /// kiệm (`savings_matcher.dart`) — lúc đó [category] bị bỏ qua hoàn toàn.
+  final SavingsMatch? savings;
 
   /// Draft được coi là "đã hiểu" khi tìm thấy số tiền — ngày/danh mục thiếu
   /// vẫn hiển thị được (ngày mặc định hôm nay, danh mục "Chưa phân loại"),

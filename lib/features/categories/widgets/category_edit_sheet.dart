@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/database_providers.dart';
+import '../../../data/db/database.dart';
 import '../../../theme/context_ext.dart';
 import '../../../theme/tokens/icons.dart';
 import '../../../ui/app_bottom_sheet.dart';
@@ -74,6 +75,17 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
 
   bool get _isEditing => widget.existingId != null;
 
+  /// `kind` của danh mục cha đang chọn — `null` khi đang tạo/sửa một danh
+  /// mục CẤP GỐC (lúc đó nút gạt Chi/Thu mới là nguồn quyết định).
+  String? _parentKind(List<Category> categories) {
+    final parentId = _parentCategoryId;
+    if (parentId == null) return null;
+    for (final category in categories) {
+      if (category.id == parentId) return category.kind;
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -104,12 +116,19 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     });
 
     final repo = ref.read(categoryRepositoryProvider);
-    final kind = _isExpense ? 'expense' : 'income';
+    // Danh mục CON không có chiều tiền riêng — nó mang `kind` của cha
+    // (`CategoryRepository.kindIsInheritedFromParent`). Repository ép lại
+    // lần nữa, ở đây gửi sẵn giá trị đúng để nút gạt và thứ được lưu không
+    // bao giờ nói hai chuyện khác nhau.
+    final kind =
+        _parentKind(ref.read(activeCategoriesProvider).value ?? const []) ??
+        (_isExpense ? 'expense' : 'income');
     final emoji = _emojiController.text.trim();
     final result = _isEditing
         ? await repo.update(
             id: widget.existingId!,
             name: name,
+            kind: kind,
             categoryColorId: _colorId,
             iconCode: _iconCode,
             parentCategoryId: _parentCategoryId,
@@ -151,6 +170,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(activeCategoriesProvider);
+    final parentKind = _parentKind(categoriesAsync.value ?? const []);
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -180,15 +200,30 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                     ),
                   ),
                   SizedBox(height: context.space.md),
-                  SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment(value: true, label: Text('Chi')),
-                      ButtonSegment(value: false, label: Text('Thu')),
-                    ],
-                    selected: {_isExpense},
-                    onSelectionChanged: (selection) =>
-                        setState(() => _isExpense = selection.first),
-                  ),
+                  // Danh mục CON không được chọn chiều tiền: nó mang `kind`
+                  // của cha (`CategoryRepository.kindIsInheritedFromParent`).
+                  // Để nút gạt ở đây sẽ nói dối — trước bản này Tony bấm
+                  // được "Thu" cho một danh mục con rồi nó vẫn ghi ra khoản
+                  // CHI ở màn chat.
+                  if (parentKind == null)
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(value: true, label: Text('Chi')),
+                        ButtonSegment(value: false, label: Text('Thu')),
+                      ],
+                      selected: {_isExpense},
+                      onSelectionChanged: (selection) =>
+                          setState(() => _isExpense = selection.first),
+                    )
+                  else
+                    Text(
+                      parentKind == 'expense'
+                          ? 'Danh mục CHI — theo danh mục cha'
+                          : 'Danh mục THU — theo danh mục cha',
+                      style: context.text.labelMedium?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
                   // Chọn danh mục CHA đứng TRƯỚC màu/icon: "cái này là
                   // gì" phải hỏi trước "nó trông thế nào". Trước đây nó
                   // nằm CUỐI, sau cả bảng icon — thêm hai icon (v13) là
@@ -250,6 +285,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                   SizedBox(height: context.space.xs),
                   AppIconPicker(
                     icons: categoryIconByCode,
+                    groups: categoryIconGroups,
                     selectedCode: _iconCode,
                     onSelected: (code) => setState(() => _iconCode = code),
                   ),

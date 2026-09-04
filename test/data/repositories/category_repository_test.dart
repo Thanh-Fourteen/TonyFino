@@ -472,6 +472,7 @@ void main() {
       final updateResult = await repo.update(
         id: withEmojiId,
         name: 'Ăn vặt',
+        kind: 'expense',
         categoryColorId: 0,
         iconCode: 'restaurant',
         emoji: null,

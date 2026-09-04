@@ -21,6 +21,8 @@ class SessionDraftCard {
     required this.categoryConfirmed,
     required this.date,
     required this.dateExplicit,
+    this.goalId,
+    this.goalWithdrawal = false,
     this.savedTransactionId,
     this.savedAt,
   });
@@ -52,6 +54,16 @@ class SessionDraftCard {
 
   final DateTime date;
 
+  /// Khác `null` khi câu là một dòng ĐỂ DÀNH — id mục tiêu tiết kiệm
+  /// (`SavingsGoals`) mà tiền cất vào/rút ra. Thẻ như vậy KHÔNG có danh mục
+  /// ([categoryId] luôn `null`) và không sửa được danh mục: nó không phải
+  /// một khoản chi tiêu để phân loại. Xem `savings_matcher.dart`.
+  final int? goalId;
+
+  /// `true` = RÚT về ví ("rút 2tr từ tiết kiệm") — dòng THU gắn cùng
+  /// `goalId`. `false` = cất vào (dòng CHI). Vô nghĩa khi [goalId] là `null`.
+  final bool goalWithdrawal;
+
   /// Từ `ParsedDate.explicit` (Phase 7) hoặc `true` sau khi người dùng tự
   /// chọn ngày qua chip — mặc định về hôm nay khi parser không thấy cụm
   /// ngày nào VẪN LÀ MỘT PHỎNG ĐOÁN (dù thường đúng), nên vẫn render chip
@@ -68,6 +80,9 @@ class SessionDraftCard {
   final DateTime? savedAt;
 
   bool get isUnderstood => amountMinor != null;
+
+  /// Thẻ này là một dòng để dành, không phải một khoản chi tiêu.
+  bool get isSavings => goalId != null;
   bool get isSaved => savedTransactionId != null;
 
   SessionDraftCard copyWith({
@@ -88,6 +103,8 @@ class SessionDraftCard {
       categoryConfirmed: categoryConfirmed ?? this.categoryConfirmed,
       date: date ?? this.date,
       dateExplicit: dateExplicit ?? this.dateExplicit,
+      goalId: goalId,
+      goalWithdrawal: goalWithdrawal,
       savedTransactionId: savedTransactionId ?? this.savedTransactionId,
       savedAt: savedAt ?? this.savedAt,
     );
@@ -97,6 +114,7 @@ class SessionDraftCard {
     required String id,
     required ParsedDraft draft,
     required int? categoryId,
+    int? goalId,
   }) {
     return SessionDraftCard(
       id: id,
@@ -108,6 +126,8 @@ class SessionDraftCard {
       categoryConfirmed: false,
       date: draft.date.date,
       dateExplicit: draft.date.explicit,
+      goalId: goalId,
+      goalWithdrawal: draft.savings?.isWithdrawal ?? false,
     );
   }
 }

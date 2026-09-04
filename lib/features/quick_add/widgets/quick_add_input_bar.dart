@@ -177,7 +177,10 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
         .firstOrNull;
     if (message == null) return;
     final needsFallbackCards = message.cards
-        .where((c) => !c.isUnderstood || !c.amountConfident)
+        // Thẻ để dành bị `QuickAddController._tryFallback` từ chối (nó sẽ
+        // xoá mất `goalId`), nên đừng hỏi Tony đồng ý gửi lên mây cho một
+        // thẻ mà dù đồng ý cũng không có gì xảy ra.
+        .where((c) => !c.isSavings && (!c.isUnderstood || !c.amountConfident))
         .toList(growable: false);
     if (needsFallbackCards.isEmpty) return;
 

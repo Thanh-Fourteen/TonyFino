@@ -361,7 +361,35 @@ class AppDatabase extends _$AppDatabase {
       // Cùng họ với cái bẫy đã dính ở migration v9→v10.
       if (details.versionNow != schemaVersion) return;
       await backfillSeedKeywords(this);
+      await repairSubcategoryKinds(this);
     },
+  );
+}
+
+/// Ép lại bất biến "danh mục CON luôn mang `kind` của cha"
+/// (`CategoryRepository.kindIsInheritedFromParent`) cho những hàng đã lỡ sai.
+///
+/// 🚨 Vì sao chạy MỖI LẦN MỞ chứ không một lần rồi thôi như
+/// [backfillSeedKeywords]: cái này không phải "bù dữ liệu mới" mà là một BẤT
+/// BIẾN. Ở đây không có ý định nào của người dùng để làm hỏng — `kind` riêng
+/// của một danh mục con không hiện ra ở bất kỳ màn nào, không ai cố ý đặt
+/// nó khác cha. Ngược lại, dữ liệu sai có thể quay lại từ một bản khôi phục
+/// sao lưu cũ hoặc một lần import, nên chốt một lần là không đủ.
+///
+/// Rẻ: một câu UPDATE trên bảng vài chục hàng, chỉ động vào đúng hàng lệch
+/// (mệnh đề `WHERE ... IS NOT`), nên lần mở bình thường ghi 0 hàng.
+///
+/// Sổ Tony có sẵn ít nhất một hàng như vậy: danh mục "Thưởng" nằm dưới một
+/// gốc THU nhưng `kind = 'expense'`, khiến "thưởng 1tr" ở màn chat ghi ra
+/// −1.000.000 (xem `CategoryRepository.update`).
+Future<void> repairSubcategoryKinds(AppDatabase db) async {
+  await db.customUpdate(
+    'UPDATE categories SET kind = ('
+    '  SELECT p.kind FROM categories p WHERE p.id = categories.parent_category_id'
+    ') WHERE parent_category_id IS NOT NULL AND kind IS NOT ('
+    '  SELECT p.kind FROM categories p WHERE p.id = categories.parent_category_id'
+    ')',
+    updates: {db.categories},
   );
 }
 

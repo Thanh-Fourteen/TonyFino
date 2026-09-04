@@ -14,6 +14,12 @@ import '../../support/pump_app.dart';
 /// bộ chọn khoảng. Đóng băng đồng hồ để "tháng này" luôn là tháng chứa dữ
 /// liệu seed của test — nếu để đồng hồ thật, bộ test này tự hỏng khi sang
 /// tháng mới, đúng loại lỗi chỉ nổ ra vào một ngày ngẫu nhiên trong tương lai.
+///
+/// 🚨 Và phải seed giao dịch bằng CHÍNH đồng hồ này (`_frozenClock.now()`),
+/// không phải `DateTime.now()`: đóng băng bộ lọc ở tháng 8/2026 trong khi
+/// dữ liệu rơi vào tháng thật của máy chạy test là hai tháng khác nhau, nên
+/// hàng seed nằm ngoài kỳ và biến mất. Chính cái bẫy đoạn trên cảnh báo, chỉ
+/// là ở nửa còn lại — bộ test này đã đỏ sẵn từ ngày 1/9/2026.
 final _frozenClock = Clock.fixed(DateTime(2026, 8, 25));
 
 void main() {
@@ -44,7 +50,7 @@ void main() {
             amountMinor: -65000,
             currency: 'VND',
             currencyScale: 0,
-            occurredAt: DateTime.now(),
+            occurredAt: _frozenClock.now(),
             walletId: await firstWalletId(),
             categoryId: Value(categoryId),
             note: const Value('ăn trưa'),
@@ -125,7 +131,7 @@ void main() {
             amountMinor: -20000,
             currency: 'VND',
             currencyScale: 0,
-            occurredAt: DateTime.now(),
+            occurredAt: _frozenClock.now(),
             walletId: await firstWalletId(),
             categoryId: Value(categoryId),
           ),

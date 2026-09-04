@@ -1992,3 +1992,83 @@ dấu — seed "Ăn uống" có cả "bách hoá xanh" lẫn "bách hóa xanh". 
 
 **Xác minh**: 1014 test xanh (thêm 6 test mới, gồm cả test cũ "học từ khoá" phải viết lại vì hành vi
 đổi có chủ ý), `flutter analyze` giữ nguyên 15 info có sẵn, `check_arch.sh` PASS.
+
+## 2026-09-04 · Ba báo lỗi cùng lượt: quá ít icon, "thưởng 1tr" ra −1tr, chat không hiểu "vào tiết kiệm"
+
+### 1. Bộ icon danh mục: 15 → 114 mã, chia nhóm, khung cuộn riêng
+
+15 mã seed vừa đủ cho 12 danh mục mặc định, nên mọi danh mục Tony tự tạo đều phải mượn lại một hình
+đã có — nhìn danh sách thì hàng nào cũng giống hàng nào. Thêm 99 mã: mỗi mã có ĐỦ hai cách vẽ mà
+`CategoryAvatar` cần — glyph Material Symbols Rounded (const literal, để `--tree-shake-icons` còn
+rút gọn được) và một PNG 3D Microsoft Fluent Emoji (MIT) cùng tên trong `assets/icons3d/categories/`.
+
+🚨 **Thiếu file 3D thì icon mới hiện thành DẤU HỎI, im lặng.** `resolveCategoryIcon3d` trả
+`question_mark.png` cho mã lạ — file đó TỒN TẠI nên `Image.asset` không lỗi và `errorBuilder`
+(đường lùi về glyph đơn sắc) không bao giờ chạy. `test/theme/tokens/category_icons_test.dart` khoá
+đúng chỗ đó: mọi `iconCode` phải có file 3D thật trên đĩa, và phải nằm đúng một nhóm của bộ chọn.
+
+Bộ chọn (`AppIconPicker`) nhận thêm `groups`: 114 icon trải phẳng là 13 hàng không mốc, mà tệ hơn là
+nó đẩy nút Lưu của sheet đi cả nghìn pixel — đúng lớp lỗi đã làm nút chọn danh mục cha bị khuất ở
+v13. Nay bảng icon nằm trong khung cao cố định 240px có thanh cuộn riêng, nên bộ icon lớn thêm bao
+nhiêu cũng không đổi chiều dài phần còn lại của sheet.
+
+### 2. "thưởng 1tr" ghi ra −1.000.000 — ba lỗ hổng nối nhau quanh `Categories.kind`
+
+Dấu tiền của một thẻ quick-add lấy đúng từ `Categories.kind` (`QuickAddController._resolveMoney`).
+Ba chỗ hỏng, mỗi chỗ đủ để gây ra triệu chứng:
+
+1. **`CategoryRepository.update` không nhận `kind` gì cả.** Sheet sửa danh mục vẫn vẽ nút gạt
+   "Chi/Thu", Tony bấm "Thu", bấm Lưu, sheet đóng như đã thành công — cột `kind` không hề đổi. Không
+   có đường nào sửa được từ trong app.
+2. **Danh mục CON có `kind` riêng, độc lập với cha.** Mà `kind` của con KHÔNG hiện ra ở đâu cả:
+   `TwoLevelCategoryPicker` lọc theo `kind` ở CẤP GỐC rồi hiện tất cả con của gốc đang chọn, màn
+   Danh mục cũng xếp con theo nhóm Thu/Chi của gốc. Một con `expense` nằm dưới gốc `income` vì thế
+   là cái bẫy im lặng hoàn hảo: nó hiện trong mục "Danh mục thu", chọn được như danh mục thu, rồi
+   ghi ra một khoản CHI.
+3. **Sổ đang dùng đã có sẵn hàng sai** — sửa code không tự dọn dữ liệu cũ.
+
+**Chốt**: `kind` của danh mục con LUÔN bằng `kind` của cha
+(`CategoryRepository.kindIsInheritedFromParent`), ép ở cả `insert` lẫn `update` (đổi `kind` của một
+gốc kéo theo mọi con trong cùng một `transaction()`); sheet bỏ hẳn nút gạt khi đã chọn cha và nói rõ
+"Danh mục THU — theo danh mục cha"; `repairSubcategoryKinds` chạy trong `beforeOpen` MỖI lần mở sổ.
+
+Vì sao repair chạy mỗi lần mở chứ không một lần rồi thôi như `backfillSeedKeywords`: cái này là BẤT
+BIẾN, không phải "bù dữ liệu mới". Không có ý định nào của người dùng để làm hỏng (`kind` của con
+không hiện ra ở đâu), còn dữ liệu sai thì vẫn có thể quay lại từ một bản khôi phục sao lưu cũ hoặc
+một lần import. Một câu UPDATE trên bảng vài chục hàng, chỉ động vào hàng lệch.
+
+### 3. Màn chat hiểu "chuyển 5tr vào tiết kiệm"
+
+Trước bản này gõ câu đó ở màn chat thì `category_matcher` chấm điểm như mọi câu khác và ghi ra một
+khoản CHI thường — mục tiêu tiết kiệm không nhúc nhích. Lối vào duy nhất là nút "+" bên màn Quỹ,
+hoặc chip "Chuyển quỹ" (mà nó lại mở sheet chuyển giữa hai VÍ, khác hẳn).
+
+`savings_matcher.dart` (Dart thuần, cùng thư mục `parser/`) nhận danh sách mục tiêu đang hoạt động
+từ tầng gọi và trả `SavingsMatch` — thẻ sinh ra mang `goalId`, KHÔNG có `categoryId`, đúng hình dạng
+màn Quỹ (Phase 16) đang ghi, nên tiến độ mục tiêu, "Còn lại" ở Trang chủ và báo cáo Chi/Thu tự động
+tính đúng. "rút … từ tiết kiệm" là chiều ngược lại (dòng THU cùng `goalId`).
+
+🚨 **Thận trọng là mặc định.** Nhận nhầm một khoản chi thành khoản để dành tệ hơn nhiều so với không
+nhận ra: khoản chi biến mất khỏi báo cáo VÀ thổi phồng tiến độ một mục tiêu. Nên:
+
+- Động từ chuyển tiền MỘT MÌNH chưa đủ — "chuyển khoản tiền nhà 2tr" phải vẫn là khoản chi. Phải có
+  thêm giới từ chỉ đích ("vào"/"sang"/"qua") hoặc một từ nói thẳng ("tiết kiệm", "để dành", "quỹ").
+- Tên mục tiêu ngắn (<4 ký tự đã bỏ dấu) không được tự nó làm bằng chứng: mục tiêu tên "Nhà" sẽ khớp
+  vào "tiền nhà", "Xe" khớp vào "xe ôm".
+- Không gọi tên mục tiêu nào thì chỉ dám tự chọn khi trong sổ đúng MỘT mục tiêu. Hai trở lên là tung
+  đồng xu — thà để câu chạy như khoản chi bình thường.
+- Thẻ để dành KHÔNG đi đường AI fallback: fallback trả về `ParsedDraft` thường (không biết `savings`
+  là gì) và `SessionDraftCard.fromDraft` dựng lại thẻ từ chính draft đó, tức `goalId` bị xoá sạch.
+
+### Ngoài lề, phát hiện lúc chạy test
+
+`transactions_screen_test.dart` đã ĐỎ SẴN từ 1/9/2026: nó đóng băng đồng hồ ở 25/8/2026 (để bộ lọc
+kỳ ổn định) nhưng lại seed giao dịch bằng `DateTime.now()` — hai tháng khác nhau nên hàng seed nằm
+ngoài kỳ và biến mất. Đúng cái bẫy mà chính comment đầu file cảnh báo, chỉ là ở nửa còn lại. Đã seed
+bằng `_frozenClock.now()`.
+
+### Xác minh
+
+1043 test xanh (thêm 23 test mới), `flutter analyze` giữ nguyên 13 info có sẵn, `check_arch.sh` PASS.
+**Chưa chạy tay được trên máy ảo**: AVD `tonyfino36` không còn trên máy này (`emulator -list-avds`
+rỗng), nên phần thị giác của bộ icon mới và thẻ để dành ở màn chat vẫn chờ Tony bấm thật.

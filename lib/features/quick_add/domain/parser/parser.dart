@@ -5,6 +5,7 @@ import 'category_matcher.dart';
 import 'date_parser.dart';
 import 'normalizer.dart';
 import 'parse_result.dart';
+import 'savings_matcher.dart';
 import 'segmenter.dart';
 import 'tokenizer.dart';
 
@@ -22,6 +23,7 @@ List<ParsedDraft> parseMessage(
   String rawMessage, {
   required Clock clock,
   List<CategoryKeywordEntry> categoryKeywords = const [],
+  List<SavingsTargetEntry> savingsTargets = const [],
 }) {
   final normalizedWhole = normalize(rawMessage);
   final segments = segmentMessage(normalizedWhole.diacritics);
@@ -31,6 +33,7 @@ List<ParsedDraft> parseMessage(
           segment,
           clock: clock,
           categoryKeywords: categoryKeywords,
+          savingsTargets: savingsTargets,
         ),
       )
       .toList(growable: false);
@@ -40,6 +43,7 @@ ParsedDraft _parseSegment(
   String rawSegment, {
   required Clock clock,
   required List<CategoryKeywordEntry> categoryKeywords,
+  required List<SavingsTargetEntry> savingsTargets,
 }) {
   final normalized = normalize(rawSegment);
   final tokens = tokenize(normalized.diacritics);
@@ -74,6 +78,23 @@ ParsedDraft _parseSegment(
       .where((t) => t.type == TokenType.word)
       .map((t) => t.text)
       .join(' ');
+
+  // Ý định "cất vào tiết kiệm" xét TRƯỚC danh mục và loại trừ nó: một dòng
+  // để dành không thuộc danh mục nào (xem [SavingsMatch]). Chấm điểm danh
+  // mục xong rồi mới ghi đè sẽ chỉ tốn công — mà tệ hơn, "chuyển 5tr vào quỹ
+  // mua nhà" vẫn còn dính điểm của danh mục "Nhà cửa" nếu ai đó lỡ đọc
+  // `category` mà quên `savings`.
+  final savings = matchSavings(normalize(leftoverText).ascii, savingsTargets);
+  if (savings != null) {
+    return ParsedDraft(
+      rawText: rawSegment,
+      leftoverText: leftoverText,
+      amount: amount,
+      date: date,
+      category: null,
+      savings: savings,
+    );
+  }
 
   // Nhãn buổi nằm TRONG cụm ngày ("trưa nay", "tối qua") đã bị `findDate`
   // cắt khỏi token, nên nếu chỉ đưa `leftoverText` cho bộ khớp thì "hủ tíu

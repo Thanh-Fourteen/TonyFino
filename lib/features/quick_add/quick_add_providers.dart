@@ -9,11 +9,13 @@ import '../../core/providers/database_providers.dart';
 import '../../core/time/clock_provider.dart';
 import '../../data/db/database.dart';
 import '../../data/services/ai/tailnet_fallback.dart';
+import '../savings/savings_providers.dart';
 import '../settings/settings_controller.dart';
 import '../transactions/transactions_providers.dart';
 import 'domain/ai_parse_fallback.dart';
 import 'domain/category_keyword_entries.dart';
 import 'domain/models/session_draft_card.dart';
+import 'domain/parser/normalizer.dart';
 import 'domain/parser/parser.dart';
 
 /// Bản mặc định của Phase 8 — `NoopFallback` khi `cloudFallbackEnabled` còn
@@ -62,6 +64,24 @@ final categoryKeywordEntriesProvider =
             ),
           );
     });
+
+/// Mục tiêu tiết kiệm đang hoạt động → `SavingsTargetEntry` cho
+/// `savings_matcher.dart`, để câu "chuyển 5tr vào quỹ mua nhà" gõ ở màn chat
+/// đi thẳng vào đúng mục tiêu thay vì thành một khoản chi.
+///
+/// `goalKey = id.toString()` — cùng quy ước khoá với
+/// [categoryKeywordEntriesProvider].
+final savingsTargetEntriesProvider = Provider<List<SavingsTargetEntry>>((ref) {
+  final goals = ref.watch(activeSavingsGoalsProvider).value ?? const [];
+  return [
+    for (final goal in goals)
+      SavingsTargetEntry(
+        goalKey: goal.id.toString(),
+        name: goal.name,
+        nameAscii: normalize(goal.name).ascii,
+      ),
+  ];
+});
 
 const _recentInputsKey = 'tonyfino_quick_add_recent_inputs';
 const _recentInputsMax = 5;
@@ -138,6 +158,12 @@ class QuickAddController extends Notifier<QuickAddState> {
     // `docs/decisions.md` § Phase 9). `ref.listen` giữ subscription sống y
     // hệt `watch` nhưng KHÔNG kích hoạt lại `build()` khi giá trị đổi.
     ref.listen(categoryKeywordEntriesProvider, (_, _) {});
+    // Cùng lý do, cùng cái bẫy: `savingsTargetEntriesProvider` là `Provider`
+    // thường nhưng nó `watch` một `StreamProvider` (`activeSavingsGoals`),
+    // nên nếu không ai nghe thì stream đó cũng bị tạm dừng và danh sách mục
+    // tiêu ở `sendMessage` mãi mãi rỗng — tức mọi câu "chuyển … vào tiết
+    // kiệm" âm thầm rơi về khoản chi thường, đúng triệu chứng cũ.
+    ref.listen(savingsTargetEntriesProvider, (_, _) {});
     return const QuickAddState();
   }
 
@@ -157,6 +183,7 @@ class QuickAddController extends Notifier<QuickAddState> {
       trimmed,
       clock: clock,
       categoryKeywords: keywords,
+      savingsTargets: ref.read(savingsTargetEntriesProvider),
     );
     if (drafts.isEmpty) return null;
 
@@ -168,6 +195,9 @@ class QuickAddController extends Notifier<QuickAddState> {
           categoryId: draft.category == null
               ? null
               : int.tryParse(draft.category!.categoryKey),
+          goalId: draft.savings == null
+              ? null
+              : int.tryParse(draft.savings!.goalKey),
         ),
     ];
 
@@ -210,6 +240,12 @@ class QuickAddController extends Notifier<QuickAddState> {
     final before = _findCard(messageId, cardId);
     if (before == null) return;
     if (before.isUnderstood && before.amountConfident) return;
+    // Thẻ ĐỂ DÀNH không đi đường AI: fallback trả về một `ParsedDraft` bình
+    // thường (không biết `savings` là gì), và `SessionDraftCard.fromDraft`
+    // bên dưới dựng lại thẻ từ chính draft đó — nghĩa là `goalId` bị xoá
+    // sạch và một dòng để dành âm thầm biến thành khoản chi có danh mục.
+    // Thà giữ nguyên kết quả cục bộ (vốn đã nhận ra đúng mục tiêu) còn hơn.
+    if (before.isSavings) return;
 
     final fallback = ref.read(aiParseFallbackProvider);
     final clock = ref.read(clockProvider);
@@ -285,6 +321,11 @@ class QuickAddController extends Notifier<QuickAddState> {
       occurredAt: card.date,
       walletId: walletId,
       categoryId: card.categoryId,
+      // Dòng để dành gắn `goalId` và KHÔNG có danh mục — đúng hình dạng mà
+      // màn Quỹ (Phase 16) ghi ra, nên tiến độ mục tiêu, "Còn lại" ở Trang
+      // chủ và báo cáo Chi/Thu tự động tính đúng mà không cần biết dòng này
+      // đến từ màn chat.
+      goalId: card.goalId,
       note: card.leftoverText.isEmpty ? null : card.leftoverText,
     );
     result.when(
@@ -308,6 +349,14 @@ class QuickAddController extends Notifier<QuickAddState> {
   /// danh mục, đúng vì ~90% giao dịch cá nhân là chi — xem design system
   /// § Màu, luật màu #2).
   Money _resolveMoney(SessionDraftCard card) {
+    // Dòng để dành không có danh mục nên không có `kind` nào để hỏi: CẤT
+    // VÀO là tiền rời ví (âm, tiến độ mục tiêu = `-SUM(amountMinor)` nên
+    // tăng), RÚT RA là tiền về ví (dương, mục tiêu giảm) — cùng công thức
+    // `TransactionFormPrefill.forGoalContribution`/`forGoalWithdrawal`.
+    if (card.isSavings) {
+      final magnitude = card.amountMinor!;
+      return Money.vnd(card.goalWithdrawal ? magnitude : -magnitude);
+    }
     final categories = ref.read(categoriesProvider).value ?? const [];
     Category? category;
     for (final c in categories) {

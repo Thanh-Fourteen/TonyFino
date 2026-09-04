@@ -174,6 +174,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                   SizedBox(height: context.space.xs),
                   AppIconPicker(
                     icons: categoryIconByCode,
+                    groups: categoryIconGroups,
                     selectedCode: _iconCode,
                     onSelected: (code) => setState(() => _iconCode = code),
                   ),

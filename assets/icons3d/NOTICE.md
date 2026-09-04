@@ -1,7 +1,7 @@
 # Nguồn gốc & giấy phép
 
 Mọi file PNG trong thư mục này — 3 file gốc ở thư mục này (`party_popper_3d.png`, `trophy_3d.png`,
-`fire_3d.png`) và 14 file icon danh mục trong `categories/` — đều lấy từ bộ
+`fire_3d.png`) và 115 file icon danh mục trong `categories/` — đều lấy từ bộ
 [Microsoft Fluent Emoji](https://github.com/microsoft/fluentui-emoji), style 3D, không chỉnh sửa.
 
 **Giấy phép: MIT** (Copyright (c) Microsoft Corporation) — xem

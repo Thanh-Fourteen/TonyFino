@@ -98,6 +98,9 @@ class CategoryRepository {
   /// qua và LUÔN thừa hưởng ví của danh mục cha — một danh mục con nằm khác
   /// ví với cha nó là trạng thái vô nghĩa, chặn ngay ở đây thay vì tin call
   /// site truyền đúng.
+  ///
+  /// 🚨 [kind] cũng thừa hưởng y hệt: danh mục CON luôn mang `kind` của cha,
+  /// giá trị truyền vào bị BỎ QUA. Xem [kindIsInheritedFromParent].
   Future<Result<int, AppError>> insert({
     required String name,
     required String kind,
@@ -109,6 +112,7 @@ class CategoryRepository {
   }) async {
     try {
       int? resolvedWalletId = walletId;
+      var resolvedKind = kind;
       if (parentCategoryId != null) {
         final parent = await (_db.select(
           _db.categories,
@@ -121,6 +125,7 @@ class CategoryRepository {
           );
         }
         resolvedWalletId = parent.walletId;
+        resolvedKind = parent.kind;
       }
       if (resolvedWalletId == null) {
         return const Err(
@@ -145,7 +150,7 @@ class CategoryRepository {
           .insert(
             CategoriesCompanion.insert(
               name: name,
-              kind: kind,
+              kind: resolvedKind,
               categoryColorId: categoryColorId,
               iconCode: iconCode,
               parentCategoryId: Value(parentCategoryId),
@@ -162,15 +167,32 @@ class CategoryRepository {
     }
   }
 
+  /// 🚨 [kind] LÀ tham số bắt buộc, và nó thực sự được GHI.
+  ///
+  /// Trước bản này `update` không nhận `kind` gì cả: sheet sửa danh mục vẫn
+  /// vẽ nút gạt "Chi/Thu", Tony bấm "Thu", bấm Lưu, sheet đóng lại như đã
+  /// thành công — mà cột `kind` không hề đổi. Hậu quả không nằm ở màn danh
+  /// mục (chỉ xếp sai nhóm) mà ở màn chat: dấu tiền của một thẻ quick-add
+  /// lấy đúng từ `Categories.kind` (`QuickAddController._resolveMoney`), nên
+  /// một danh mục THU còn kẹt `kind = 'expense'` biến "thưởng 1tr" thành
+  /// −1.000.000 — đúng lỗi Tony báo, và không có cách nào sửa được từ trong
+  /// app.
+  ///
+  /// Danh mục CON không có `kind` riêng: nó luôn mang `kind` của cha (xem
+  /// [kindIsInheritedFromParent]). Đổi `kind` của một danh mục GỐC vì thế
+  /// phải kéo theo mọi con của nó trong CÙNG một `transaction()`, nếu không
+  /// cây danh mục lại rơi vào đúng trạng thái nửa vời vừa sửa xong.
   Future<Result<void, AppError>> update({
     required int id,
     required String name,
+    required String kind,
     required int categoryColorId,
     required String iconCode,
     int? parentCategoryId,
     String? emoji,
   }) async {
     try {
+      var resolvedKind = kind;
       if (parentCategoryId != null) {
         if (parentCategoryId == id) {
           return const Err(AppError('Danh mục không thể là cha của chính nó.'));
@@ -185,16 +207,25 @@ class CategoryRepository {
             ),
           );
         }
+        resolvedKind = parent.kind;
       }
-      await (_db.update(_db.categories)..where((c) => c.id.equals(id))).write(
-        CategoriesCompanion(
-          name: Value(name),
-          categoryColorId: Value(categoryColorId),
-          iconCode: Value(iconCode),
-          parentCategoryId: Value(parentCategoryId),
-          emoji: Value(emoji),
-        ),
-      );
+      await _db.transaction(() async {
+        await (_db.update(_db.categories)..where((c) => c.id.equals(id))).write(
+          CategoriesCompanion(
+            name: Value(name),
+            kind: Value(resolvedKind),
+            categoryColorId: Value(categoryColorId),
+            iconCode: Value(iconCode),
+            parentCategoryId: Value(parentCategoryId),
+            emoji: Value(emoji),
+          ),
+        );
+        if (parentCategoryId == null) {
+          await (_db.update(_db.categories)
+                ..where((c) => c.parentCategoryId.equals(id)))
+              .write(CategoriesCompanion(kind: Value(resolvedKind)));
+        }
+      });
       return const Ok(null);
     } catch (e) {
       final error = AppError('Không sửa được danh mục.', cause: e);
@@ -202,6 +233,19 @@ class CategoryRepository {
       return Err(error);
     }
   }
+
+  /// Hằng số tài liệu (không phải cờ bật/tắt): trong TonyFino, `kind` của một
+  /// danh mục CON luôn bằng `kind` của cha nó.
+  ///
+  /// Vì sao là luật chứ không phải tuỳ chọn: mọi bộ chọn danh mục lọc theo
+  /// `kind` ở CẤP GỐC rồi hiện TẤT CẢ con của gốc đang chọn
+  /// (`TwoLevelCategoryPicker`), và màn Danh mục cũng xếp con theo nhóm
+  /// Thu/Chi của gốc. Nghĩa là `kind` riêng của một con KHÔNG hiện ra ở bất
+  /// kỳ đâu — nhưng nó lại là thứ quyết định dấu tiền ở màn chat. Một con
+  /// `expense` nằm dưới gốc `income` vì thế là một cái bẫy im lặng: nó hiện
+  /// trong mục "Danh mục thu", chọn được như một danh mục thu, rồi ghi ra
+  /// một khoản CHI.
+  static const bool kindIsInheritedFromParent = true;
 
   Future<Result<void, AppError>> setArchived(int id, bool archived) async {
     try {

@@ -11,6 +11,7 @@ import '../../../data/db/database.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../features/budgets/domain/budget_period.dart';
 import '../../../features/budgets/domain/budget_progress.dart';
+import '../../../features/savings/savings_providers.dart';
 import '../../../features/settings/settings_controller.dart';
 import '../../../features/transactions/day_label.dart';
 import '../../../features/transactions/transaction_form_sheet.dart';
@@ -124,6 +125,25 @@ class _DraftCardState extends ConsumerState<DraftCard>
     return null;
   }
 
+  /// Tên mục tiêu tiết kiệm của thẻ để dành — `null` cho thẻ thường, và
+  /// cũng `null` nếu mục tiêu vừa bị xoá/lưu trữ ở màn khác (lúc đó thẻ vẫn
+  /// vẽ được, chỉ mất cái tên).
+  String? get _goalName {
+    final goalId = widget.card.goalId;
+    if (goalId == null) return null;
+    final goals = ref.watch(activeSavingsGoalsProvider).value ?? const [];
+    for (final g in goals) {
+      if (g.id == goalId) return g.name;
+    }
+    return null;
+  }
+
+  /// Nhãn một dòng cho thẻ để dành: "Để dành › Quỹ mua nhà" / "Rút từ quỹ …".
+  String _savingsLabel(String? goalName) {
+    final name = goalName ?? 'Mục tiêu tiết kiệm';
+    return widget.card.goalWithdrawal ? 'Rút từ $name' : 'Để dành › $name';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.card.isUnderstood)
@@ -143,6 +163,13 @@ class _DraftCardState extends ConsumerState<DraftCard>
   Widget _buildPending(BuildContext context) {
     final category = _category;
     final now = ref.watch(quickAddNowForLabelsProvider);
+    // Thẻ ĐỂ DÀNH mượn nguyên bố cục thẻ thường nhưng đổi danh tính: icon
+    // con heo đất, tên mục tiêu thay tên danh mục, và KHÔNG có chip danh mục
+    // để bấm — một dòng để dành không thuộc danh mục nào (xem
+    // `savings_matcher.dart`), hiện chip "Chưa phân loại" ở đây chỉ mời gọi
+    // gán bừa một danh mục rồi làm hỏng cả tiến độ mục tiêu lẫn báo cáo chi.
+    final goalName = _goalName;
+    final isSavings = widget.card.isSavings;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,14 +177,20 @@ class _DraftCardState extends ConsumerState<DraftCard>
           Row(
             children: [
               CategoryAvatar(
-                categoryColorId: category?.categoryColorId ?? 10,
-                iconCode: category?.iconCode ?? 'more_horiz',
+                categoryColorId: isSavings
+                    ? 11
+                    : (category?.categoryColorId ?? 10),
+                iconCode: isSavings
+                    ? 'savings'
+                    : (category?.iconCode ?? 'more_horiz'),
                 size: 32,
               ),
               SizedBox(width: context.space.sm),
               Expanded(
                 child: Text(
-                  category?.name ?? 'Chưa phân loại',
+                  isSavings
+                      ? (goalName ?? 'Mục tiêu tiết kiệm')
+                      : (category?.name ?? 'Chưa phân loại'),
                   style: context.text.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
@@ -174,24 +207,35 @@ class _DraftCardState extends ConsumerState<DraftCard>
               // Chip hiện "Cha › Con" — thấy mỗi "Tiêu vặt" thì không biết
               // parser đã xếp nó vào Ăn uống hay Mua sắm, mà đây đúng là
               // chỗ Tony liếc qua để quyết định có sửa hay không.
-              AppChip(
-                label: twoTierCategoryLabel(category, {
-                  for (final c in widget.categories) c.id: c,
-                }),
-                unconfirmed: category == null,
-                icon: category == null
-                    ? null
-                    : CategoryAvatar(
-                        categoryColorId: displayCategory(category, {
-                          for (final c in widget.categories) c.id: c,
-                        })!.categoryColorId,
-                        iconCode: displayCategory(category, {
-                          for (final c in widget.categories) c.id: c,
-                        })!.iconCode,
-                        size: 16,
-                      ),
-                onTap: () => _editCategory(context),
-              ),
+              if (isSavings)
+                AppChip(
+                  label: _savingsLabel(goalName),
+                  editable: false,
+                  icon: const CategoryAvatar(
+                    categoryColorId: 11,
+                    iconCode: 'savings',
+                    size: 16,
+                  ),
+                )
+              else
+                AppChip(
+                  label: twoTierCategoryLabel(category, {
+                    for (final c in widget.categories) c.id: c,
+                  }),
+                  unconfirmed: category == null,
+                  icon: category == null
+                      ? null
+                      : CategoryAvatar(
+                          categoryColorId: displayCategory(category, {
+                            for (final c in widget.categories) c.id: c,
+                          })!.categoryColorId,
+                          iconCode: displayCategory(category, {
+                            for (final c in widget.categories) c.id: c,
+                          })!.iconCode,
+                          size: 16,
+                        ),
+                  onTap: () => _editCategory(context),
+                ),
               AppChip(
                 label: formatDayLabel(widget.card.date, now),
                 unconfirmed: !widget.card.dateExplicit,
@@ -273,14 +317,18 @@ class _DraftCardState extends ConsumerState<DraftCard>
       child: Row(
         children: [
           CategoryAvatar(
-            categoryColorId: category?.categoryColorId ?? 10,
-            iconCode: category?.iconCode ?? 'more_horiz',
+            categoryColorId: widget.card.isSavings
+                ? 11
+                : (category?.categoryColorId ?? 10),
+            iconCode: widget.card.isSavings
+                ? 'savings'
+                : (category?.iconCode ?? 'more_horiz'),
             size: 28,
           ),
           SizedBox(width: context.space.sm),
           Expanded(
             child: Text(
-              '${(entry?.isSplit ?? false) ? 'Nhiều danh mục' : twoTierCategoryLabel(rawCategory, byId)} · '
+              '${_collapsedLabel(entry, rawCategory, byId)} · '
               '${formatDayLabel(date, now).toLowerCase()}',
               style: context.text.bodyMedium?.copyWith(
                 color: context.colors.onSurfaceVariant,
@@ -300,9 +348,26 @@ class _DraftCardState extends ConsumerState<DraftCard>
     );
   }
 
+  /// Nhãn danh tính ở hàng "đã lưu" — thẻ để dành nói tên MỤC TIÊU, thẻ
+  /// thường nói "Cha › Con" như cũ (`twoTierCategoryLabel`).
+  String _collapsedLabel(
+    TransactionWithCategory? entry,
+    Category? rawCategory,
+    Map<int, Category> byId,
+  ) {
+    if (widget.card.isSavings) return _savingsLabel(_goalName);
+    if (entry?.isSplit ?? false) return 'Nhiều danh mục';
+    return twoTierCategoryLabel(rawCategory, byId);
+  }
+
   Money _money(Category? category) {
-    final isIncome = category?.kind == 'income';
+    // Cùng công thức với `QuickAddController._resolveMoney` — thẻ để dành
+    // không có danh mục nào để hỏi `kind`, dấu đến từ chiều cất-vào/rút-ra.
     final magnitude = widget.card.amountMinor!;
+    if (widget.card.isSavings) {
+      return Money.vnd(widget.card.goalWithdrawal ? magnitude : -magnitude);
+    }
+    final isIncome = category?.kind == 'income';
     return Money.vnd(isIncome ? magnitude : -magnitude);
   }
 
