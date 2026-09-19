@@ -21,9 +21,15 @@ import '../home/home_period_provider.dart';
 import '../home/widgets/period_chip.dart';
 import '../tags/tags_providers.dart';
 import 'day_label.dart';
+import 'domain/day_groups.dart';
+import 'domain/transaction_row_display.dart';
 import 'transaction_form_sheet.dart';
 import 'transaction_templates_screen.dart';
 import 'transactions_providers.dart';
+import '../../data/repositories/jar_repository.dart';
+import '../../ui/amount_visibility.dart';
+import '../jars/jars_providers.dart';
+import '../jars/jars_screen.dart' show JarProgressBar;
 
 /// 🔥 Danh sách hàng tràn viền dưới header ngày dính + hero card (chi tiêu
 /// từ đầu tháng, KHÔNG PHẢI số dư — số dư của app nhập tay là hư cấu). FAB
@@ -159,6 +165,7 @@ class _TransactionList extends ConsumerWidget {
             ),
           ),
           const SliverToBoxAdapter(child: _TagFilterRow()),
+          const SliverToBoxAdapter(child: _JarSpendStrip()),
           SliverFillRemaining(
             hasScrollBody: false,
             child: const EmptyState(
@@ -176,7 +183,7 @@ class _TransactionList extends ConsumerWidget {
       );
     }
 
-    final groups = _groupByDay(items);
+    final groups = groupTransactionsByDay(items);
 
     // Tra cứu danh mục CHA cho giao dịch gắn vào danh mục phụ. Cố ý dựng ở
     // UI từ `categoriesProvider` (vốn đã sống sẵn cho cả app) thay vì nối
@@ -207,6 +214,7 @@ class _TransactionList extends ConsumerWidget {
           ),
         ),
         const SliverToBoxAdapter(child: _TagFilterRow()),
+        const SliverToBoxAdapter(child: _JarSpendStrip()),
         // 🚨 MỖI NGÀY LÀ MỘT `SliverMainAxisGroup` — header pinned nằm BÊN
         // TRONG nhóm của nó.
         //
@@ -230,7 +238,7 @@ class _TransactionList extends ConsumerWidget {
                 pinned: true,
                 delegate: _DayHeaderDelegate(
                   label: formatDayLabel(group.day, now),
-                  netTotal: group.netTotal,
+                  netTotal: Money.vnd(group.netMinor),
                 ),
               ),
               SliverList.separated(
@@ -239,14 +247,10 @@ class _TransactionList extends ConsumerWidget {
                     TransactionRow.divider(context),
                 itemBuilder: (context, index) {
                   final twc = group.items[index];
-                  // Giao dịch gắn vào danh mục phụ hiện theo kiểu Rolly: avatar
-                  // + tên là của danh mục CHA (nên mọi bữa ăn cùng một icon,
-                  // nhận ra ngay khi lướt), tên danh mục phụ tách ra thành chip.
-                  final category = twc.category;
-                  final parent = category?.parentCategoryId == null
-                      ? null
-                      : categoriesById[category!.parentCategoryId];
-                  final display = parent ?? category;
+                  // Màu/icon/tên/chip tầng hai đều lấy từ MỘT chỗ dùng chung
+                  // với Trang chủ, Tìm kiếm, Chi tiết danh mục và Lịch sử quỹ
+                  // — xem `transaction_row_display.dart` cho lý do.
+                  final row = transactionRowDisplay(twc, categoriesById);
                   return Dismissible(
                     key: ValueKey(twc.transaction.id),
                     direction: DismissDirection.endToStart,
@@ -257,16 +261,11 @@ class _TransactionList extends ConsumerWidget {
                       twc.transaction,
                     ),
                     child: TransactionRow(
-                      categoryColorId: display?.categoryColorId ?? 10,
-                      iconCode: display?.iconCode ?? 'more_horiz',
-                      emoji: display?.emoji,
-                      subcategoryLabel: parent == null ? null : category!.name,
-                      // Tách dòng (Phase 14) và "chưa phân loại" (Phase 8) đều
-                      // có `category == null` nhưng là hai khái niệm khác nhau
-                      // — phân biệt qua `isSplit`, không thể suy ra từ category.
-                      title: twc.isSplit
-                          ? 'Nhiều danh mục'
-                          : (display?.name ?? 'Chưa phân loại'),
+                      categoryColorId: row.categoryColorId,
+                      iconCode: row.iconCode,
+                      emoji: row.emoji,
+                      subcategoryLabel: row.subcategoryLabel,
+                      title: row.title,
                       subtitle: twc.transaction.note,
                       amount: Money(
                         minorUnits: twc.transaction.amountMinor,
@@ -529,16 +528,6 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-class _DayGroup {
-  _DayGroup(this.day) : items = [], netTotalMinor = 0;
-
-  final DateTime day;
-  final List<TransactionWithCategory> items;
-  int netTotalMinor;
-
-  Money get netTotal => Money.vnd(netTotalMinor);
-}
-
 /// Lọc theo thẻ (Phase 17) — chỉ hiện khi có ít nhất một thẻ (cùng quy ước
 /// ẩn/hiện với chip thẻ ở `ReportFilterBar`, tránh một hàng UI trống nghĩa
 /// khi Tony chưa tạo thẻ nào). Đọc/ghi [transactionsTagFilterProvider] —
@@ -593,17 +582,143 @@ class _TagFilterRow extends ConsumerWidget {
   }
 }
 
-List<_DayGroup> _groupByDay(List<TransactionWithCategory> items) {
-  final groups = <DateTime, _DayGroup>{};
-  final order = <DateTime>[];
-  for (final item in items) {
-    final key = dayKey(item.transaction.occurredAt);
-    final group = groups.putIfAbsent(key, () {
-      order.add(key);
-      return _DayGroup(key);
-    });
-    group.items.add(item);
-    group.netTotalMinor += item.transaction.amountMinor;
+/// "Chi theo hũ" — mỗi hũ một ô nhỏ: đã dùng / hạn mức của KỲ ĐANG CHỌN.
+///
+/// Thẻ đầu màn chỉ trả lời "kỳ này chi bao nhiêu"; Tony cần thêm "chi vào
+/// hũ nào". Bấm một ô để lọc danh sách bên dưới đúng những khoản làm nên con
+/// số của hũ đó (bấm lại để bỏ lọc) — con số mà không truy ra được từ đâu
+/// thì không tin được.
+class _JarSpendStrip extends ConsumerWidget {
+  const _JarSpendStrip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final overview = ref.watch(jarProgressProvider).value;
+    if (overview == null || overview.isEmpty) return const SizedBox.shrink();
+    final selected = ref.watch(transactionsJarFilterProvider);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.space.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              context.space.screenHorizontal,
+              context.space.xs,
+              context.space.screenHorizontal,
+              context.space.xs,
+            ),
+            child: Text(
+              'Chi theo hũ',
+              style: context.text.labelMedium?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 92,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(
+                horizontal: context.space.screenHorizontal,
+              ),
+              itemCount: overview.jars.length,
+              separatorBuilder: (_, _) => SizedBox(width: context.space.xs),
+              itemBuilder: (context, i) {
+                final p = overview.jars[i];
+                return _JarSpendTile(
+                  progress: p,
+                  selected: selected == p.jar.id,
+                  onTap: () => ref
+                      .read(transactionsJarFilterProvider.notifier)
+                      .toggle(p.jar.id),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
-  return [for (final key in order) groups[key]!];
+}
+
+class _JarSpendTile extends StatelessWidget {
+  const _JarSpendTile({
+    required this.progress,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final JarProgress progress;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final saving = progress.kind == JarKind.saving;
+    final radius = BorderRadius.circular(context.radii.md);
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: '${progress.jar.name}, ${saving ? 'đã gửi' : 'đã tiêu'}',
+      child: Material(
+        color: selected
+            ? context.colors.brandText.withValues(alpha: 0.12)
+            : context.colors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(
+            color: selected
+                ? context.colors.brandText
+                : context.colors.hairline,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: SizedBox(
+            width: 148,
+            child: Padding(
+              padding: EdgeInsets.all(context.space.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    progress.jar.name,
+                    style: context.text.labelMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: MoneyText(
+                      progress.used,
+                      size: MoneySize.small,
+                      signed: false,
+                    ),
+                  ),
+                  JarProgressBar(progress: progress, height: 4),
+                  Text(
+                    AmountVisibility.mask(
+                      context,
+                      '/ ${progress.allotted.format()}',
+                    ),
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
-import '../budgets/budgets_screen.dart';
 import '../categories/categories_screen.dart';
 import '../jars/jars_screen.dart';
 import '../savings/savings_screen.dart';
@@ -41,12 +40,6 @@ class ManageScreen extends StatelessWidget {
                 label: 'Ví',
                 subtitle: 'Tài khoản, số dư ban đầu, chuyển khoản',
                 builder: (_) => const WalletsScreen(),
-              ),
-              _ManageRow(
-                icon: kIconTrendingUp,
-                label: 'Hạn mức theo danh mục',
-                subtitle: 'Trần chi cho từng danh mục mỗi kỳ',
-                builder: (_) => const BudgetsScreen(),
               ),
               _ManageRow(
                 icon: kIconInbox,

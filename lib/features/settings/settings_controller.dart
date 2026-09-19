@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Tên (`name`) là thứ được LƯU XUỐNG prefs — đổi tên một giá trị là mất
 /// lựa chọn của người dùng, thêm giá trị mới thì an toàn.
 enum HomeSection {
-  budgets('Hạn mức', 'Tiến độ từng danh mục trong kỳ'),
   jars('Hũ chia thu nhập', 'Tỉ lệ chia mỗi khoản thu'),
   goals('Quỹ & mục tiêu', 'Tiến độ tiết kiệm có đích'),
   chart('Biểu đồ chi theo danh mục', 'Vòng tròn tỉ trọng chi trong kỳ'),

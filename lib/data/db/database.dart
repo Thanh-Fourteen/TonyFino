@@ -47,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -349,6 +349,13 @@ class AppDatabase extends _$AppDatabase {
       from12To13: (m, schema) async {
         await m.createTable(schema.jars);
         await m.addColumn(schema.categories, schema.categories.jarId);
+      },
+      // v13→v14: hũ có HAI loại — hũ tiêu và hũ tiết kiệm (gắn một quỹ). Hai
+      // cột thêm thuần tuý: `kind DEFAULT 'spend'` đúng nghĩa cho mọi hũ
+      // đang có (trước bản này chỉ có một loại là hũ tiêu), `goal_id` NULL.
+      from13To14: (m, schema) async {
+        await m.addColumn(schema.jars, schema.jars.kind);
+        await m.addColumn(schema.jars, schema.jars.goalId);
       },
     ),
     beforeOpen: (details) async {

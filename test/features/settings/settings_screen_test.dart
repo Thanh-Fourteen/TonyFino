@@ -126,7 +126,7 @@ void main() {
       // Cuộn từng đoạn ngắn: mục nằm dưới nếp gấp nên chưa được dựng,
       // `ensureVisible` không tìm thấy gì để cuộn tới.
       await tester.scrollUntilVisible(
-        find.text('Kỳ ngân sách bắt đầu ngày'),
+        find.text('Kỳ tháng bắt đầu ngày'),
         80,
         scrollable: find.byType(Scrollable).first,
         maxScrolls: 100,

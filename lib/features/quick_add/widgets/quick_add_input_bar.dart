@@ -14,6 +14,9 @@ import '../../../ui/app_chip.dart';
 import '../../../ui/glass_surface.dart';
 import '../../settings/recurring/widgets/recurring_add_sheet.dart';
 import '../../settings/settings_controller.dart';
+import '../../../ui/category_avatar.dart';
+import '../../savings/savings_providers.dart';
+import '../../savings/widgets/savings_goal_picker.dart';
 import '../../wallets/widgets/transfer_sheet.dart';
 import '../domain/parser/amount_evaluator.dart';
 import '../domain/parser/normalizer.dart';
@@ -200,6 +203,8 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
   @override
   Widget build(BuildContext context) {
     final recent = ref.watch(recentInputsProvider);
+    final hasSavingsGoal =
+        (ref.watch(activeSavingsGoalsProvider).value ?? const []).isNotEmpty;
 
     // Bàn phím mở thì thanh nhập ghim NGAY TRÊN bàn phím (Scaffold cha tự
     // co body qua `resizeToAvoidBottomInset`, đây chỉ đệm phần safe-area
@@ -221,17 +226,39 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Chip hành động nhanh (Phase 25, `docs/rolly-uiux-research.md`
-          // § B) — mở thẳng sheet chuyển quỹ/tạo định kỳ đã có sẵn từ NGAY
-          // luồng chat, không bắt Tony rời màn quick-add vào Cài đặt trước.
+          // § B) — mở thẳng sheet đã có sẵn từ NGAY luồng chat, không bắt
+          // Tony rời màn quick-add vào Cài đặt trước.
           // `editable: false` — đây là NÚT hành động, không phải một giá trị
           // đang chờ sửa (khác ý nghĩa `AppChip` dùng ở thẻ xác nhận Phase 8).
+          //
+          // 🚨 Chip đầu tiên từng mang nhãn "Chuyển quỹ" nhưng mở sheet
+          // chuyển tiền giữa hai VÍ — không dính dáng gì tới quỹ. Đó chính
+          // là chỗ Tony đi tìm khi nói *"chuyển từ ví vào quỹ tiết kiệm cũng
+          // khó"*: nút duy nhất hứa hẹn đúng việc lại làm việc khác. Giờ nhãn
+          // nói đúng thứ nó làm ("Chuyển ví"), và có một chip RIÊNG cho việc
+          // nạp quỹ thật.
           SizedBox(
             height: 36,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
+                // Ẩn khi sổ chưa có quỹ nào — một nút mở ra rồi không làm gì
+                // còn tệ hơn không có nút.
+                if (hasSavingsGoal) ...[
+                  AppChip(
+                    label: 'Nạp quỹ',
+                    icon: const CategoryAvatar(
+                      categoryColorId: 11,
+                      iconCode: 'savings',
+                      size: 16,
+                    ),
+                    editable: false,
+                    onTap: () => openSavingsDepositFlow(context, ref),
+                  ),
+                  SizedBox(width: context.space.xs),
+                ],
                 AppChip(
-                  label: 'Chuyển quỹ',
+                  label: 'Chuyển ví',
                   icon: const Icon(kIconSwapHoriz, size: 16),
                   editable: false,
                   onTap: () => showTransferSheet(context),

@@ -42,18 +42,9 @@ void main() {
   // Hai lần `pumpApp` trong CÙNG một test không tạo lại container Riverpod
   // (widget cùng kiểu nên chỉ update, override không chạy lại) — tách thành
   // hai test để mỗi bên có một lần dựng sạch.
-  testWidgets('bật "Hạn mức" → Trang chủ có khối đó', (tester) async {
+  testWidgets('trang Hạn mức đã bỏ — bật mọi khối cũng không còn thẻ Hạn '
+      'mức ở Trang chủ', (tester) async {
     await pumpHome(tester, {...HomeSection.values});
-    expect(find.text('Hạn mức'), findsOneWidget);
-  });
-
-  testWidgets('🚨 tắt "Hạn mức" ở Cài đặt → Trang chủ không còn khối đó', (
-    tester,
-  ) async {
-    await pumpHome(
-      tester,
-      {...HomeSection.values}..remove(HomeSection.budgets),
-    );
     expect(find.text('Hạn mức'), findsNothing);
   });
 

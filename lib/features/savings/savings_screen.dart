@@ -16,8 +16,10 @@ import '../transactions/transaction_form_sheet.dart';
 import 'domain/debt_kind.dart';
 import 'domain/debt_progress.dart';
 import 'domain/savings_goal_progress.dart';
+import 'savings_goal_detail_screen.dart';
 import 'savings_providers.dart';
 import 'widgets/debt_edit_sheet.dart';
+import 'widgets/savings_contribution_sheet.dart';
 import 'widgets/savings_goal_edit_sheet.dart';
 
 /// Mục tiêu tiết kiệm & nợ vay (Phase 16) — MỘT màn, hai tab, vì cả hai đều
@@ -197,14 +199,13 @@ class _SavingsGoalTileState extends ConsumerState<_SavingsGoalTile> {
       currencyScale: goal.currencyScale,
     );
 
+    // Bấm vào thẻ mở LỊCH SỬ quỹ, không phải sheet sửa tên/số tiền cần đạt.
+    // "Quỹ này đã nạp/rút những gì" là câu hỏi người ta hỏi hàng ngày; "đổi
+    // tên quỹ" thì vài tháng một lần — nên nó lùi vào menu ⋮ của màn chi
+    // tiết. Trước đây đổi chỗ hai thứ này là lý do lịch sử không có lối vào
+    // nào cả.
     return AppCard(
-      onTap: () => showSavingsGoalEditSheet(
-        context: context,
-        existingId: goal.id,
-        existingName: goal.name,
-        existingTargetAmountMinor: goal.targetAmountMinor,
-        existingTargetDate: goal.targetDate,
-      ),
+      onTap: () => openSavingsGoalDetailScreen(context, goal.id),
       child: Row(
         children: [
           ProgressRing(
@@ -232,49 +233,42 @@ class _SavingsGoalTileState extends ConsumerState<_SavingsGoalTile> {
                     color: context.colors.onSurfaceVariant,
                   ),
                 ),
-                if (progress.isAchieved) ...[
-                  SizedBox(height: context.space.xxs),
-                  Text(
-                    'Đã đạt mục tiêu',
-                    style: context.text.labelMedium?.copyWith(
-                      color: context.colors.budgetOk,
-                    ),
+                SizedBox(height: context.space.xxs),
+                // "Còn thiếu bao nhiêu" là con số người ta thật sự muốn biết
+                // khi liếc qua thẻ quỹ — trước đây thẻ chỉ có hai số và một
+                // vòng tròn, muốn biết còn thiếu thì phải tự trừ nhẩm.
+                Text(
+                  progress.isAchieved
+                      ? 'Đã đạt mục tiêu'
+                      : AmountVisibility.mask(
+                          context,
+                          'Còn thiếu ${Money(minorUnits: progress.remainingMinor, currency: goal.currency, currencyScale: goal.currencyScale).format()}',
+                        ),
+                  style: context.text.labelMedium?.copyWith(
+                    color: progress.isAchieved
+                        ? context.colors.budgetOk
+                        : context.colors.onSurfaceVariant,
                   ),
-                ],
+                ),
               ],
             ),
           ),
+          // MỘT nút trên thẻ, không phải ba. Ba nút icon không nhãn chen nhau
+          // trên một hàng hẹp là chỗ Tony bấm nhầm: cái mũi tên quay lui (rút
+          // về ví) đọc y như "hoàn tác". Giờ thẻ chỉ giữ đúng hành động hay
+          // dùng nhất — nạp tiền — còn rút/sửa/lưu trữ nằm trong màn chi
+          // tiết, nơi chúng có nhãn bằng CHỮ.
           IconButton(
-            tooltip: 'Nạp vào mục tiêu (ví trừ tiền)',
+            tooltip: 'Nạp tiền vào quỹ',
             icon: const Icon(kIconAddCircle),
-            onPressed: () => showTransactionFormSheet(
+            onPressed: () => showSavingsContributionSheet(
               context: context,
-              prefill: TransactionFormPrefill.forGoalContribution(
-                goalId: goal.id,
-                goalName: goal.name,
-              ),
+              goalId: goal.id,
+              goalName: goal.name,
+              move: SavingsMove.deposit,
+              savedMinor: progress.savedMinor,
+              targetAmountMinor: goal.targetAmountMinor,
             ),
-          ),
-          IconButton(
-            tooltip: 'Rút về ví (mục tiêu giảm)',
-            icon: const Icon(kIconUndo),
-            onPressed: () => showTransactionFormSheet(
-              context: context,
-              prefill: TransactionFormPrefill.forGoalWithdrawal(
-                goalId: goal.id,
-                goalName: goal.name,
-              ),
-            ),
-          ),
-          PopupMenuButton<void>(
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                onTap: () => ref
-                    .read(savingsGoalRepositoryProvider)
-                    .setArchived(goal.id, true),
-                child: const Text('Lưu trữ'),
-              ),
-            ],
           ),
         ],
       ),

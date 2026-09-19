@@ -29,6 +29,8 @@ VoidCallback? categorySliceTapHandler({
   required void Function(int rootCategoryId) openCategoryDetail,
 }) {
   if (slice.isOther) return openFullBreakdown;
+  // Nhóm thẻ không phải một danh mục — không có màn chi tiết nào để mở.
+  if (slice.isTagGroup) return null;
   final id = slice.categoryId;
   // `null` = "Chưa phân loại" — không có danh mục nào để mở ra.
   if (id == null) return null;
@@ -52,7 +54,24 @@ class CategoryPieCard extends StatefulWidget {
     required this.allSources,
     required this.range,
     required this.rangeLabel,
+    this.groupByTag = false,
+    this.onGroupByTagChanged,
+    this.onOpenCategory,
   });
+
+  /// Thay cho hành vi mặc định "bấm một danh mục → mở màn Chi tiết danh
+  /// mục". Màn Chi tiết hũ cần: một hũ có thể chỉ chứa VÀI danh mục con của
+  /// "Ăn uống", nên mở nguyên màn "Ăn uống" (mọi con) sẽ ra con số khác hẳn.
+  final void Function(BuildContext context, int rootCategoryId)?
+  onOpenCategory;
+
+  /// Đang ở chế độ "gom theo thẻ" — [slices]/[allSources] khi đó đã là
+  /// nhóm thẻ + danh mục của phần không gắn thẻ (xem `buildTagModeSources`).
+  final bool groupByTag;
+
+  /// `null` = không hiện công tắc (sổ chưa có thẻ nào — bật lên cũng không
+  /// đổi được gì).
+  final ValueChanged<bool>? onGroupByTagChanged;
 
   /// ≤ 7 lát (6 danh mục CẤP GỐC lớn nhất + "Khác" nếu có), đã sắp giảm dần
   /// — đã rollup con vào cha (Phase 20), xem `reports_screen.dart`.
@@ -105,6 +124,7 @@ class _CategoryPieCardState extends State<CategoryPieCard>
         sources: widget.allSources,
         range: widget.range,
         rangeLabel: widget.rangeLabel,
+        onOpenCategory: widget.onOpenCategory,
       ),
     );
   }
@@ -113,12 +133,16 @@ class _CategoryPieCardState extends State<CategoryPieCard>
     return categorySliceTapHandler(
       slice: slice,
       openFullBreakdown: () => _openFullBreakdown(context),
-      openCategoryDetail: (id) => openCategoryDetailScreen(
-        context,
-        id,
-        range: widget.range,
-        rangeLabel: widget.rangeLabel,
-      ),
+      openCategoryDetail: (id) {
+        final custom = widget.onOpenCategory;
+        if (custom != null) return custom(context, id);
+        openCategoryDetailScreen(
+          context,
+          id,
+          range: widget.range,
+          rangeLabel: widget.rangeLabel,
+        );
+      },
     );
   }
 
@@ -133,7 +157,34 @@ class _CategoryPieCardState extends State<CategoryPieCard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Theo danh mục', style: context.text.titleMedium),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.groupByTag ? 'Theo thẻ & danh mục' : 'Theo danh mục',
+                  style: context.text.titleMedium,
+                ),
+              ),
+              if (widget.onGroupByTagChanged != null)
+                FilterChip(
+                  label: const Text('Gom theo thẻ'),
+                  avatar: const Icon(kIconSell, size: 16),
+                  showCheckmark: false,
+                  selected: widget.groupByTag,
+                  onSelected: widget.onGroupByTagChanged,
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+          if (widget.groupByTag) ...[
+            SizedBox(height: context.space.xxs),
+            Text(
+              'Khoản có thẻ gom theo thẻ; khoản không thẻ vẫn theo danh mục.',
+              style: context.text.labelSmall?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+          ],
           SizedBox(height: context.space.md),
           if (widget.slices.isEmpty)
             const Padding(
@@ -171,7 +222,10 @@ class _CategoryPieCardState extends State<CategoryPieCard>
                               showTitle: false,
                               badgeWidget: _radius.value < 0.7
                                   ? null
-                                  : _RingBadge(iconCode: slice.iconCode),
+                                  : _RingBadge(
+                                      iconCode: slice.iconCode,
+                                      isTag: slice.isTagGroup,
+                                    ),
                               badgePositionPercentageOffset: 0.62,
                             ),
                         ],
@@ -230,18 +284,20 @@ class _LegendRow extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          child: Image.asset(
-            resolveCategoryIcon3d(slice.iconCode),
-            width: 16,
-            height: 16,
-            filterQuality: FilterQuality.medium,
-            errorBuilder: (context, _, _) => Icon(
-              resolveCategoryIcon(slice.iconCode),
-              size: 13,
-              color: Colors.white,
-              fill: 1,
-            ),
-          ),
+          child: slice.isTagGroup
+              ? const Icon(kIconSell, size: 14, color: Colors.white, fill: 1)
+              : Image.asset(
+                  resolveCategoryIcon3d(slice.iconCode),
+                  width: 16,
+                  height: 16,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (context, _, _) => Icon(
+                    resolveCategoryIcon(slice.iconCode),
+                    size: 13,
+                    color: Colors.white,
+                    fill: 1,
+                  ),
+                ),
         ),
         SizedBox(width: context.space.sm),
         Expanded(
@@ -286,11 +342,14 @@ class _FullBreakdownSheet extends StatelessWidget {
     required this.sources,
     required this.range,
     required this.rangeLabel,
+    this.onOpenCategory,
   });
 
   final List<CategorySourceAmount> sources;
   final ReportRange range;
   final String rangeLabel;
+  final void Function(BuildContext context, int rootCategoryId)?
+  onOpenCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -322,7 +381,12 @@ class _FullBreakdownSheet extends StatelessWidget {
                 ),
               ),
             ),
-            Text('Toàn bộ danh mục', style: context.text.titleLarge),
+            Text(
+              sorted.any((s) => s.tagIds != null)
+                  ? 'Toàn bộ thẻ & danh mục'
+                  : 'Toàn bộ danh mục',
+              style: context.text.titleLarge,
+            ),
             SizedBox(height: context.space.md),
             Flexible(
               child: ListView.separated(
@@ -338,6 +402,7 @@ class _FullBreakdownSheet extends StatelessWidget {
                     iconCode: s.iconCode,
                     amountMinor: s.amountMinor,
                     isOther: false,
+                    tagIds: s.tagIds,
                   );
                   return _LegendRow(
                     slice: slice,
@@ -354,6 +419,8 @@ class _FullBreakdownSheet extends StatelessWidget {
                         // vào một sheet vẫn đang mở, người dùng phải vuốt
                         // thêm một nhịp nữa mới về được Báo cáo.
                         Navigator.of(context).pop();
+                        final custom = onOpenCategory;
+                        if (custom != null) return custom(context, id);
                         openCategoryDetailScreen(
                           context,
                           id,
@@ -378,9 +445,13 @@ class _FullBreakdownSheet extends StatelessWidget {
 /// lát cắt. Đĩa trắng là thứ bắt buộc: icon 3D nhiều màu đặt thẳng lên lát
 /// cắt cũng nhiều màu thì cả hai cùng chìm.
 class _RingBadge extends StatelessWidget {
-  const _RingBadge({required this.iconCode});
+  const _RingBadge({required this.iconCode, this.isTag = false});
 
   final String iconCode;
+
+  /// Lát nhóm THẺ — vẽ glyph thẻ thay vì icon danh mục 3D (thẻ không có
+  /// icon riêng, và mượn icon danh mục thì trông như một danh mục thật).
+  final bool isTag;
 
   @override
   Widget build(BuildContext context) {
@@ -399,18 +470,20 @@ class _RingBadge extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Image.asset(
-        resolveCategoryIcon3d(iconCode),
-        width: 17,
-        height: 17,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (context, _, _) => Icon(
-          resolveCategoryIcon(iconCode),
-          size: 14,
-          color: context.colors.onSurfaceVariant,
-          fill: 1,
-        ),
-      ),
+      child: isTag
+          ? Icon(kIconSell, size: 15, color: context.colors.brandText, fill: 1)
+          : Image.asset(
+              resolveCategoryIcon3d(iconCode),
+              width: 17,
+              height: 17,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, _, _) => Icon(
+                resolveCategoryIcon(iconCode),
+                size: 14,
+                color: context.colors.onSurfaceVariant,
+                fill: 1,
+              ),
+            ),
     );
   }
 }

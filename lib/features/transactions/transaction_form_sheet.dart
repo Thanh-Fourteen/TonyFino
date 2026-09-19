@@ -19,6 +19,7 @@ import '../../ui/app_chip.dart';
 import '../../ui/category_avatar.dart';
 import '../../ui/two_level_category_picker.dart';
 import '../../ui/two_level_category_picker_sheet.dart';
+import '../savings/savings_providers.dart';
 import '../tags/tags_providers.dart';
 import '../wallets/wallets_providers.dart';
 import 'day_label.dart';
@@ -58,36 +59,6 @@ class TransactionFormPrefill {
         categoryId: template.categoryId,
         note: template.note,
       );
-
-  /// "Đóng góp" cho một mục tiêu tiết kiệm (Phase 16, nút "+" trên
-  /// `SavingsGoalsScreen`) — số tiền để trống (không phải 0, để trường tự
-  /// rỗng + autofocus như "Thêm giao dịch" bình thường), mặc định CHI
-  /// (`isExpenseHint: true` — đóng góp là tiền RỜI ví chi tiêu).
-  factory TransactionFormPrefill.forGoalContribution({
-    required int goalId,
-    required String goalName,
-  }) => TransactionFormPrefill(
-    goalId: goalId,
-    goalName: goalName,
-    isExpenseHint: true,
-  );
-
-  /// RÚT tiền từ mục tiêu tiết kiệm về ví — chiều ngược của
-  /// [TransactionFormPrefill.forGoalContribution].
-  ///
-  /// Không cần logic riêng nào: tiến độ mục tiêu là `-SUM(amountMinor)` các
-  /// giao dịch gắn `goalId`, nên một dòng THU gắn cùng `goalId` vừa làm ví
-  /// tăng tiền vừa làm mục tiêu giảm đúng số đó. Trước đây vẫn làm được
-  /// bằng cách tự đổi sang "Thu" trong form, nhưng không ai đoán ra —
-  /// thiếu chỗ bấm chứ không thiếu tính năng.
-  factory TransactionFormPrefill.forGoalWithdrawal({
-    required int goalId,
-    required String goalName,
-  }) => TransactionFormPrefill(
-    goalId: goalId,
-    goalName: goalName,
-    isExpenseHint: false,
-  );
 
   /// "Trả/Thu" cho một khoản vay/cho vay (Phase 16) — mặc định CHI nếu
   /// [isDebtIOwe] (mình trả nợ), THU nếu không (mình thu tiền cho vay).
@@ -251,7 +222,11 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     // từ prefill "Đóng góp"/"Trả nợ"), tránh scope creep một bộ chọn đầy đủ
     // mà đặc tả Phase 16 không yêu cầu.
     _goalId = existing?.goalId ?? prefill?.goalId;
-    _goalName = prefill?.goalName;
+    // Tên quỹ chỉ để HIỆN. Prefill mang sẵn tên khi mở từ màn Quỹ; khi Tony
+    // mở một khoản nạp quỹ CŨ từ danh sách thì không có prefill nào cả, nên
+    // phải tra ngược từ `goalId` (xem `_resolveGoalName`). Trước đây dòng này
+    // chỉ đọc prefill, nên sửa một khoản quỹ từ danh sách là mất sạch dấu vết
+    // quỹ: không dòng "Gắn với …", lại còn mời chọn danh mục.
     _debtId = existing?.debtId ?? prefill?.debtId;
     _debtName = prefill?.debtName;
     _existingReceiptImageFilename = existing?.receiptImageFilename;
@@ -477,9 +452,19 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Future<void> _delete() async {
+    // Cùng lý do (và cùng cách chữa) với `_duplicate()` bên dưới: giữ lấy
+    // context của Navigator GỐC TRƯỚC khi `pop()`, đừng đưa `context` của
+    // chính `State` này cho một hàm chạy tiếp SAU pop.
+    //
+    // `deleteTransactionWithUndo` gọi `ScaffoldMessenger.of(context)` trên
+    // context đó; khi route chứa nó đang giữa chừng bị gỡ, thanh snackbar
+    // hiện ra nhưng KHÔNG bao giờ tự tắt — đo trên máy thật: "Đã xoá giao
+    // dịch" nằm lại hơn 4 phút, sống qua cả chuyển tab lẫn vuốt-đóng, che
+    // mất thanh điều hướng dưới, chỉ khởi động lại app mới hết.
+    final navigatorContext = Navigator.of(context, rootNavigator: true).context;
+    final transaction = widget.existing!.transaction;
     Navigator.of(context).pop();
-    if (!mounted) return;
-    await deleteTransactionWithUndo(context, ref, widget.existing!.transaction);
+    await deleteTransactionWithUndo(navigatorContext, ref, transaction);
   }
 
   Future<void> _pickImage() async {
@@ -539,8 +524,9 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final transaction = widget.existing!.transaction;
     // Lấy `context` của CHÍNH Navigator (ổn định, không biến mất khi một
     // route bên trong nó bị pop) TRƯỚC khi đóng sheet hiện tại — tái dùng
-    // `context` của chính `State` này (như `_delete()` làm) để mở sheet MỚI
-    // ngay sau `pop()` không đáng tin cậy ở đây: `showModalBottomSheet` mới
+    // `context` của chính `State` này để mở sheet MỚI ngay sau `pop()` không
+    // đáng tin cậy ở đây (`_delete()` từng mắc đúng lỗi này, xem ở trên):
+    // `showModalBottomSheet` mới
     // cần `Navigator.of(context)` trong lúc route CŨ (chứa context đó) đang
     // giữa chừng bị gỡ, khiến `pumpAndSettle()` không bao giờ hội tụ trong
     // widget test — bắt được bằng test thật, không phải đoán.
@@ -549,12 +535,34 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     openDuplicateTransactionSheet(navigatorContext, transaction);
   }
 
+  /// Tên quỹ để hiện trên đầu sheet — ưu tiên tên prefill đưa sang (mở từ màn
+  /// Quỹ), rồi tra ngược từ `_goalId` (mở một khoản quỹ CŨ từ danh sách).
+  /// `null` khi giao dịch không gắn quỹ, hoặc quỹ đã bị lưu trữ (giao dịch vẫn
+  /// sửa được, chỉ mất cái tên — cùng cách `draft_card.dart` xử lý).
+  String? _resolveGoalName() {
+    if (_goalName != null) return _goalName;
+    final goalId = _goalId;
+    if (goalId == null) return null;
+    final goals = ref.watch(activeSavingsGoalsProvider).value ?? const [];
+    for (final goal in goals) {
+      if (goal.id == goalId) return goal.name;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(activeCategoriesProvider);
     final walletsAsync = ref.watch(activeWalletsProvider);
     final now = ref.read(clockProvider).now();
     final categories = categoriesAsync.value ?? const <Category>[];
+    final goalName = _resolveGoalName();
+    // Giao dịch GẮN QUỸ không có danh mục theo thiết kế (xem
+    // `savings_matcher.dart`/`SavingsContributionSheet`), nên cả khối chọn
+    // danh mục lẫn nút "Tách giao dịch" đều bị giấu đi ở đây — hiện lưới danh
+    // mục ra chỉ mời gán bừa một danh mục vào một khoản để dành, vừa thổi
+    // phồng chi tiêu của danh mục đó vừa làm khoản đó trông như đã tiêu mất.
+    final isGoalLinked = _goalId != null;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -569,11 +577,11 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             _isEditing ? 'Sửa giao dịch' : 'Thêm giao dịch',
             style: context.text.titleLarge,
           ),
-          if (_goalName != null || _debtName != null) ...[
+          if (goalName != null || _debtName != null) ...[
             SizedBox(height: context.space.xs),
             Text(
-              _goalName != null
-                  ? 'Gắn với mục tiêu: $_goalName'
+              goalName != null
+                  ? 'Gắn với quỹ: $goalName'
                   : 'Gắn với khoản vay: $_debtName',
               style: context.text.labelMedium?.copyWith(
                 color: context.colors.brandText,
@@ -624,7 +632,10 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     ),
                   ),
                   SizedBox(height: context.space.md),
-                  if (!_linesLoaded)
+                  if (isGoalLinked)
+                    // Không có khối danh mục nào cả — xem `isGoalLinked`.
+                    const SizedBox.shrink()
+                  else if (!_linesLoaded)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Center(child: CircularProgressIndicator()),

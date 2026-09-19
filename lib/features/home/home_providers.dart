@@ -49,3 +49,22 @@ final homeRecentTransactionsProvider =
             limit: 4,
           );
     });
+
+/// Hai nửa của chế độ "gom theo thẻ" cho biểu đồ Trang chủ — cùng kỳ với
+/// [homeCategoryBreakdownProvider]. Chỉ được watch khi công tắc đang bật.
+final homeUntaggedBreakdownProvider =
+    StreamProvider<List<CategorySourceAmount>>((ref) {
+      final period = ref.watch(homePeriodProvider);
+      return ref
+          .watch(reportsRepositoryProvider)
+          .watchCategoryBreakdown(period.range, untaggedOnly: true);
+    });
+
+final homeTagGroupBreakdownProvider = StreamProvider<List<TagGroupAmount>>((
+  ref,
+) {
+  final period = ref.watch(homePeriodProvider);
+  return ref
+      .watch(reportsRepositoryProvider)
+      .watchTagGroupBreakdown(period.range);
+});

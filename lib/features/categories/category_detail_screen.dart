@@ -22,6 +22,8 @@ import '../../ui/transaction_row.dart';
 import '../reports/domain/category_slice.dart';
 import '../reports/domain/report_range.dart';
 import '../transactions/day_label.dart';
+import '../transactions/domain/day_groups.dart';
+import '../transactions/domain/transaction_row_display.dart';
 import '../transactions/transaction_form_sheet.dart';
 import '../transactions/transactions_providers.dart';
 import 'widgets/category_edit_sheet.dart';
@@ -220,7 +222,7 @@ class CategoryDetailScreen extends ConsumerWidget {
             builder: (context, txSnapshot) {
               final transactions =
                   txSnapshot.data ?? const <TransactionWithCategory>[];
-              final dayGroups = _groupByDay(transactions);
+              final dayGroups = groupTransactionsByDay(transactions);
               final categoriesById = {for (final c in categories) c.id: c};
 
               return ListView(
@@ -338,32 +340,32 @@ class CategoryDetailScreen extends ConsumerWidget {
                     for (final group in dayGroups) ...[
                       DayHeader(
                         label: formatDayLabel(group.day, now),
-                        netTotal: Money.vnd(group.netTotalMinor),
+                        netTotal: Money.vnd(group.netMinor),
                       ),
                       for (final twc in group.items) ...[
-                        // HAI TẦNG y hệt tab Giao dịch: avatar + tên là của
-                        // danh mục CHA, tên danh mục con tách ra thành chip.
-                        // Trước đây màn này in phẳng mỗi tên danh mục con,
-                        // nên cùng một giao dịch đọc ra hai cái tên khác
-                        // nhau tuỳ đang đứng ở màn nào.
+                        // Một chỗ dùng chung với tab Giao dịch/Trang chủ/Tìm
+                        // kiếm — xem `transaction_row_display.dart`.
                         TransactionRow(
-                          categoryColorId:
-                              _rowDisplay(
-                                twc,
-                                categoriesById,
-                              )?.categoryColorId ??
-                              10,
-                          iconCode:
-                              _rowDisplay(twc, categoriesById)?.iconCode ??
-                              'more_horiz',
-                          emoji: _rowDisplay(twc, categoriesById)?.emoji,
-                          title: twc.isSplit
-                              ? 'Nhiều danh mục'
-                              : (_rowDisplay(twc, categoriesById)?.name ??
-                                    'Chưa phân loại'),
-                          subcategoryLabel: twc.isSplit
-                              ? null
-                              : _subLabel(twc, categoriesById),
+                          categoryColorId: transactionRowDisplay(
+                            twc,
+                            categoriesById,
+                          ).categoryColorId,
+                          iconCode: transactionRowDisplay(
+                            twc,
+                            categoriesById,
+                          ).iconCode,
+                          emoji: transactionRowDisplay(
+                            twc,
+                            categoriesById,
+                          ).emoji,
+                          title: transactionRowDisplay(
+                            twc,
+                            categoriesById,
+                          ).title,
+                          subcategoryLabel: transactionRowDisplay(
+                            twc,
+                            categoriesById,
+                          ).subcategoryLabel,
                           subtitle: twc.transaction.note ?? '',
                           amount: Money(
                             minorUnits: twc.transaction.amountMinor,
@@ -511,43 +513,6 @@ List<CategorySourceAmount> _sortedByAbs(List<CategorySourceAmount> sources) {
   return sorted;
 }
 
-class _DayGroup {
-  _DayGroup(this.day);
-  final DateTime day;
-  final items = <TransactionWithCategory>[];
-  int netTotalMinor = 0;
-}
-
-List<_DayGroup> _groupByDay(List<TransactionWithCategory> items) {
-  final groups = <DateTime, _DayGroup>{};
-  final order = <DateTime>[];
-  for (final item in items) {
-    final key = dayKey(item.transaction.occurredAt);
-    final group = groups.putIfAbsent(key, () {
-      order.add(key);
-      return _DayGroup(key);
-    });
-    group.items.add(item);
-    group.netTotalMinor += item.transaction.amountMinor;
-  }
-  return [for (final key in order) groups[key]!];
-}
-
-/// Danh mục HIỂN THỊ của một dòng: cha nếu giao dịch gắn vào danh mục con.
-Category? _rowDisplay(TransactionWithCategory twc, Map<int, Category> byId) {
-  final c = twc.category;
-  if (c == null) return null;
-  final parentId = c.parentCategoryId;
-  if (parentId == null) return c;
-  return byId[parentId] ?? c;
-}
-
-/// Nhãn chip danh mục con — `null` khi giao dịch gắn thẳng vào cha.
-String? _subLabel(TransactionWithCategory twc, Map<int, Category> byId) {
-  final c = twc.category;
-  if (c == null || c.parentCategoryId == null) return null;
-  return c.name;
-}
 
 /// Mục "Từ khoá" — thứ app dùng để đoán danh mục cho câu chữ ở màn chat,
 /// và giờ XEM và GỠ được.

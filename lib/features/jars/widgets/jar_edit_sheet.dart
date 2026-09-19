@@ -7,7 +7,9 @@ import '../../../data/db/database.dart';
 import '../../../theme/context_ext.dart';
 import '../../../theme/tokens/icons.dart';
 import '../../../ui/app_bottom_sheet.dart';
+import '../../../data/repositories/jar_repository.dart';
 import '../../../ui/color_icon_picker.dart';
+import '../../savings/savings_providers.dart';
 import '../../wallets/selected_wallet_provider.dart';
 
 /// Thêm/sửa một hũ. [existing] `null` = thêm mới.
@@ -33,6 +35,8 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
   late int _colorId;
   late String _iconCode;
   late bool _carryOver;
+  late JarKind _kind;
+  int? _goalId;
   bool _saving = false;
   String? _error;
 
@@ -47,6 +51,8 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     _colorId = j?.categoryColorId ?? 0;
     _iconCode = j?.iconCode ?? 'more_horiz';
     _carryOver = j?.carryOver ?? false;
+    _kind = j?.jarKind ?? JarKind.spend;
+    _goalId = j?.goalId;
   }
 
   @override
@@ -69,6 +75,12 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
       setState(() => _error = 'Tỉ lệ phải từ 1 đến 100');
       return;
     }
+    // Hũ tiết kiệm không gắn quỹ thì không bao giờ đếm được đồng nào — nó
+    // sẽ nằm đó báo "đã gửi 0 ₫" mãi mãi mà không ai hiểu vì sao.
+    if (_kind == JarKind.saving && _goalId == null) {
+      setState(() => _error = 'Chọn quỹ mà hũ tiết kiệm này gửi vào');
+      return;
+    }
     setState(() {
       _error = null;
       _saving = true;
@@ -83,6 +95,8 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
             categoryColorId: _colorId,
             iconCode: _iconCode,
             carryOver: _carryOver,
+            kind: _kind,
+            goalId: _goalId,
           )
         : await repo.insert(
             walletId: ref.read(selectedWalletIdProvider)!,
@@ -91,6 +105,8 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
             categoryColorId: _colorId,
             iconCode: _iconCode,
             carryOver: _carryOver,
+            kind: _kind,
+            goalId: _goalId,
           );
 
     if (!mounted) return;
@@ -152,16 +168,52 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                     ),
                   ),
                   SizedBox(height: context.space.md),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Cộng dồn sang kỳ sau'),
-                    subtitle: const Text(
-                      'Tiền chưa tiêu hết ở kỳ này được giữ lại — dùng cho hũ '
-                      'tiết kiệm, đầu tư. Hũ tiêu dùng thì tắt.',
-                    ),
-                    value: _carryOver,
-                    onChanged: (v) => setState(() => _carryOver = v),
+                  Text('Loại hũ', style: context.text.labelMedium),
+                  SizedBox(height: context.space.xs),
+                  SegmentedButton<JarKind>(
+                    segments: const [
+                      ButtonSegment(
+                        value: JarKind.spend,
+                        label: Text('Hũ tiêu'),
+                      ),
+                      ButtonSegment(
+                        value: JarKind.saving,
+                        label: Text('Hũ tiết kiệm'),
+                      ),
+                    ],
+                    selected: {_kind},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (v) => setState(() => _kind = v.first),
                   ),
+                  SizedBox(height: context.space.xs),
+                  Text(
+                    _kind == JarKind.spend
+                        ? 'Đo tiền CHI ra từ các danh mục bạn xếp vào hũ.'
+                        : 'Đo tiền GỬI VÀO một quỹ trong kỳ — mỗi lần nạp '
+                              'quỹ đó tự tính vào hũ, không cần danh mục.',
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  if (_kind == JarKind.saving) ...[
+                    SizedBox(height: context.space.md),
+                    _GoalDropdown(
+                      selectedGoalId: _goalId,
+                      onChanged: (id) => setState(() => _goalId = id),
+                    ),
+                  ] else ...[
+                    SizedBox(height: context.space.md),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Cộng dồn sang kỳ sau'),
+                      subtitle: const Text(
+                        'Tiền chưa tiêu hết ở kỳ này được giữ lại — dùng cho '
+                        'hũ đầu tư, giáo dục. Hũ tiêu dùng thường ngày thì tắt.',
+                      ),
+                      value: _carryOver,
+                      onChanged: (v) => setState(() => _carryOver = v),
+                    ),
+                  ],
                   SizedBox(height: context.space.md),
                   Text('Màu', style: context.text.labelMedium),
                   SizedBox(height: context.space.xs),
@@ -219,6 +271,45 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Chọn quỹ cho hũ tiết kiệm — chỉ quỹ ĐANG HOẠT ĐỘNG. Quỹ đã gắn nhưng giờ
+/// đã lưu trữ vẫn giữ được lựa chọn cũ (không âm thầm gỡ), chỉ không mời
+/// chọn mới.
+class _GoalDropdown extends ConsumerWidget {
+  const _GoalDropdown({required this.selectedGoalId, required this.onChanged});
+
+  final int? selectedGoalId;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goals =
+        ref.watch(activeSavingsGoalsProvider).value ?? const <SavingsGoal>[];
+    if (goals.isEmpty) {
+      return Text(
+        'Chưa có quỹ nào. Tạo một quỹ ở tab "Quỹ" trước, rồi quay lại gắn '
+        'vào hũ này.',
+        style: context.text.bodySmall?.copyWith(
+          color: context.colors.budgetWarn,
+        ),
+      );
+    }
+    // `value` PHẢI khớp đúng một item hoặc là null — quỹ đã lưu trữ không có
+    // trong danh sách, đưa id của nó vào là DropdownButton ném assert.
+    final value = goals.any((g) => g.id == selectedGoalId)
+        ? selectedGoalId
+        : null;
+    return DropdownButtonFormField<int>(
+      initialValue: value,
+      decoration: const InputDecoration(labelText: 'Gửi vào quỹ'),
+      items: [
+        for (final g in goals)
+          DropdownMenuItem(value: g.id, child: Text(g.name)),
+      ],
+      onChanged: onChanged,
     );
   }
 }

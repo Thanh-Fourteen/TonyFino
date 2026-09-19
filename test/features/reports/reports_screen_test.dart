@@ -6,6 +6,7 @@
 // đường filter → provider → widget để bắt lỗi wiring tương tự nếu có.
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tonyfino/core/time/clock_provider.dart';
 import 'package:tonyfino/data/db/database.dart';
@@ -189,6 +190,58 @@ void main() {
       expect(find.text('Tổng chi'), findsNothing);
       expect(find.text('Tổng cộng'), findsOneWidget);
       expect(find.text(categories[1].name), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    '"Gom theo thẻ": chỉ hiện khi sổ có thẻ; bật lên thì khoản có thẻ '
+    'thành lát "#thẻ", khoản không thẻ vẫn theo danh mục',
+    (tester) async {
+      await pumpReports(tester);
+      expect(
+        find.text('Gom theo thẻ'),
+        findsNothing,
+        reason: 'chưa có thẻ nào — bật lên cũng không đổi được gì',
+      );
+
+      final walletId = (await db.select(db.wallets).get()).first.id;
+      final tagId = await db
+          .into(db.tags)
+          .insert(TagsCompanion.insert(name: 'Du lịch', categoryColorId: 2));
+      final txId = await db
+          .into(db.transactions)
+          .insert(
+            TransactionsCompanion.insert(
+              amountMinor: -250000,
+              currency: 'VND',
+              currencyScale: 0,
+              occurredAt: DateTime(2026, 8, 12),
+              walletId: walletId,
+              categoryId: Value(categories[2].id),
+            ),
+          );
+      await db
+          .into(db.transactionTags)
+          .insert(
+            TransactionTagsCompanion.insert(transactionId: txId, tagId: tagId),
+          );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Gom theo thẻ'),
+        80,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('#Du lịch'), findsNothing);
+      await tester.tap(find.text('Gom theo thẻ'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Theo thẻ & danh mục'), findsOneWidget);
+      expect(find.text('#Du lịch'), findsOneWidget);
+      // Danh mục của khoản ĐÃ gắn thẻ không còn là một lát riêng; hai danh mục
+      // của khoản không thẻ vẫn còn.
+      expect(find.text(categories[2].name), findsNothing);
+      expect(find.text(categories[0].name), findsOneWidget);
     },
   );
 }

@@ -465,6 +465,63 @@ void main() {
     expect(restoredCategory.jarId, jarId);
   });
 
+  test('hũ TIẾT KIỆM (v14) giữ loại + quỹ gắn kèm qua round-trip; backup trước '
+      'v14 (không có khoá kind/goalId) khôi phục thành hũ tiêu', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final backup = BackupService(db);
+
+    final walletId = (await db.select(db.wallets).get()).first.id;
+    final goalId = await db
+        .into(db.savingsGoals)
+        .insert(
+          SavingsGoalsCompanion.insert(
+            name: 'Quỹ ngắn hạn',
+            targetAmountMinor: 5000000,
+            currency: 'VND',
+            currencyScale: 0,
+          ),
+        );
+    final jarId = await db
+        .into(db.jars)
+        .insert(
+          JarsCompanion.insert(
+            walletId: walletId,
+            name: 'Tiết kiệm ngắn hạn',
+            percent: 10,
+            categoryColorId: 3,
+            iconCode: 'savings',
+            kind: const Value('saving'),
+            goalId: Value(goalId),
+          ),
+        );
+
+    final export = await backup.exportToJson(exportedAt: DateTime(2026, 9, 19));
+    await db.delete(db.jars).go();
+    expect((await backup.importFromJson(export)).isOk, isTrue);
+
+    final restored = await (db.select(
+      db.jars,
+    )..where((j) => j.id.equals(jarId))).getSingle();
+    expect(restored.kind, 'saving');
+    expect(restored.goalId, goalId);
+
+    // Bản sao lưu làm TRƯỚC v14: không có hai khoá mới.
+    final map = jsonDecode(utf8.decode(export)) as Map<String, Object?>;
+    for (final j in (map['jars'] as List).cast<Map<String, Object?>>()) {
+      j
+        ..remove('kind')
+        ..remove('goalId');
+    }
+    final old = Uint8List.fromList(utf8.encode(jsonEncode(map)));
+    expect((await backup.importFromJson(old)).isOk, isTrue);
+    final legacy = await (db.select(
+      db.jars,
+    )..where((j) => j.id.equals(jarId))).getSingle();
+    expect(legacy.kind, 'spend');
+    expect(legacy.goalId, null);
+  });
+
   test('backup CŨ (trước v13, không có khoá "jars") vẫn import được', () async {
     final db = openTestDatabase();
     addTearDown(db.close);

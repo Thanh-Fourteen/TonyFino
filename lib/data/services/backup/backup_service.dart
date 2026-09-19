@@ -585,6 +585,10 @@ class BackupService {
     'sortOrder': j.sortOrder,
     'isArchived': j.isArchived,
     'createdAt': j.createdAt.toIso8601String(),
+    // v14 — hũ tiết kiệm gắn quỹ. Thiếu hai khoá này thì khôi phục xong mọi
+    // hũ tiết kiệm biến thành hũ tiêu và mất dây nối tới quỹ.
+    'kind': j.kind,
+    'goalId': j.goalId,
   };
 
   JarsCompanion _jarFromJson(Map<String, Object?> j) => JarsCompanion.insert(
@@ -598,6 +602,9 @@ class BackupService {
     sortOrder: Value(j['sortOrder'] as int? ?? 0),
     isArchived: Value(j['isArchived'] as bool? ?? false),
     createdAt: Value(DateTime.parse(j['createdAt'] as String)),
+    // Bản sao lưu trước v14 không có hai khoá này — mọi hũ hồi đó là hũ tiêu.
+    kind: Value(j['kind'] as String? ?? 'spend'),
+    goalId: Value(j['goalId'] as int?),
   );
 
   Map<String, Object?> _savingsGoalToJson(SavingsGoal g) => {

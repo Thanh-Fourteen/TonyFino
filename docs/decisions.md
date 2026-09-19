@@ -2072,3 +2072,214 @@ bằng `_frozenClock.now()`.
 1043 test xanh (thêm 23 test mới), `flutter analyze` giữ nguyên 13 info có sẵn, `check_arch.sh` PASS.
 **Chưa chạy tay được trên máy ảo**: AVD `tonyfino36` không còn trên máy này (`emulator -list-avds`
 rỗng), nên phần thị giác của bộ icon mới và thẻ để dành ở màn chat vẫn chờ Tony bấm thật.
+
+---
+
+## 2026-09-07 · Quỹ tiết kiệm: nạp/rút khó, lịch sử không có, và "Hoàn tác" làm bốc hơi tiền
+
+Tony báo bốn thứ cùng lúc về quỹ: *"thêm bớt tiền vào đó cũng khó, đó không liên quan danh mục…
+lịch sử cũng khó xem, chuyển từ ví vào quỹ tiết kiệm cũng khó"*. Chạy tay trên `tonyfino36` (v1.0.5+46,
+dữ liệu test: ví −10.000.000, quỹ "Mua nha" 5.000.000/50.000.000) thì cả bốn đều đúng, và lộ thêm
+một lỗi MẤT TIỀN mà Tony chưa gặp.
+
+### 1. 🚨 "Hoàn tác" sau khi xoá làm bốc hơi tiền
+
+Đo được, không phải suy luận: nạp 1tr vào quỹ (ví −11tr, quỹ 6tr) → xoá giao dịch → bấm **Hoàn tác**
+→ ví vẫn **−11tr** nhưng quỹ tụt về **5tr**. Một triệu biến mất khỏi sổ, lại còn hiện ra thành một
+khoản chi "Chưa phân loại" trong Báo cáo (Tổng chi 6 tháng nhảy từ −6tr lên −7tr).
+
+`deleteTransactionWithUndo` chèn lại đúng năm cột (`amount/occurredAt/walletId/categoryId/note`) và
+bỏ rơi `goalId`, `debtId`, các dòng con của giao dịch tách (Phase 14), thẻ (Phase 17) và ảnh hoá đơn.
+Ba thứ sau KHÔNG nằm trong `Transaction` (bảng khác; ảnh ở đĩa) và `delete()` xoá cả ba, nên bản sửa
+phải **đọc hết ra TRƯỚC khi gọi `delete`** — sau đó thì không còn gì để đọc. Ảnh ghi lại bằng
+`writeImageWithFilename` (đúng tên file cũ) chứ không phải `saveImage` (tự sinh tên mới), để hàng
+khôi phục mang lại chính `receiptImageFilename` cũ.
+
+Bài học lặp lại D7 theo chiều ngược: không lưu bộ đếm thì tiến độ không thể sai, nhưng nó chỉ đúng
+khi **giao dịch nguồn được khôi phục nguyên vẹn**. Một undo "gần đúng" nguy hiểm hơn không có undo.
+
+### 2. Nạp/rút quỹ: sheet RIÊNG, không phải form ghi khoản điền sẵn
+
+Nút "+" trên thẻ quỹ mở nguyên `TransactionFormSheet`. Nó hỏi sáu thứ, **năm thứ vô nghĩa** với một
+lần nạp quỹ: nút gạt Chi/Thu (nạp tiền để dành bị gọi là "Chi"), lưới 11 danh mục chiếm nửa màn,
+"Tách giao dịch", Thẻ, Ảnh hoá đơn. Thứ duy nhất thật sự cần — nạp từ ví nào — thì lại ẩn khi sổ mới
+có một ví. Tiêu đề vẫn ghi "Thêm giao dịch".
+
+Lưới danh mục không chỉ thừa, nó là **cái bẫy**: gán một danh mục vào khoản để dành là vừa thổi phồng
+chi tiêu của danh mục đó vừa làm khoản đó trông như đã tiêu mất. Chốt: `SavingsContributionSheet`
+riêng (số tiền + ví + ngày + ghi chú), bỏ hẳn lưới đi thì không ai chọn nhầm được nữa. Dữ liệu ghi ra
+y hệt hình dạng cũ (giao dịch mang `goalId`, không `categoryId`) nên tiến độ/báo cáo không cần biết
+gì về sheet này — đây thuần tuý là một lối vào hẹp hơn.
+
+Hai factory `TransactionFormPrefill.forGoalContribution`/`forGoalWithdrawal` bị **xoá hẳn**, không để
+lại làm lối vào chết: giữ chúng là mời đúng lỗi này quay lại.
+
+Form ghi khoản vẫn phải mở được một khoản quỹ CŨ (sửa/xoá), nên khi `goalId != null` nó giấu cả khối
+danh mục lẫn "Tách giao dịch", và hiện "Gắn với quỹ: …". Tên quỹ trước đây chỉ đọc từ prefill nên mở
+từ danh sách là mất sạch dấu vết quỹ — giờ tra ngược từ `goalId`.
+
+### 3. Lịch sử quỹ: trước đây KHÔNG có, không phải "khó xem"
+
+Bấm vào thẻ quỹ mở sheet sửa tên/số tiền cần đạt; `watchAllWithCategory` không có tham số lọc theo
+quỹ nào cả. Nghĩa là không đường nào xem một quỹ đã nạp/rút những gì, cũng không đường nào sửa một
+lần nạp sai ngoài việc mò trong danh sách chung.
+
+Chốt: thêm `watchAllWithCategory(goalId:)` + `SavingsGoalDetailScreen` (tiến độ trên, lịch sử theo
+ngày dưới, hai nút Nạp/Rút có nhãn bằng CHỮ). **Đổi chỗ hai hành động trên thẻ**: bấm thẻ giờ mở lịch
+sử, còn sửa/lưu trữ lùi vào menu ⋮ của màn chi tiết — "quỹ này đã nạp gì" là câu hỏi hàng ngày, "đổi
+tên quỹ" thì vài tháng một lần. Thẻ cũng chỉ còn MỘT nút icon: ba nút không nhãn chen nhau là chỗ bấm
+nhầm, cái mũi tên quay lui (rút về ví) đọc y như "hoàn tác".
+
+Tiến độ ở màn chi tiết vẫn là `SavingsGoalProgress` (SQL aggregate, D7) chứ không cộng tay từ danh
+sách bên dưới — hai nguồn cho cùng một con số là hai chỗ để nó trôi.
+
+### 4. Danh sách giao dịch gọi mọi khoản quỹ là "Chưa phân loại"
+
+Màn chat đã hiện đúng "Để dành › Mua nha" kèm icon con heo từ 2026-09-04, nhưng **bốn màn danh sách
+thì không**: tab Giao dịch, Trang chủ "Gần đây", Tìm kiếm, Chi tiết danh mục — cả bốn chép tay cùng
+một đoạn ba-điều-kiện và đã lệch nhau thật (tab Giao dịch có `emoji`, Trang chủ không; Tìm kiếm bỏ
+chip danh mục con khi tách dòng, Trang chủ không), và không màn nào biết khoản quỹ là gì.
+
+Chốt theo đúng luật "sửa tận gốc": một hàm `transactionRowDisplay` ở
+`features/transactions/domain/transaction_row_display.dart`, cả năm màn (kể cả màn Lịch sử quỹ mới)
+đi qua nó. BA khái niệm cùng có `category == null` và không suy ra được từ `category`: gắn quỹ
+(`goal != null`), tách dòng (`isSplit`), và "chưa phân loại" thật.
+
+`watchAllWithCategory` LEFT JOIN thêm `savings_goals` để tên quỹ ra tới UI trong cùng một query.
+
+### 5. Chip "Chuyển quỹ" mở sheet chuyển giữa hai VÍ
+
+Đây chính là chỗ Tony đi tìm khi nói "chuyển từ ví vào quỹ tiết kiệm cũng khó": nút duy nhất hứa hẹn
+đúng việc lại làm việc khác. (`savings_matcher.dart` đã ghi nhận sự nhầm lẫn này từ 2026-09-04 nhưng
+chưa sửa.) Chốt: nhãn đổi thành "Chuyển ví" — nói đúng thứ nó làm — và thêm chip "Nạp quỹ" riêng.
+Không quỹ nào thì ẩn chip; đúng một quỹ thì vào thẳng sheet nạp, không bắt chọn giữa một lựa chọn;
+từ hai trở lên mới hỏi.
+
+### 6. Snackbar "Đã xoá giao dịch" không bao giờ tự tắt
+
+Đo trên máy thật: nằm lại **hơn 4 phút**, sống qua cả chuyển tab lẫn vuốt-đóng, che thanh điều hướng
+dưới; chỉ khởi động lại app mới hết. Xảy ra khi xoá **từ sheet Sửa**, và `_delete()` làm đúng cái
+việc mà `_duplicate()` ngay bên dưới nó đã ghi chú là không được làm: `Navigator.pop()` trước, rồi
+đưa `context` của route đang bị gỡ cho một hàm chạy tiếp — hàm đó gọi `ScaffoldMessenger.of(context)`.
+Chữa bằng đúng cách `_duplicate()` đã chữa: giữ context của Navigator GỐC trước khi pop.
+
+Nhân tiện: `hideCurrentSnackBar()` trước khi hiện cái mới (xoá liên tiếp hai hàng thì cái thứ hai xếp
+hàng đợi, nút "Hoàn tác" đang hiện lại thuộc về giao dịch TRƯỚC — bấm vào là khôi phục nhầm hàng);
+thời lượng nói rõ 8 giây thay vì mặc định 4 (đây là cửa sổ DUY NHẤT để lấy lại một giao dịch); và
+`textColor: Colors.white` cho nút — màu `secondary` mặc định là teal đậm trên nền thanh gần đen, gần
+như không đọc được.
+
+### Không sửa: dấu của "Tiết kiệm" ở Trang chủ/tab Giao dịch
+
+"Tiết kiệm −5.000.000 đ" đọc như một khoản mất, trong khi thẻ quỹ ghi "5.000.000 đ" — nhìn thì lệch.
+Nhưng đo lại thì Thu + Chi + Tiết kiệm = Còn lại khớp chính xác (1 − 6 − 5 = −10). Đảo dấu để "đẹp"
+sẽ phá đúng phép cộng mà comment ở `transactions_screen.dart` đã cố ý dựng lên. Để nguyên.
+
+---
+
+## 2026-09-19 · Hũ: % sai gốc, danh mục con khác hũ cha, hũ tiết kiệm; thêm "Gom theo thẻ" và sửa thứ tự "Gần đây"
+
+Tony báo năm việc cùng lượt. Schema lên **v14**.
+
+### 1. 🚨 Phần trăm hũ không tính trên "Thu" của kỳ
+
+`JarRepository.watchProgress` cộng MỌI dòng dương làm thu nhập — kể cả dòng dương gắn `goal_id`, tức
+tiền RÚT từ quỹ về ví. Ô "Thu" ở Trang chủ (`watchPeriodSummary`) thì loại dòng gắn quỹ. Hai màn chia
+từ hai con số khác nhau; rút 6tr từ quỹ là mọi hũ phình thêm 6tr × %. Sửa: cùng bộ lọc
+`goal_id IS NULL`. Chiều chi cũng vậy: một lần nạp quỹ mang danh mục "Phát sinh" (đúng dữ liệu Rolly
+thật) bị đếm là chi của hũ chứa "Phát sinh" — giờ loại ra, vì nó thuộc về hũ tiết kiệm (mục 3).
+
+Và màn Hũ giờ **hiện luôn con số gốc** ("Tổng thu của kỳ … mỗi hũ nhận đúng phần trăm của con số
+này"). Lỗi này sống được lâu chính vì không có chỗ nào cho thấy 10% là 10% của cái gì.
+
+### 2. Danh mục con thuộc hũ KHÁC danh mục cha
+
+Không cần đổi schema: `categories.jar_id` vốn nằm trên mọi hàng, truy vấn vốn đã là
+`COALESCE(con, cha)`. Chỉ có bảng chọn là khoá ở cấp gốc. Giờ bảng hai cấp, luật ở
+`lib/features/jars/domain/jar_membership.dart`:
+
+- Con chưa xếp riêng → theo hũ của cha (ô tick khoá, ghi "Theo "Ăn uống" — muốn tách, chọn nó ở hũ
+  khác"). Không có trạng thái "con không thuộc hũ nào khi cha có hũ": mã hoá nó cần một giá trị canh
+  gác trong `jar_id` (kiểu `0`) — vá víu, và nghiệp vụ không cần: cha đã vào hũ thì cả họ có chỗ.
+- Tick con vào đúng hũ của cha → ghi `NULL` chứ không chép id, để dời cha thì con đi theo.
+- Chỉ liệt kê danh mục CHI — danh mục thu trong hũ không bao giờ cộng được đồng nào.
+
+### 3. Hai loại hũ: hũ tiêu và hũ tiết kiệm (v14)
+
+`jars.kind` (`'spend'`/`'saving'`, mặc định `'spend'` — đúng với mọi hũ có trước) + `jars.goal_id`.
+Hũ tiết kiệm đo **tiền gửi RÒNG vào quỹ gắn kèm trong kỳ** (`-SUM(amount)` các dòng mang `goal_id`
+đó: nạp trừ rút). Mọi lần nạp — từ sheet quỹ, từ màn chat "chuyển … vào tiết kiệm" — tự tính vào, vì
+nó đọc chính dòng giao dịch chứ không cần ai "báo" cho hũ. Gửi vượt mức là **đạt** (không tô đỏ).
+Đổi hũ tiêu thành hũ tiết kiệm thì gỡ các danh mục khỏi nó trong cùng transaction — nếu không chúng kẹt
+ở một hũ không còn bảng chọn danh mục. Sao lưu mang hai khoá mới; bản sao lưu cũ khôi phục thành hũ
+tiêu (có test).
+
+### 4. Trang chủ: đủ mọi hũ; tab Giao dịch: "Chi theo hũ"
+
+Thẻ Hũ ở Trang chủ trước chỉ vẽ 4 hũ đầu, mỗi hũ một thanh + %. Giờ đủ mọi hũ, mỗi hũ "còn X", thanh,
+"đã tiêu a / b", cuối thẻ là dòng tổng (tổng hũ · đã dùng · còn lại). Tab Giao dịch thêm dải ô "Chi
+theo hũ"; bấm một ô là lọc danh sách đúng những khoản làm nên con số của hũ đó (`categoryIdsInJar` —
+cùng công thức COALESCE; hũ tiết kiệm lọc theo `goal_id`). Hũ rỗng lọc ra danh sách rỗng, KHÔNG rơi
+về "không lọc".
+
+### 5. Biểu đồ tròn: "Gom theo thẻ"
+
+Khoản có thẻ gom theo thẻ, khoản không thẻ vẫn theo danh mục (cấp gốc). Gộp theo **TỔ HỢP thẻ**
+(khoản gắn "Du lịch" + "Gia đình" thành nhóm "#Du lịch + #Gia đình"), không cộng vào từng thẻ — cộng
+vào từng thẻ là đếm hai lần, tổng các lát vượt tổng chi. Test khẳng định hai nửa cộng lại đúng bằng
+tổng chi ở chế độ thường. Công tắc dùng chung Trang chủ ↔ Báo cáo, và ẩn khi sổ chưa có thẻ.
+
+### 6. "Gần đây" trong một ngày bị ngược
+
+Màn chat và bộ nhập Rolly ghi `occurred_at` là NGÀY TRẦN (00:00), mọi truy vấn danh sách chỉ
+`ORDER BY occurred_at DESC` — hàng hoà nhau, SQLite trả theo rowid tăng dần: khoản buổi sáng lên đầu.
+Thêm tiêu chí phụ `created_at DESC, id DESC` ở MỘT chỗ (`TransactionRepository._newestFirst`) cho mọi
+danh sách. Đã chứng minh test mới đỏ với thứ tự cũ (ra đúng "cà phê sáng" trên cùng) trước khi sửa.
+
+### Bẫy tái diễn
+
+Dải "Chi theo hũ" làm 2 test màn Giao dịch treo 10 phút: `watchProgress` gọi `watchActive(...).first`
+bên trong `asyncMap` — đúng bẫy "Stream.first ngoài ngữ cảnh watch làm pumpAndSettle treo" đã ghi.
+Đổi sang `.get()`.
+
+### Kiểm chứng
+
+1091 test xanh (+35), `check_arch.sh` PASS, analyze không thêm cảnh báo nào. Chạy tay trên
+`tonyfino36` (cài đè 1.0.6 → bản này, migration v13→v14 giữ nguyên dữ liệu cũ): dùng mẫu 6 hũ, tách
+"Tiêu vặt" sang Hưởng thụ khi "Ăn uống" ở Thiết yếu, đổi "Tiết kiệm dài hạn" thành hũ tiết kiệm gắn
+quỹ "Mua nha" (tự nhận 5tr đã nạp trong tháng), ghi hai khoản qua chat (thứ tự "Gần đây" đúng, mỗi
+khoản rơi đúng hũ), lọc tab Giao dịch theo hũ, tạo thẻ + bật "Gom theo thẻ" ở Báo cáo.
+
+## 2026-09-19 (tiếp) · Màn Chi tiết hũ, bỏ trang Hạn mức, kéo thả thứ tự hũ
+
+**Chi tiết hũ** (`lib/features/jars/jar_detail_screen.dart`). Tony: *"khi nhấn vô 1 hũ, ở dưới sẽ có
+tất cả giao dịch theo danh mục danh mục con, như bảng theo danh mục ở trang chủ"*. Bấm thẻ hũ (màn
+Hũ) hoặc từng hũ ở Trang chủ giờ mở màn này: tóm tắt hạn mức/đã dùng/còn lại, biểu đồ "Theo danh mục"
+(cùng `CategoryPieCard` với Trang chủ) CHỈ gồm phần thuộc hũ, rồi mọi giao dịch nhóm theo ngày. Sửa
+hũ và chọn danh mục chuyển lên thanh tiêu đề.
+
+- Bấm một danh mục cha trong biểu đồ KHÔNG mở màn Chi tiết danh mục như Trang chủ: hũ có thể chỉ chứa
+  vài con của "Ăn uống", màn đó lại cộng mọi con — hai con số lệch nhau. Thêm tham số
+  `CategoryPieCard.onOpenCategory`; màn hũ mở bảng các con thuộc hũ, con mới mở tiếp được màn của nó.
+- "Giao dịch của một hũ" giờ có MỘT định nghĩa (`watchJarTransactions`) dùng chung cho bộ lọc hũ ở tab
+  Giao dịch và màn này.
+- `_groupByDay` từng bị chép ở 3 màn; màn này sẽ là bản thứ tư, nên gom về
+  `transactions/domain/day_groups.dart` và thay cả ba bản cũ.
+
+**Bỏ trang Hạn mức** (Tony: *"xoá trang hạn mức đi"*). Gỡ tab trong Túi tiền, mục trong Quản lý,
+route `/budgets`, thẻ Hạn mức ở Trang chủ (và công tắc của nó), dòng "còn … trong ngân sách" ở thẻ
+xác nhận màn chat — không còn chỗ tạo/sửa hạn mức thì dòng đó sẽ là một con số không ai quản được.
+**Giữ** bảng `budgets`, `BudgetRepository` và phần sao lưu: đây là dữ liệu của Tony, xoá bảng là thao
+tác không đảo ngược được mà không ai yêu cầu. `BudgetPeriod` (kỳ theo ngày neo) vẫn là nền của "Tháng
+này", nên cài đặt đổi nhãn thành "Kỳ tháng bắt đầu ngày". Tab Túi tiền còn Ví · Quỹ · Hũ — nhân tiện
+khớp lại chỉ số mà thẻ Quỹ/Hũ ở Trang chủ vẫn dùng (trước đó lệch một nấc vì tab Hạn mức chen giữa).
+
+**Kéo thả thứ tự hũ.** Nhấn giữ một thẻ hũ rồi kéo. `JarRepository.reorder` ghi lại `sortOrder` cho
+MỌI hũ trong một transaction. Phần tĩnh (chip kỳ, thẻ tổng, dòng %) nằm ở `header`/`footer` của
+`ReorderableListView`, không làm con của danh sách (bẫy lệch chỉ số đã dính ở màn Danh mục). Màn giữ
+thứ tự tạm tới khi stream DB bắt kịp để thẻ không giật về chỗ cũ lúc thả tay. Mọi nơi khác (Trang chủ,
+dải "Chi theo hũ") đọc theo `sortOrder` nên tự theo.
+
+Chạy tay trên `tonyfino36`: kéo "Tiết kiệm dài hạn" lên đầu → khởi động lại app vẫn giữ thứ tự; chi
+tiết Thiết yếu chỉ có "an sang 30k" (không có "Tiêu vặt" đã tách sang Hưởng thụ); chi tiết Hưởng thụ
+có đúng "Tiêu vặt 20k".

@@ -9,6 +9,7 @@ class CategorySourceAmount {
     required this.categoryColorId,
     required this.iconCode,
     required this.amountMinor,
+    this.tagIds,
   });
 
   /// `null` cho giao dịch chưa gán danh mục — nhóm riêng, KHÔNG gộp chung
@@ -21,6 +22,13 @@ class CategorySourceAmount {
 
   /// Luôn ÂM hoặc 0 (tổng chi) — dấu giữ nguyên từ SQL, `.abs` khi hiển thị.
   final int amountMinor;
+
+  /// Khác `null` = đây là một nhóm THẺ (chế độ "gom theo thẻ"), không phải
+  /// danh mục; [categoryId] khi đó luôn `null`. Là một trường riêng chứ
+  /// không mượn `categoryId == null`: cái đó đã có nghĩa "chưa phân loại"
+  /// (bài học Phase 9 § CategoryBucketKey — hai kiểu "không có" không được
+  /// chung một giá trị).
+  final List<int>? tagIds;
 }
 
 class CategorySlice {
@@ -31,6 +39,7 @@ class CategorySlice {
     required this.iconCode,
     required this.amountMinor,
     required this.isOther,
+    this.tagIds,
   });
 
   /// `null` cho lát "Khác" (isOther) VÀ cho "Chưa phân loại" — phân biệt hai
@@ -52,6 +61,11 @@ class CategorySlice {
   /// dùng cờ này để đổi hành vi chạm (mở sheet đầy đủ) thay vì sheet chi
   /// tiết một danh mục.
   final bool isOther;
+
+  /// Xem [CategorySourceAmount.tagIds].
+  final List<int>? tagIds;
+
+  bool get isTagGroup => tagIds != null;
 }
 
 /// Mắt người chỉ phân biệt tin cậy 6–8 sắc độ trong một biểu đồ tròn — giới
@@ -75,6 +89,7 @@ List<CategorySlice> buildCategorySlices(
           iconCode: s.iconCode,
           amountMinor: s.amountMinor,
           isOther: false,
+          tagIds: s.tagIds,
         ),
     ];
   }
@@ -92,6 +107,7 @@ List<CategorySlice> buildCategorySlices(
         iconCode: s.iconCode,
         amountMinor: s.amountMinor,
         isOther: false,
+        tagIds: s.tagIds,
       ),
     CategorySlice(
       categoryId: null,
@@ -220,4 +236,54 @@ List<CategoryRootBreakdown> rollupToRootCategories(
   });
 
   return result;
+}
+
+/// Chi của một TỔ HỢP thẻ trong kỳ — xem
+/// `ReportsRepository.watchTagGroupBreakdown` cho lý do gộp theo tổ hợp
+/// chứ không theo từng thẻ.
+class TagGroupAmount {
+  const TagGroupAmount({required this.tagIds, required this.amountMinor});
+
+  /// Đã sắp tăng dần, không rỗng.
+  final List<int> tagIds;
+
+  /// Luôn ÂM (tổng chi), cùng quy ước với [CategorySourceAmount].
+  final int amountMinor;
+}
+
+/// Tên + màu tối thiểu của một thẻ — tách khỏi `Tag` (drift) cùng lý do
+/// [CategoryHierarchyEntry].
+class TagInfo {
+  const TagInfo({required this.id, required this.name, required this.colorId});
+
+  final int id;
+  final String name;
+  final int colorId;
+}
+
+/// Nguồn cho biểu đồ tròn ở chế độ "gom theo thẻ": mỗi TỔ HỢP thẻ một lát,
+/// cộng với các lát danh mục (đã rollup về cấp gốc) của phần KHÔNG gắn thẻ.
+///
+/// [untaggedRootSources] phải là breakdown đã lọc `untaggedOnly` rồi rollup
+/// — hai tập rời nhau, nên tổng mọi lát ở đây đúng bằng tổng chi của chế độ
+/// thường, và phần trăm vẫn cộng ra 100%.
+List<CategorySourceAmount> buildTagModeSources({
+  required List<CategorySourceAmount> untaggedRootSources,
+  required List<TagGroupAmount> tagGroups,
+  required Map<int, TagInfo> tagsById,
+}) {
+  return [
+    for (final g in tagGroups)
+      CategorySourceAmount(
+        categoryId: null,
+        label: g.tagIds
+            .map((id) => '#${tagsById[id]?.name ?? '?'}')
+            .join(' + '),
+        categoryColorId: tagsById[g.tagIds.first]?.colorId ?? -1,
+        iconCode: 'sell',
+        amountMinor: g.amountMinor,
+        tagIds: g.tagIds,
+      ),
+    ...untaggedRootSources,
+  ];
 }

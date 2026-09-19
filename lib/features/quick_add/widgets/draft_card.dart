@@ -9,10 +9,7 @@ import '../../../core/money/money.dart';
 import '../../../core/providers/database_providers.dart';
 import '../../../data/db/database.dart';
 import '../../../data/repositories/transaction_repository.dart';
-import '../../../features/budgets/domain/budget_period.dart';
-import '../../../features/budgets/domain/budget_progress.dart';
 import '../../../features/savings/savings_providers.dart';
-import '../../../features/settings/settings_controller.dart';
 import '../../../features/transactions/day_label.dart';
 import '../../../features/transactions/transaction_form_sheet.dart';
 import '../../../features/transactions/transactions_providers.dart';
@@ -21,7 +18,6 @@ import '../../../theme/tokens/curves.dart';
 import '../../../theme/tokens/durations.dart';
 import '../../../theme/tokens/icons.dart';
 import '../../../ui/app_card.dart';
-import '../../../ui/amount_visibility.dart';
 import '../../../ui/app_chip.dart';
 import '../../../ui/category_avatar.dart';
 import '../../../ui/category_two_tier_label.dart';
@@ -243,8 +239,6 @@ class _DraftCardState extends ConsumerState<DraftCard>
               ),
             ],
           ),
-          if (category != null && category.kind == 'expense')
-            _BudgetProgressLine(categoryId: category.id),
           SizedBox(height: context.space.sm),
           Row(
             children: [
@@ -501,65 +495,6 @@ class _DraftCardState extends ConsumerState<DraftCard>
   }
 }
 
-/// Tiến độ ngân sách hiện NGAY trong thẻ xác nhận (Phase 25, đúc theo cách
-/// Rolly trả tiến độ ngân sách ngay trong câu trả lời chat —
-/// `docs/rolly-uiux-research.md` § B) — chỉ hiện khi danh mục của thẻ THẬT
-/// SỰ có một hàng ngân sách cho kỳ hiện tại, im lặng không hiện gì nếu
-/// không (không phải "0/0", một hàng trống vô nghĩa). Tái dùng
-/// `BudgetRepository.watchBudgetsForPeriod` đã có từ Phase 11/15, KHÔNG
-/// query/cache riêng — CỐ Ý không dùng `budgetProgressProvider` (nó phản
-/// ánh kỳ Tony đang XEM ở tab Ngân sách, có thể là tháng khác) mà tự tính
-/// `BudgetPeriod.of(now)` — thẻ xác nhận luôn phải nói về kỳ HIỆN TẠI thật,
-/// bất kể Tony đang xem tháng nào ở tab khác.
-class _BudgetProgressLine extends ConsumerWidget {
-  const _BudgetProgressLine({required this.categoryId});
-
-  final int categoryId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(quickAddNowForLabelsProvider);
-    final anchorDay = ref.read(appSettingsProvider).budgetAnchorDay;
-    final period = BudgetPeriod.of(now, anchorDay: anchorDay);
-
-    return StreamBuilder<List<BudgetProgress>>(
-      stream: ref.read(budgetRepositoryProvider).watchBudgetsForPeriod(period),
-      builder: (context, snapshot) {
-        final progressList = snapshot.data ?? const <BudgetProgress>[];
-        BudgetProgress? progress;
-        for (final p in progressList) {
-          if (p.categoryId == categoryId) {
-            progress = p;
-            break;
-          }
-        }
-        if (progress == null) return const SizedBox.shrink();
-
-        final remaining = progress.remainingMinor;
-        final text = AmountVisibility.hiddenOf(context)
-            // Che thì che luôn cả câu: "Còn ••••••" vẫn đọc được nghĩa mà
-            // không lộ số.
-            ? (remaining >= 0
-                  ? 'Còn •••••• trong ngân sách ${progress.categoryName}'
-                  : 'Đã vượt •••••• ngân sách ${progress.categoryName}')
-            : (remaining >= 0
-                  ? 'Còn ${Money.vnd(remaining).format()} trong ngân sách ${progress.categoryName}'
-                  : 'Đã vượt ${Money.vnd(-remaining).format()} ngân sách ${progress.categoryName}');
-        return Padding(
-          padding: EdgeInsets.only(top: context.space.xxs),
-          child: Text(
-            text,
-            style: context.text.labelMedium?.copyWith(
-              color: remaining >= 0
-                  ? context.colors.onSurfaceVariant
-                  : context.colors.budgetOver,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 /// Trạng thái lỗi — Luật bố cục Phase 8: MỘT THẺ, không phải toast. Giữ
 /// nguyên chữ gốc trong ô sửa được; ô số tiền tự focus, bàn phím bật ngay.

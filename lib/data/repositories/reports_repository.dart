@@ -35,10 +35,16 @@ class ReportsRepository {
   /// sẵn `categories` (tên/màu/icon) trong MỘT query, category `null` gộp
   /// riêng thành một hàng "chưa phân loại" (tự nhiên qua `groupBy(categoryId)`
   /// coi mọi `NULL` là cùng một nhóm).
+  ///
+  /// [untaggedOnly] — chỉ giao dịch KHÔNG gắn thẻ nào: nửa "danh mục" của
+  /// chế độ "gom theo thẻ" ở biểu đồ tròn; nửa kia là [watchTagGroupBreakdown].
+  /// Hai nửa rời nhau tuyệt đối (một giao dịch hoặc có thẻ hoặc không), nên
+  /// cộng lại ra đúng tổng chi của chế độ thường.
   Stream<List<CategorySourceAmount>> watchCategoryBreakdown(
     ReportRange range, {
     Set<int>? categoryIds,
     Set<int>? tagIds,
+    bool untaggedOnly = false,
   }) {
     final c = _db.categories;
     final eff = effectiveCategoryAmounts(_db);
@@ -61,6 +67,9 @@ class ReportsRepository {
     }
     if (tagIds != null) {
       predicate = predicate & _taggedWith(effTransactionId, tagIds);
+    }
+    if (untaggedOnly) {
+      predicate = predicate & effTransactionId.isNotInQuery(_anyTaggedIds());
     }
 
     // `useColumns: true` BẮT BUỘC ở đây — statement gốc là `selectOnly(eff)`
@@ -255,6 +264,103 @@ class ReportsRepository {
         transactionCount: row.read(countExpr) ?? 0,
       ),
     );
+  }
+
+  /// Chi của các giao dịch CÓ GẮN THẺ, gộp theo ĐÚNG TỔ HỢP thẻ của từng
+  /// giao dịch — nguồn cho chế độ "gom theo thẻ" của biểu đồ tròn.
+  ///
+  /// 🚨 Gộp theo TỔ HỢP, không phải theo từng thẻ: một khoản gắn cả "Du
+  /// lịch" lẫn "Gia đình" mà cộng vào CẢ HAI lát thì tổng các lát lớn hơn
+  /// tổng chi thật và phần trăm cộng lại vượt 100% — cùng họ lỗi đếm-hai-lần
+  /// mà dự án đã tránh ở hũ (`Categories.jarId`) và ở JOIN thẻ
+  /// ([_taggedWith]). Nên khoản đó thành một nhóm riêng "Du lịch + Gia đình".
+  ///
+  /// Hai bước: (1) SQL gộp chi theo GIAO DỊCH (giao dịch tách dòng chỉ còn
+  /// một hàng), (2) đọc thẻ của đúng những giao dịch đó rồi cộng theo tổ hợp
+  /// ở Dart. Bước 2 chỉ chạm các giao dịch ĐÃ gắn thẻ trong kỳ — một tập
+  /// nhỏ — không phải lặp cả sổ cái.
+  Stream<List<TagGroupAmount>> watchTagGroupBreakdown(
+    ReportRange range, {
+    Set<int>? categoryIds,
+    Set<int>? tagIds,
+  }) {
+    final eff = effectiveCategoryAmounts(_db);
+    final effCategoryId = eff.ref(_db.transactions.categoryId);
+    final effTransactionId = eff.ref(_db.transactions.id);
+    final effAmount = eff.ref(_db.transactions.amountMinor);
+    final effOccurredAt = eff.ref(_db.transactions.occurredAt);
+    final effIsTransfer = eff.ref(_db.transactions.isTransfer);
+    final effGoalId = eff.ref(_db.transactions.goalId);
+    final sumExpr = effAmount.sum();
+
+    // Cùng bộ điều kiện với [watchCategoryBreakdown] — hai chế độ của một
+    // biểu đồ phải nói về cùng một tập tiền.
+    var predicate =
+        effOccurredAt.isBiggerOrEqualValue(range.start) &
+        effOccurredAt.isSmallerThanValue(range.end) &
+        effAmount.isSmallerThanValue(0) &
+        effIsTransfer.equals(false) &
+        effGoalId.isNull() &
+        effTransactionId.isInQuery(_anyTaggedIds());
+    if (categoryIds != null) {
+      predicate = predicate & effCategoryId.isIn(categoryIds);
+    }
+    if (tagIds != null) {
+      predicate = predicate & _taggedWith(effTransactionId, tagIds);
+    }
+    final perTransaction = _db.selectOnly(eff)
+      ..addColumns([effTransactionId, sumExpr])
+      ..where(predicate)
+      ..groupBy([effTransactionId]);
+
+    // Truy vấn trên chỉ khai phụ thuộc vào bảng GIAO DỊCH; gắn/gỡ thẻ phải
+    // làm biểu đồ vẽ lại ngay, nên khai phụ thuộc tường minh cả bảng thẻ —
+    // cùng cách `JarRepository.watchProgress` đã làm.
+    final tick = _db
+        .customSelect(
+          'SELECT 1',
+          readsFrom: {
+            _db.transactions,
+            _db.transactionLines,
+            _db.transactionTags,
+            _db.tags,
+          },
+        )
+        .watch();
+
+    return tick.asyncMap((_) async {
+      final amountByTx = {
+        for (final row in await perTransaction.get())
+          row.read(effTransactionId)!: row.read(sumExpr) ?? 0,
+      };
+      if (amountByTx.isEmpty) return const <TagGroupAmount>[];
+      final links = await (_db.select(
+        _db.transactionTags,
+      )..where((tt) => tt.transactionId.isIn(amountByTx.keys))).get();
+      final tagsByTx = <int, List<int>>{};
+      for (final l in links) {
+        (tagsByTx[l.transactionId] ??= []).add(l.tagId);
+      }
+      final byCombo = <String, ({List<int> tagIds, int amount})>{};
+      amountByTx.forEach((txId, amount) {
+        final ids = (tagsByTx[txId] ?? const <int>[]).toList()..sort();
+        if (ids.isEmpty) return;
+        final key = ids.join(',');
+        final prev = byCombo[key];
+        byCombo[key] = (tagIds: ids, amount: (prev?.amount ?? 0) + amount);
+      });
+      return [
+        for (final g in byCombo.values)
+          TagGroupAmount(tagIds: g.tagIds, amountMinor: g.amount),
+      ];
+    });
+  }
+
+  /// `SELECT transaction_id FROM transaction_tags` — "giao dịch có ít nhất
+  /// một thẻ, thẻ nào cũng được".
+  JoinedSelectStatement<HasResultSet, dynamic> _anyTaggedIds() {
+    final tt = _db.transactionTags;
+    return _db.selectOnly(tt)..addColumns([tt.transactionId]);
   }
 
   /// Lọc theo thẻ (Phase 17) — "giao dịch này CÓ gắn ít nhất một thẻ trong

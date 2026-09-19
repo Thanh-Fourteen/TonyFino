@@ -20,17 +20,21 @@ import '../wallets/selected_wallet_provider.dart';
 import '../wallets/wallets_providers.dart';
 import 'widgets/wallet_switcher_sheet.dart';
 import '../transactions/transactions_providers.dart';
+import '../transactions/domain/transaction_row_display.dart';
 import '../savings/savings_providers.dart';
 import '../money_hub/money_hub_tab_provider.dart';
 import '../jars/jars_providers.dart';
+import '../jars/jar_detail_screen.dart';
+import '../jars/jars_screen.dart' show JarProgressBar, JarStat;
+import '../../ui/category_avatar.dart';
 import '../../ui/transaction_row.dart';
 import '../../data/repositories/jar_repository.dart';
 import '../savings/domain/savings_goal_progress.dart';
 import '../../data/repositories/transaction_repository.dart';
-import '../../data/db/database.dart' show Category;
+import '../../data/db/database.dart' show Category, Tag;
+import '../reports/reports_providers.dart';
+import '../tags/tags_providers.dart';
 import 'widgets/period_chip.dart';
-import '../budgets/domain/budget_progress.dart';
-import '../budgets/budgets_providers.dart';
 
 /// Trang chủ — tab đầu tiên kể từ khi màn "Nhập" thôi làm tab.
 ///
@@ -52,8 +56,7 @@ class HomeScreen extends ConsumerWidget {
     final sections = ref.watch(appSettingsProvider).homeSections;
     // Thẻ nào có gì để hiện — quyết định ở đây để [_spaced] không chừa
     // khoảng cách cho thẻ vắng mặt.
-    final hasJars =
-        (ref.watch(jarProgressProvider).value ?? const []).isNotEmpty;
+    final hasJars = !(ref.watch(jarProgressProvider).value?.isEmpty ?? true);
     final hasGoals =
         (ref.watch(activeSavingsGoalsWithProgressProvider).value ?? const [])
             .isNotEmpty;
@@ -90,10 +93,6 @@ class HomeScreen extends ConsumerWidget {
         // THẬT SỰ hiện, xem [_spaced].
         children: _spaced(context, [
           _BalanceHeader(balance: current, period: period, summary: summary),
-          // Hạn mức LUÔN hiện (có trạng thái rỗng kèm lời mời đặt) — xem
-          // [_BudgetOverviewCard].
-          if (sections.contains(HomeSection.budgets))
-            const _BudgetOverviewCard(),
           if (sections.contains(HomeSection.jars) && hasJars)
             const _JarsOverviewCard(),
           if (sections.contains(HomeSection.goals) && hasGoals)
@@ -292,57 +291,166 @@ void _openHub(BuildContext context, WidgetRef ref, int tab) {
   StatefulNavigationShell.of(context).goBranch(3);
 }
 
-/// Tổng quan HŨ của kỳ đang xem — mỗi hũ một thanh mảnh.
+/// Tổng quan HŨ của kỳ đang xem — ĐỦ mọi hũ, mỗi hũ đủ ba con số.
+///
+/// Bản cũ chỉ vẽ 4 hũ đầu, mỗi hũ một thanh + phần trăm: nhìn thấy "hũ nào
+/// sắp đầy" nhưng không biết hũ đó được bao nhiêu, đã tiêu bao nhiêu, còn
+/// bao nhiêu — ba thứ Tony mở Trang chủ ra để hỏi. Giờ hiện hết, kèm dòng
+/// tổng của cả bộ hũ ở cuối.
 class _JarsOverviewCard extends ConsumerWidget {
   const _JarsOverviewCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final jars = ref.watch(jarProgressProvider).value ?? const <JarProgress>[];
-    if (jars.isEmpty) return const SizedBox.shrink();
+    final overview = ref.watch(jarProgressProvider).value;
+    if (overview == null || overview.isEmpty) return const SizedBox.shrink();
+    final remaining = overview.totalRemaining;
 
     return AppCard(
       onTap: () => _openHub(context, ref, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardHeader(title: 'Hũ kỳ này', trailing: '${jars.length} hũ'),
-          SizedBox(height: context.space.sm),
-          for (final p in jars.take(4)) ...[
-            Row(
-              children: [
-                SizedBox(
-                  width: 108,
-                  child: Text(
-                    p.jar.name,
-                    style: context.text.labelMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(context.radii.full),
-                    child: LinearProgressIndicator(
-                      value: p.ratio.clamp(0.0, 1.0),
-                      minHeight: 6,
-                      backgroundColor: context.colors.surfaceContainer,
-                      valueColor: AlwaysStoppedAnimation(
-                        p.remaining.minorUnits < 0
-                            ? context.colors.budgetOver
-                            : context.colors.budgetOk,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: context.space.sm),
-                Text('${p.jar.percent}%', style: context.text.labelSmall),
-              ],
+          _CardHeader(
+            title: 'Hũ kỳ này',
+            trailing: '${overview.jars.length} hũ',
+          ),
+          SizedBox(height: context.space.xxs),
+          Text(
+            AmountVisibility.mask(
+              context,
+              'Chia từ tổng thu ${overview.income.format()}',
             ),
-            SizedBox(height: context.space.xs),
+            style: context.text.labelSmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+          SizedBox(height: context.space.md),
+          for (final p in overview.jars) ...[
+            // Mỗi hũ bấm riêng được → màn Chi tiết hũ (tiêu vào danh mục
+            // nào, những giao dịch nào). Bấm phần còn lại của thẻ vẫn sang
+            // tab Hũ như cũ.
+            InkWell(
+              borderRadius: BorderRadius.circular(context.radii.sm),
+              onTap: () => openJarDetailScreen(context, p.jar.id),
+              child: _HomeJarRow(progress: p),
+            ),
+            SizedBox(height: context.space.md),
           ],
+          Divider(height: 1, color: context.colors.hairline),
+          SizedBox(height: context.space.md),
+          Row(
+            spacing: context.space.sm,
+            children: [
+              Expanded(
+                child: JarStat(
+                  label: 'Tổng hũ ${overview.totalPercent}%',
+                  amount: overview.totalAllotted,
+                ),
+              ),
+              Expanded(
+                child: JarStat(label: 'Đã dùng', amount: overview.totalUsed),
+              ),
+              Expanded(
+                child: JarStat(
+                  label: remaining.minorUnits < 0 ? 'Vượt' : 'Còn lại',
+                  amount: remaining.minorUnits < 0 ? -remaining : remaining,
+                  color: remaining.minorUnits < 0
+                      ? context.colors.budgetOver
+                      : null,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Một hũ trên Trang chủ: tên + phần còn lại, thanh tiến độ, "đã dùng / hạn
+/// mức". Hũ tiết kiệm nói bằng chữ của nó ("đã gửi", "còn cần gửi").
+class _HomeJarRow extends StatelessWidget {
+  const _HomeJarRow({required this.progress});
+
+  final JarProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final saving = progress.kind == JarKind.saving;
+    final remaining = progress.remaining;
+    final muted = context.text.labelSmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
+
+    final String remainingLabel;
+    final Color remainingColor;
+    if (saving) {
+      remainingLabel = remaining.minorUnits <= 0 ? 'Đã đủ' : 'Còn cần gửi';
+      remainingColor = remaining.minorUnits <= 0
+          ? context.colors.budgetOk
+          : context.colors.onSurfaceVariant;
+    } else if (remaining.minorUnits < 0) {
+      remainingLabel = 'Vượt';
+      remainingColor = context.colors.budgetOver;
+    } else {
+      remainingLabel = 'Còn';
+      remainingColor = context.colors.onSurfaceVariant;
+    }
+    final showAmount = !(saving && remaining.minorUnits <= 0);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryAvatar(
+          categoryColorId: progress.jar.categoryColorId,
+          iconCode: progress.jar.iconCode,
+          size: 32,
+        ),
+        SizedBox(width: context.space.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${progress.jar.name} · ${progress.jar.percent}%',
+                      style: context.text.labelLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    showAmount ? '$remainingLabel ' : remainingLabel,
+                    style: context.text.labelSmall?.copyWith(
+                      color: remainingColor,
+                    ),
+                  ),
+                  if (showAmount)
+                    MoneyText(
+                      remaining.minorUnits < 0 ? -remaining : remaining,
+                      size: MoneySize.small,
+                      signed: false,
+                    ),
+                ],
+              ),
+              SizedBox(height: context.space.xxs),
+              JarProgressBar(progress: progress),
+              SizedBox(height: context.space.xxs),
+              Text(
+                AmountVisibility.mask(
+                  context,
+                  '${saving ? 'Đã gửi' : 'Đã tiêu'} '
+                  '${progress.used.format()} / ${progress.allotted.format()}',
+                ),
+                style: muted,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -424,21 +532,7 @@ class _RecentTransactionsCard extends ConsumerWidget {
           // cùng một giao dịch mà hai màn gọi tên khác nhau thì người dùng
           // tưởng là hai thứ.
           for (final twc in recent)
-            TransactionRow(
-              categoryColorId:
-                  _display(twc, categoriesById)?.categoryColorId ?? 10,
-              iconCode: _display(twc, categoriesById)?.iconCode ?? 'more_horiz',
-              subcategoryLabel: _parentOf(twc, categoriesById) == null
-                  ? null
-                  : twc.category!.name,
-              title: _display(twc, categoriesById)?.name ?? 'Chưa phân loại',
-              subtitle: twc.transaction.note,
-              amount: Money(
-                minorUnits: twc.transaction.amountMinor,
-                currency: twc.transaction.currency,
-                currencyScale: twc.transaction.currencyScale,
-              ),
-            ),
+            _RecentRow(twc: twc, categoriesById: categoriesById),
         ],
       ),
     );
@@ -472,120 +566,30 @@ class _CardHeader extends StatelessWidget {
   }
 }
 
-/// Danh mục CHA của một giao dịch, `null` nếu nó gắn thẳng vào danh mục gốc.
-Category? _parentOf(
-  TransactionWithCategory twc,
-  Map<int, Category> categoriesById,
-) {
-  final c = twc.category;
-  if (c?.parentCategoryId == null) return null;
-  return categoriesById[c!.parentCategoryId];
-}
+/// Một hàng của thẻ "Gần đây" — đi qua `transactionRowDisplay` dùng chung
+/// với tab Giao dịch, chứ không tự dựng lại màu/icon/tên nữa. Trước đây hai
+/// màn tự tính riêng và đã lệch thật (Trang chủ thiếu `emoji`, và cả hai đều
+/// gọi một khoản nạp quỹ là "Chưa phân loại").
+class _RecentRow extends StatelessWidget {
+  const _RecentRow({required this.twc, required this.categoriesById});
 
-/// Danh mục dùng để HIỂN THỊ: ưu tiên cha (icon/màu/tên), lùi về chính nó.
-Category? _display(
-  TransactionWithCategory twc,
-  Map<int, Category> categoriesById,
-) => _parentOf(twc, categoriesById) ?? twc.category;
-
-/// Tổng quan HẠN MỨC theo danh mục — chỉ những danh mục ĐÃ đặt hạn mức.
-///
-/// Khác thẻ Hũ ngay bên dưới: hũ chia THU NHẬP theo tỉ lệ, hạn mức là một
-/// số tiền cố định Tony tự đặt cho một danh mục. Hai cách kiểm soát khác
-/// nhau, hiện cạnh nhau để thấy cả hai cùng lúc.
-class _BudgetOverviewCard extends ConsumerWidget {
-  const _BudgetOverviewCard();
+  final TransactionWithCategory twc;
+  final Map<int, Category> categoriesById;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final progress =
-        ref.watch(budgetProgressProvider).value ?? const <BudgetProgress>[];
-
-    // KHÁC các thẻ tổng quan còn lại: hạn mức chưa đặt thì vẫn hiện, kèm lời
-    // mời đặt. Tony hỏi đích danh "trang chủ có thêm hạn mức" — ẩn sạch khi
-    // chưa có hạn mức nào nghĩa là người chưa từng đặt sẽ không bao giờ thấy
-    // tính năng này tồn tại.
-    if (progress.isEmpty) {
-      return AppCard(
-        onTap: () => _openHub(context, ref, 1),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Hạn mức', style: context.text.titleMedium),
-                  SizedBox(height: context.space.xxs),
-                  Text(
-                    'Chưa đặt hạn mức nào — đặt để biết còn tiêu được bao nhiêu.',
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              kIconChevronRight,
-              size: 20,
-              color: context.colors.onSurfaceVariant,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final over = progress
-        .where((p) => p.spentMinor.abs() > p.effectiveBudgetAmountMinor)
-        .length;
-
-    return AppCard(
-      onTap: () => _openHub(context, ref, 1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CardHeader(
-            title: 'Hạn mức',
-            trailing: over == 0
-                ? '${progress.length} danh mục'
-                : '$over vượt hạn mức',
-          ),
-          SizedBox(height: context.space.sm),
-          for (final p in progress.take(4)) ...[
-            Row(
-              children: [
-                SizedBox(
-                  width: 108,
-                  child: Text(
-                    p.categoryName,
-                    style: context.text.labelMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(context.radii.full),
-                    child: LinearProgressIndicator(
-                      value: p.effectiveBudgetAmountMinor == 0
-                          ? 0
-                          : (p.spentMinor.abs() / p.effectiveBudgetAmountMinor)
-                                .clamp(0.0, 1.0),
-                      minHeight: 6,
-                      backgroundColor: context.colors.surfaceContainer,
-                      valueColor: AlwaysStoppedAnimation(
-                        p.spentMinor.abs() > p.effectiveBudgetAmountMinor
-                            ? context.colors.budgetOver
-                            : context.colors.budgetOk,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: context.space.xs),
-          ],
-        ],
+  Widget build(BuildContext context) {
+    final row = transactionRowDisplay(twc, categoriesById);
+    return TransactionRow(
+      categoryColorId: row.categoryColorId,
+      iconCode: row.iconCode,
+      emoji: row.emoji,
+      subcategoryLabel: row.subcategoryLabel,
+      title: row.title,
+      subtitle: twc.transaction.note,
+      amount: Money(
+        minorUnits: twc.transaction.amountMinor,
+        currency: twc.transaction.currency,
+        currencyScale: twc.transaction.currencyScale,
       ),
     );
   }
@@ -602,37 +606,44 @@ class _SpendingChartCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sources =
-        ref.watch(homeCategoryBreakdownProvider).value ??
-        const <CategorySourceAmount>[];
-    if (sources.isEmpty) return const SizedBox.shrink();
+    final categories =
+        ref.watch(categoriesProvider).value ?? const <Category>[];
+    final tags = ref.watch(tagsProvider).value ?? const <Tag>[];
+    // Sổ chưa có thẻ nào thì bật "gom theo thẻ" cũng ra y hệt — không hiện
+    // công tắc, và coi như đang tắt dù lần trước để bật.
+    final byTag = ref.watch(chartGroupByTagProvider) && tags.isNotEmpty;
 
-    final hierarchy = [
-      for (final c in ref.watch(categoriesProvider).value ?? const <Category>[])
-        CategoryHierarchyEntry(
-          id: c.id,
-          parentCategoryId: c.parentCategoryId,
-          name: c.name,
-          categoryColorId: c.categoryColorId,
-          iconCode: c.iconCode,
-        ),
-    ];
-    final rolled = [
-      for (final r in rollupToRootCategories(sources, hierarchy))
-        CategorySourceAmount(
-          categoryId: r.rootCategoryId,
-          label: r.label,
-          categoryColorId: r.categoryColorId,
-          iconCode: r.iconCode,
-          amountMinor: r.amountMinor,
-        ),
-    ];
+    final List<CategorySourceAmount> rolled;
+    if (byTag) {
+      rolled = tagModeRootSources(
+        untagged:
+            ref.watch(homeUntaggedBreakdownProvider).value ??
+            const <CategorySourceAmount>[],
+        tagGroups:
+            ref.watch(homeTagGroupBreakdownProvider).value ??
+            const <TagGroupAmount>[],
+        categories: categories,
+        tags: tags,
+      );
+    } else {
+      rolled = rolledRootSources(
+        ref.watch(homeCategoryBreakdownProvider).value ??
+            const <CategorySourceAmount>[],
+        categories,
+      );
+    }
+    if (rolled.isEmpty) return const SizedBox.shrink();
+
     final period = ref.watch(homePeriodProvider);
     return CategoryPieCard(
       slices: buildCategorySlices(rolled),
       allSources: rolled,
       range: period.range,
       rangeLabel: period.label,
+      groupByTag: byTag,
+      onGroupByTagChanged: tags.isEmpty
+          ? null
+          : ref.read(chartGroupByTagProvider.notifier).set,
     );
   }
 }

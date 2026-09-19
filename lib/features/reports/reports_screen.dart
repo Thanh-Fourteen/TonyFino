@@ -6,6 +6,7 @@ import '../../core/router/app_bottom_nav.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
+import '../tags/tags_providers.dart';
 import '../transactions/transactions_providers.dart';
 import 'domain/category_slice.dart';
 import 'reports_providers.dart';
@@ -41,31 +42,28 @@ class ReportsScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoriesProvider);
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
-    final allSources = breakdownAsync.value ?? const <CategorySourceAmount>[];
-    final hierarchy = [
-      for (final c in categoriesAsync.value ?? const <Category>[])
-        CategoryHierarchyEntry(
-          id: c.id,
-          parentCategoryId: c.parentCategoryId,
-          name: c.name,
-          categoryColorId: c.categoryColorId,
-          iconCode: c.iconCode,
-        ),
-    ];
+    final categories = categoriesAsync.value ?? const <Category>[];
+    final tags = ref.watch(tagsProvider).value ?? const <Tag>[];
+    // Công tắc dùng chung với Trang chủ; sổ chưa có thẻ thì coi như tắt.
+    final byTag = ref.watch(chartGroupByTagProvider) && tags.isNotEmpty;
     // Rollup CHỦ ĐÍCH ở tầng Dart (không phải SQL) — xem docs/decisions.md
     // § Phase 20 câu hỏi 3 để hiểu vì sao đây không phải rủi ro Cartesian
-    // fan-out: `allSources` đã ĐÚNG TỪNG SỐ từ SQL, hàm này chỉ cộng lại.
-    final rootBreakdowns = rollupToRootCategories(allSources, hierarchy);
-    final rolledSources = [
-      for (final r in rootBreakdowns)
-        CategorySourceAmount(
-          categoryId: r.rootCategoryId,
-          label: r.label,
-          categoryColorId: r.categoryColorId,
-          iconCode: r.iconCode,
-          amountMinor: r.amountMinor,
-        ),
-    ];
+    // fan-out: nguồn đã ĐÚNG TỪNG SỐ từ SQL, hàm này chỉ cộng lại.
+    final rolledSources = byTag
+        ? tagModeRootSources(
+            untagged:
+                ref.watch(untaggedCategoryBreakdownProvider).value ??
+                const <CategorySourceAmount>[],
+            tagGroups:
+                ref.watch(tagGroupBreakdownProvider).value ??
+                const <TagGroupAmount>[],
+            categories: categories,
+            tags: tags,
+          )
+        : rolledRootSources(
+            breakdownAsync.value ?? const <CategorySourceAmount>[],
+            categories,
+          );
     final slices = buildCategorySlices(rolledSources);
     final months = monthlyAsync.value ?? const [];
     final daily = dailyAsync.value ?? const [];
@@ -129,6 +127,10 @@ class ReportsScreen extends ConsumerWidget {
                         allSources: rolledSources,
                         range: filter.range,
                         rangeLabel: filter.preset.label,
+                        groupByTag: byTag,
+                        onGroupByTagChanged: tags.isEmpty
+                            ? null
+                            : ref.read(chartGroupByTagProvider.notifier).set,
                       ),
                     if (months.length >= 2) MonthlyTrendCard(months: months),
                     if (months.length >= 2)

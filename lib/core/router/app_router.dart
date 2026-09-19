@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 
-import '../../features/budgets/budgets_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/money_hub/money_hub_screen.dart';
 import '../../features/quick_add/quick_add_screen.dart';
@@ -65,10 +64,6 @@ final appRouter = GoRouter(
     // Ngân sách THEO DANH MỤC không còn là tab: nó là một cách xem chi
     // tiêu, không phải một "nơi tiền nằm". Tab thứ 4 giờ là Túi tiền
     // (Ví/Quỹ/Hũ). Vào ngân sách từ Cài đặt.
-    GoRoute(
-      path: '/budgets',
-      builder: (context, state) => const BudgetsScreen(),
-    ),
     GoRoute(
       path: '/quick-add',
       builder: (context, state) => const QuickAddScreen(),

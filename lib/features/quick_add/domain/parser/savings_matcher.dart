@@ -48,10 +48,7 @@ const int kMinStrongTargetNameLength = 4;
 /// kiệm đang hoạt động.
 ///
 /// Trả `null` khi không đủ chắc — tầng gọi hiểu là "câu bình thường".
-SavingsMatch? matchSavings(
-  String asciiText,
-  List<SavingsTargetEntry> targets,
-) {
+SavingsMatch? matchSavings(String asciiText, List<SavingsTargetEntry> targets) {
   if (targets.isEmpty) return null;
   final words = _wordsOf(asciiText);
   if (words.isEmpty) return null;

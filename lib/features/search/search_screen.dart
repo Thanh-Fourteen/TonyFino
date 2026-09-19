@@ -9,10 +9,10 @@ import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
 import '../../ui/empty_state.dart';
 import '../../data/db/database.dart' show Category;
-import '../../ui/category_two_tier_label.dart';
 import '../transactions/transactions_providers.dart';
 import '../../ui/transaction_row.dart';
 import '../transactions/day_label.dart';
+import '../transactions/domain/transaction_row_display.dart';
 import '../transactions/transaction_form_sheet.dart';
 
 /// Tìm kiếm giao dịch theo từ khoá không dấu (Phase 17) — FTS5 trên
@@ -99,25 +99,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       TransactionRow.divider(context),
                   itemBuilder: (context, index) {
                     final twc = items[index];
-                    // HAI TẦNG y hệt tab Giao dịch: avatar + tên là của danh
-                    // mục CHA, tên danh mục con thành chip. Trước đây màn
-                    // này in phẳng mỗi tên danh mục con.
-                    final display = displayCategory(
-                      twc.category,
-                      categoriesById,
-                    );
+                    // Một chỗ dùng chung với tab Giao dịch/Trang chủ — xem
+                    // `transaction_row_display.dart`.
+                    final row = transactionRowDisplay(twc, categoriesById);
                     return TransactionRow(
-                      categoryColorId: display?.categoryColorId ?? 10,
-                      iconCode: display?.iconCode ?? 'more_horiz',
-                      emoji: display?.emoji,
-                      title: twc.isSplit
-                          ? 'Nhiều danh mục'
-                          : (display?.name ?? 'Chưa phân loại'),
-                      subcategoryLabel: twc.isSplit
-                          ? null
-                          : (twc.category?.parentCategoryId == null
-                                ? null
-                                : twc.category?.name),
+                      categoryColorId: row.categoryColorId,
+                      iconCode: row.iconCode,
+                      emoji: row.emoji,
+                      title: row.title,
+                      subcategoryLabel: row.subcategoryLabel,
                       subtitle:
                           '${formatDayLabel(twc.transaction.occurredAt, now)}'
                           '${twc.transaction.note == null ? '' : ' · ${twc.transaction.note}'}',

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/database_providers.dart';
 import '../../core/time/clock_provider.dart';
+import '../../data/db/database.dart';
 import '../../data/repositories/reports_repository.dart';
 import 'domain/category_slice.dart';
 import 'domain/daily_spend.dart';
@@ -127,3 +128,91 @@ final periodSummaryProvider = StreamProvider<PeriodSummary>((ref) {
         tagIds: filter.tagIds,
       );
 });
+
+/// Nửa "không gắn thẻ" của chế độ gom-theo-thẻ — xem
+/// `ReportsRepository.watchCategoryBreakdown(untaggedOnly:)`.
+final untaggedCategoryBreakdownProvider =
+    StreamProvider<List<CategorySourceAmount>>((ref) {
+      final filter = ref.watch(reportFilterProvider);
+      return ref
+          .watch(reportsRepositoryProvider)
+          .watchCategoryBreakdown(
+            filter.range,
+            categoryIds: filter.categoryIds,
+            tagIds: filter.tagIds,
+            untaggedOnly: true,
+          );
+    });
+
+/// Nửa "có thẻ" của chế độ gom-theo-thẻ.
+final tagGroupBreakdownProvider = StreamProvider<List<TagGroupAmount>>((ref) {
+  final filter = ref.watch(reportFilterProvider);
+  return ref
+      .watch(reportsRepositoryProvider)
+      .watchTagGroupBreakdown(
+        filter.range,
+        categoryIds: filter.categoryIds,
+        tagIds: filter.tagIds,
+      );
+});
+
+/// Công tắc "Gom theo thẻ" của biểu đồ tròn — DÙNG CHUNG cho Trang chủ và
+/// Báo cáo: cùng một biểu đồ ở hai nơi mà bật ở chỗ này, chỗ kia vẫn tắt thì
+/// Tony sẽ tưởng hai biểu đồ đang nói hai chuyện khác nhau.
+class ChartGroupByTagController extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+final chartGroupByTagProvider =
+    NotifierProvider<ChartGroupByTagController, bool>(
+      ChartGroupByTagController.new,
+    );
+
+List<CategoryHierarchyEntry> categoryHierarchyOf(List<Category> categories) => [
+  for (final c in categories)
+    CategoryHierarchyEntry(
+      id: c.id,
+      parentCategoryId: c.parentCategoryId,
+      name: c.name,
+      categoryColorId: c.categoryColorId,
+      iconCode: c.iconCode,
+    ),
+];
+
+/// Breakdown phẳng (theo danh mục thật trên giao dịch) → một hàng cho mỗi
+/// danh mục CẤP GỐC — đúng thứ biểu đồ tròn vẽ. Dùng chung cho Trang chủ và
+/// Báo cáo để hai biểu đồ không bao giờ gộp lát theo hai cách khác nhau.
+List<CategorySourceAmount> rolledRootSources(
+  List<CategorySourceAmount> sources,
+  List<Category> categories,
+) => [
+  for (final r in rollupToRootCategories(
+    sources,
+    categoryHierarchyOf(categories),
+  ))
+    CategorySourceAmount(
+      categoryId: r.rootCategoryId,
+      label: r.label,
+      categoryColorId: r.categoryColorId,
+      iconCode: r.iconCode,
+      amountMinor: r.amountMinor,
+    ),
+];
+
+/// Nguồn biểu đồ tròn ở chế độ gom-theo-thẻ, từ hai nửa đã tải.
+List<CategorySourceAmount> tagModeRootSources({
+  required List<CategorySourceAmount> untagged,
+  required List<TagGroupAmount> tagGroups,
+  required List<Category> categories,
+  required List<Tag> tags,
+}) => buildTagModeSources(
+  untaggedRootSources: rolledRootSources(untagged, categories),
+  tagGroups: tagGroups,
+  tagsById: {
+    for (final t in tags)
+      t.id: TagInfo(id: t.id, name: t.name, colorId: t.categoryColorId),
+  },
+);

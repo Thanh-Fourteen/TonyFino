@@ -17,6 +17,30 @@ class TransactionRepository {
   final AppDatabase _db;
   final ReceiptImageService _receiptImages;
 
+  /// Thứ tự "mới nhất lên đầu" dùng chung cho MỌI danh sách giao dịch.
+  ///
+  /// 🚨 `occurredAt` một mình KHÔNG đủ: màn chat và bộ nhập Rolly ghi NGÀY
+  /// TRẦN (00:00), nên mọi khoản trong cùng một ngày có `occurredAt` y hệt
+  /// nhau và SQLite trả chúng theo thứ tự tuỳ ý — thực tế là theo rowid tăng
+  /// dần, tức khoản gõ buổi sáng nằm TRÊN khoản vừa gõ xong. Tony thấy đúng
+  /// thế ở thẻ "Gần đây": trong một ngày thứ tự bị ngược so với màn chat.
+  ///
+  /// Tiêu chí phụ là `createdAt` (lúc thật sự ghi) rồi `id` — `createdAt`
+  /// chỉ chính xác tới GIÂY, hai khoản gửi trong cùng một tin nhắn có thể
+  /// trùng giây, `id` tăng dần phân xử nốt.
+  List<OrderClauseGenerator<$TransactionsTable>> get _newestFirst => [
+    (t) => OrderingTerm.desc(t.occurredAt),
+    (t) => OrderingTerm.desc(t.createdAt),
+    (t) => OrderingTerm.desc(t.id),
+  ];
+
+  /// Cùng thứ tự với [_newestFirst] cho truy vấn có JOIN.
+  List<OrderingTerm> get _newestFirstJoined => [
+    OrderingTerm.desc(_db.transactions.occurredAt),
+    OrderingTerm.desc(_db.transactions.createdAt),
+    OrderingTerm.desc(_db.transactions.id),
+  ];
+
   /// Số dư = SUM(amount_minor) phát trực tiếp từ drift `Stream` — không có
   /// cột `balance`, không có biến đệm nào giữ giá trị này ở tầng repository.
   /// VND cố định ở v1 (chưa có đa loại tiền tệ trong UI).
@@ -30,8 +54,7 @@ class TransactionRepository {
   }
 
   Stream<List<Transaction>> watchAll({int? limit}) {
-    final query = _db.select(_db.transactions)
-      ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)]);
+    final query = _db.select(_db.transactions)..orderBy(_newestFirst);
     if (limit != null) {
       query.limit(limit);
     }
@@ -60,12 +83,20 @@ class TransactionRepository {
   /// [from]/[to] giới hạn theo `occurredAt` — nửa mở `[from, to)`, cùng quy
   /// ước với `ReportRange` nên hai con số (breakdown báo cáo và danh sách
   /// giao dịch bên dưới nó) luôn nói về đúng một tập giao dịch.
+  /// [goalId] (màn "Lịch sử quỹ") — `null` = KHÔNG lọc; khác `null` = chỉ
+  /// những giao dịch gắn đúng mục tiêu tiết kiệm đó, tức là lịch sử nạp/rút
+  /// của một quỹ. Trước đây không có tham số này nên không có đường nào xem
+  /// được một quỹ đã nạp/rút những gì: thẻ quỹ bấm vào chỉ mở sheet sửa
+  /// tên/số tiền, còn trong danh sách chung thì mọi khoản quỹ đều đội lốt
+  /// "Chưa phân loại".
   Stream<List<TransactionWithCategory>> watchAllWithCategory({
     int? limit,
     Set<int>? tagIds,
     Set<int>? categoryIds,
     DateTime? from,
     DateTime? to,
+    int? goalId,
+    bool excludeGoalLinked = false,
   }) {
     final linesCountExpr = subqueryExpression<int>(
       _db.selectOnly(_db.transactionLines)
@@ -74,15 +105,32 @@ class TransactionRepository {
           _db.transactionLines.transactionId.equalsExp(_db.transactions.id),
         ),
     );
+    // JOIN thêm `savings_goals` để dòng nào gắn quỹ thì mang sẵn TÊN quỹ ra
+    // tới UI trong CÙNG một query — `TransactionRow` cần cái tên để hiện
+    // "Để dành › Mua nhà" thay vì "Chưa phân loại". LEFT JOIN: tuyệt đại đa
+    // số giao dịch có `goalId` null và vẫn phải ra đủ.
     final query =
         _db.select(_db.transactions).join([
             leftOuterJoin(
               _db.categories,
               _db.categories.id.equalsExp(_db.transactions.categoryId),
             ),
+            leftOuterJoin(
+              _db.savingsGoals,
+              _db.savingsGoals.id.equalsExp(_db.transactions.goalId),
+            ),
           ])
           ..addColumns([linesCountExpr])
-          ..orderBy([OrderingTerm.desc(_db.transactions.occurredAt)]);
+          ..orderBy(_newestFirstJoined);
+    if (goalId != null) {
+      query.where(_db.transactions.goalId.equals(goalId));
+    }
+    // Lọc theo hũ TIÊU: một lần nạp quỹ mang danh mục "Phát sinh" không phải
+    // chi của hũ chứa "Phát sinh" (xem `JarRepository.watchProgress`), nên
+    // danh sách cũng không được liệt kê nó.
+    if (excludeGoalLinked) {
+      query.where(_db.transactions.goalId.isNull());
+    }
     if (tagIds != null && tagIds.isNotEmpty) {
       query.where(
         _db.transactions.id.isInQuery(
@@ -117,6 +165,7 @@ class TransactionRepository {
             (row) => TransactionWithCategory(
               transaction: row.readTable(_db.transactions),
               category: row.readTableOrNull(_db.categories),
+              goal: row.readTableOrNull(_db.savingsGoals),
               linesCount: row.read(linesCountExpr) ?? 0,
             ),
           )
@@ -170,7 +219,7 @@ class TransactionRepository {
             ])
             ..addColumns([linesCountExpr])
             ..where(_db.transactions.id.isIn(ids))
-            ..orderBy([OrderingTerm.desc(_db.transactions.occurredAt)]);
+            ..orderBy(_newestFirstJoined);
       return query.watch().map(
         (rows) => rows
             .map(
@@ -607,6 +656,80 @@ class TransactionRepository {
     }
   }
 
+  /// Ảnh chụp ĐỦ để dựng lại một giao dịch sau khi đã xoá — chụp TRƯỚC khi
+  /// gọi [delete], vì `delete` xoá luôn dòng con, thẻ và file ảnh; sau đó thì
+  /// không còn gì để đọc.
+  ///
+  /// 🚨 Tồn tại vì "Hoàn tác" từng chèn lại đúng năm cột nằm sẵn trong
+  /// [Transaction] (`amount/occurredAt/walletId/categoryId/note`) và bỏ rơi
+  /// tất cả phần còn lại. Hậu quả đo được trên máy thật: hoàn tác một khoản
+  /// NẠP QUỸ trả tiền về ví nhưng `goalId` mất, nên quỹ không hồi — ví vẫn
+  /// −11.000.000 mà quỹ tụt từ 6.000.000 về 5.000.000, tức là một triệu biến
+  /// mất khỏi sổ và hiện lại thành một khoản chi "Chưa phân loại".
+  Future<DeletedTransactionSnapshot?> captureForUndo(int id) async {
+    final transaction = await (_db.select(
+      _db.transactions,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (transaction == null) return null;
+
+    final lines = await getLinesFor(id);
+    final tagRows = await (_db.select(
+      _db.transactionTags,
+    )..where((t) => t.transactionId.equals(id))).get();
+    final receiptFileName = transaction.receiptImageFilename;
+    final receiptBytes = receiptFileName == null
+        ? null
+        : await _receiptImages.readImage(receiptFileName);
+
+    return DeletedTransactionSnapshot(
+      transaction: transaction,
+      lines: [
+        for (final line in lines)
+          TransactionLineInput(
+            categoryId: line.categoryId,
+            amountMinor: line.amountMinor,
+          ),
+      ],
+      tagIds: [for (final row in tagRows) row.tagId],
+      receiptImageFilename: receiptFileName,
+      receiptImageBytes: receiptBytes,
+    );
+  }
+
+  /// Chèn lại một giao dịch từ [snapshot] — id MỚI, không khôi phục id cũ.
+  /// Chấp nhận được cho một app cá nhân: không có gì tham chiếu tới id giao
+  /// dịch từ bên ngoài.
+  ///
+  /// Ảnh ghi lại bằng `writeImageWithFilename` (ĐÚNG tên file cũ) chứ không
+  /// phải `saveImage` (tự sinh tên mới), để hàng khôi phục mang lại chính
+  /// `receiptImageFilename` cũ.
+  Future<Result<int, AppError>> restore(
+    DeletedTransactionSnapshot snapshot,
+  ) async {
+    final transaction = snapshot.transaction;
+    final fileName = snapshot.receiptImageFilename;
+    final bytes = snapshot.receiptImageBytes;
+    if (fileName != null && bytes != null) {
+      await _receiptImages.writeImageWithFilename(fileName, bytes);
+    }
+    return insert(
+      amount: Money(
+        minorUnits: transaction.amountMinor,
+        currency: transaction.currency,
+        currencyScale: transaction.currencyScale,
+      ),
+      occurredAt: transaction.occurredAt,
+      walletId: transaction.walletId,
+      categoryId: transaction.categoryId,
+      note: transaction.note,
+      lines: snapshot.lines.isEmpty ? null : snapshot.lines,
+      goalId: transaction.goalId,
+      debtId: transaction.debtId,
+      tagIds: snapshot.tagIds,
+      receiptImageFilename: bytes == null ? null : fileName,
+    );
+  }
+
   Future<Result<void, AppError>> delete(int id) async {
     try {
       final existing = await (_db.select(
@@ -654,10 +777,18 @@ class TransactionWithCategory {
   const TransactionWithCategory({
     required this.transaction,
     this.category,
+    this.goal,
     this.linesCount = 0,
   });
 
   final Transaction transaction;
+
+  /// Mục tiêu tiết kiệm mà giao dịch này gắn vào — `null` cho giao dịch
+  /// thường (tuyệt đại đa số). Khác `null` nghĩa là đây là một lần NẠP (số
+  /// âm) hoặc RÚT (số dương) quỹ, và UI phải hiện nó ra như vậy: một khoản
+  /// để dành không có danh mục nên nếu chỉ nhìn `category == null` thì nó
+  /// trông y hệt một khoản "chưa phân loại", đúng lỗi Tony chỉ ra.
+  final SavingsGoal? goal;
 
   /// `null` khi `categoryId` là null HOẶC danh mục đã bị xoá — call site
   /// (`TransactionRow`) phải tự quyết định fallback (icon "?", màu xám).
@@ -671,6 +802,30 @@ class TransactionWithCategory {
   final int linesCount;
 
   bool get isSplit => linesCount > 0;
+}
+
+/// Mọi thứ cần để dựng lại một giao dịch đã xoá — xem
+/// [TransactionRepository.captureForUndo].
+class DeletedTransactionSnapshot {
+  const DeletedTransactionSnapshot({
+    required this.transaction,
+    required this.lines,
+    required this.tagIds,
+    this.receiptImageFilename,
+    this.receiptImageBytes,
+  });
+
+  final Transaction transaction;
+
+  /// Rỗng khi giao dịch KHÔNG tách dòng.
+  final List<TransactionLineInput> lines;
+  final List<int> tagIds;
+
+  /// Tên file ảnh hoá đơn cũ, và nội dung đọc ra trước khi `delete` xoá file.
+  /// [receiptImageBytes] `null` khi giao dịch không có ảnh, hoặc file đã biến
+  /// mất khỏi đĩa từ trước (khôi phục vẫn chạy, chỉ không có ảnh).
+  final String? receiptImageFilename;
+  final Uint8List? receiptImageBytes;
 }
 
 /// Một dòng con khi TẠO/SỬA một giao dịch tách (Phase 14) — snapshot trước

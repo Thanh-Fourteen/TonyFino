@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money/money.dart';
 import '../../core/providers/database_providers.dart';
 import '../../core/time/clock_provider.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../home/home_period_provider.dart';
 import 'domain/entry_streak.dart';
+import '../jars/jars_providers.dart';
 import '../wallets/selected_wallet_provider.dart';
 
 final transactionsWithCategoryProvider =
@@ -30,6 +30,23 @@ final transactionsTagFilterProvider =
       TransactionsTagFilterController.new,
     );
 
+/// Hũ đang lọc ở tab Giao dịch — `null` = không lọc theo hũ. UI state
+/// thuần, cùng lý do an toàn với [TransactionsTagFilterController].
+class TransactionsJarFilterController extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  /// Bấm lại đúng hũ đang chọn thì bỏ lọc — một chạm để vào, một chạm để ra.
+  void toggle(int jarId) => state = state == jarId ? null : jarId;
+
+  void clear() => state = null;
+}
+
+final transactionsJarFilterProvider =
+    NotifierProvider<TransactionsJarFilterController, int?>(
+      TransactionsJarFilterController.new,
+    );
+
 /// Danh sách giao dịch đã lọc theo [transactionsTagFilterProvider] — TÁCH
 /// KHỎI [transactionsWithCategoryProvider] (không đổi, vẫn không lọc) vì
 /// `quick_add_screen.dart`/`draft_card.dart` cũng đọc provider đó và không
@@ -42,13 +59,28 @@ final filteredTransactionsProvider =
       // 8.359.000" mà danh sách giao dịch lại liệt kê cả đời thì hai màn
       // đang trả lời hai câu hỏi khác nhau bằng cùng một giao diện.
       final period = ref.watch(homePeriodProvider);
-      return ref
-          .watch(transactionRepositoryProvider)
-          .watchAllWithCategory(
-            tagIds: tagIds.isEmpty ? null : tagIds,
-            from: period.range.start,
-            to: period.range.end,
-          );
+      final repo = ref.watch(transactionRepositoryProvider);
+
+      final jarId = ref.watch(transactionsJarFilterProvider);
+      final jar = jarId == null
+          ? null
+          : (ref.watch(jarsProvider).value ?? const <Jar>[])
+                .where((j) => j.id == jarId)
+                .firstOrNull;
+      if (jar != null) {
+        return watchJarTransactions(
+          ref,
+          jar,
+          period.range,
+          tagIds: tagIds.isEmpty ? null : tagIds,
+        );
+      }
+
+      return repo.watchAllWithCategory(
+        tagIds: tagIds.isEmpty ? null : tagIds,
+        from: period.range.start,
+        to: period.range.end,
+      );
     });
 
 /// Danh mục của VÍ ĐANG CHỌN (v11). Ví chưa chốt xong (`null`) thì phát
@@ -107,12 +139,19 @@ final entryStreakProvider = Provider<int>((ref) {
 /// Xoá + `Hoàn tác` qua SnackBar (D7 checklist "xoá có undo") — dùng chung
 /// giữa hàng vuốt-xoá trong danh sách và nút xoá trong form sửa, để không
 /// viết logic hai lần theo hai hình dạng khác nhau.
+///
+/// Phần "chụp lại đủ để dựng lại" nằm ở `TransactionRepository.captureForUndo`
+/// / `restore` chứ không ở đây: nó là chuyện của dữ liệu (đọc dòng con, thẻ,
+/// bytes ảnh trước khi `delete` xoá sạch), test thẳng được mà không cần dựng
+/// cây widget. Ở đây chỉ còn đúng phần giao diện.
 Future<void> deleteTransactionWithUndo(
   BuildContext context,
   WidgetRef ref,
   Transaction transaction,
 ) async {
   final repo = ref.read(transactionRepositoryProvider);
+  // 🚨 Chụp TRƯỚC khi xoá — sau `delete` thì dòng con/thẻ/ảnh không còn.
+  final snapshot = await repo.captureForUndo(transaction.id);
   final result = await repo.delete(transaction.id);
   if (!context.mounted) return;
 
@@ -123,26 +162,27 @@ Future<void> deleteTransactionWithUndo(
     return;
   }
 
+  // `hideCurrentSnackBar` trước khi hiện cái mới: xoá liên tiếp hai hàng thì
+  // cái thứ hai xếp HÀNG ĐỢI sau cái thứ nhất chứ không thay thế nó, nên
+  // thanh "Đã xoá giao dịch" ở lại gấp đôi thời gian và nút "Hoàn tác" đang
+  // hiện lại thuộc về giao dịch TRƯỚC — bấm vào là khôi phục nhầm hàng.
+  messenger.hideCurrentSnackBar();
   messenger.showSnackBar(
     SnackBar(
       content: const Text('Đã xoá giao dịch'),
+      // Nói rõ thời lượng thay vì dựa vào mặc định: đây là cửa sổ DUY NHẤT để
+      // lấy lại một giao dịch, 4 giây mặc định quá ngắn cho một thao tác lỡ
+      // tay mà người dùng chỉ nhận ra sau khi nhìn lại con số.
+      duration: const Duration(seconds: 8),
       action: SnackBarAction(
         label: 'Hoàn tác',
+        // Màu chữ mặc định của `SnackBarAction` là `secondary` của scheme —
+        // teal đậm trên nền thanh gần đen, gần như không đọc được (đo trên
+        // ảnh chụp máy thật). Thanh snackbar luôn tối ở cả hai theme nên
+        // dùng thẳng màu chữ SÁNG, không lấy theo scheme.
+        textColor: Colors.white,
         onPressed: () {
-          // Undo = chèn lại — id mới, không phải khôi phục id cũ. Chấp nhận
-          // được cho một app cá nhân: không có gì tham chiếu tới id giao
-          // dịch từ bên ngoài (chưa có liên kết ngân sách/ảnh chụp ở v1).
-          repo.insert(
-            amount: Money(
-              minorUnits: transaction.amountMinor,
-              currency: transaction.currency,
-              currencyScale: transaction.currencyScale,
-            ),
-            occurredAt: transaction.occurredAt,
-            walletId: transaction.walletId,
-            categoryId: transaction.categoryId,
-            note: transaction.note,
-          );
+          if (snapshot != null) repo.restore(snapshot);
         },
       ),
     ),

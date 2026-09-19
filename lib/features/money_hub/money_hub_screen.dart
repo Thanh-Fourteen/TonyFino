@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/router/app_bottom_nav.dart';
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
-import '../budgets/budgets_screen.dart';
 import '../jars/jars_screen.dart';
 import '../jars/widgets/jar_edit_sheet.dart';
 import 'money_hub_tab_provider.dart';
@@ -38,7 +37,7 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
   void initState() {
     super.initState();
     _tab = TabController(
-      length: 4,
+      length: 3,
       vsync: this,
       // Mở đúng trang mà thẻ tổng quan ở Trang chủ vừa yêu cầu.
       initialIndex: ref.read(moneyHubTabProvider),
@@ -90,7 +89,6 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
                   ),
                   tabs: const [
                     Tab(text: 'Ví'),
-                    Tab(text: 'Hạn mức'),
                     Tab(text: 'Quỹ'),
                     Tab(text: 'Hũ'),
                   ],
@@ -115,7 +113,6 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
               controller: _tab,
               children: const [
                 WalletsScreen(embedded: true),
-                BudgetsScreen(embedded: true),
                 SavingsGoalsTab(),
                 JarsScreen(embedded: true),
               ],
@@ -146,7 +143,7 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
           child: const Icon(kIconAdd),
         ),
       ),
-      2 => Padding(
+      1 => Padding(
         padding: padding,
         child: FloatingActionButton(
           onPressed: () => showSavingsGoalEditSheet(context: context),
@@ -154,7 +151,7 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
           child: const Icon(kIconAdd),
         ),
       ),
-      3 => Padding(
+      2 => Padding(
         padding: padding,
         child: FloatingActionButton(
           onPressed: () => showJarEditSheet(context: context),
@@ -162,7 +159,6 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
           child: const Icon(kIconAdd),
         ),
       ),
-      // Tab Hạn mức đặt hạn mức đi qua từng danh mục, không có "thêm" chung.
       _ => null,
     };
   }

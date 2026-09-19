@@ -9,7 +9,6 @@ import '../../core/build_info.dart';
 import '../../data/services/biometric/biometric_service.dart';
 import '../../debug/style_gallery.dart';
 import '../../theme/context_ext.dart';
-import '../budgets/budgets_providers.dart';
 import 'backup/backup_controller.dart';
 import 'import/import_screen.dart';
 import 'settings_controller.dart';
@@ -192,7 +191,7 @@ class SettingsScreen extends ConsumerWidget {
           const _SectionHeader('Nâng cao'),
           Row(
             children: [
-              const Expanded(child: Text('Kỳ ngân sách bắt đầu ngày')),
+              const Expanded(child: Text('Kỳ tháng bắt đầu ngày')),
               DropdownButton<int>(
                 value: settings.budgetAnchorDay,
                 items: [
@@ -202,7 +201,6 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (day) {
                   if (day == null) return;
                   controller.setBudgetAnchorDay(day);
-                  ref.read(budgetPeriodProvider.notifier).goToCurrent();
                 },
               ),
             ],

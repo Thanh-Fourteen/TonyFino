@@ -18,7 +18,6 @@ void main() {
 
   const expected = [
     'Ví',
-    'Hạn mức theo danh mục',
     'Hũ chia thu nhập',
     'Mục tiêu & nợ vay',
     'Danh mục',
@@ -27,22 +26,23 @@ void main() {
     'Mẫu giao dịch',
   ];
 
-  testWidgets('liệt kê đủ 8 mục quản lý, không thiếu mục nào từ Cài đặt cũ', (
-    tester,
-  ) async {
-    await pumpApp(tester, db: db, child: const ManageScreen());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'liệt kê đủ 7 mục quản lý (trang Hạn mức đã bỏ), không thiếu mục nào từ Cài đặt cũ',
+    (tester) async {
+      await pumpApp(tester, db: db, child: const ManageScreen());
+      await tester.pumpAndSettle();
 
-    for (final label in expected) {
-      await tester.scrollUntilVisible(
-        find.text(label),
-        80,
-        scrollable: find.byType(Scrollable).first,
-        maxScrolls: 100,
-      );
-      expect(find.text(label), findsOneWidget, reason: 'thiếu mục "$label"');
-    }
-  });
+      for (final label in expected) {
+        await tester.scrollUntilVisible(
+          find.text(label),
+          80,
+          scrollable: find.byType(Scrollable).first,
+          maxScrolls: 100,
+        );
+        expect(find.text(label), findsOneWidget, reason: 'thiếu mục "$label"');
+      }
+    },
+  );
 
   testWidgets('bấm "Giao dịch định kỳ" mở đúng màn RecurringScreen', (
     tester,
@@ -60,5 +60,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RecurringScreen), findsOneWidget);
+  });
+
+  testWidgets('không còn lối vào trang Hạn mức', (tester) async {
+    await pumpApp(tester, db: db, child: const ManageScreen());
+    await tester.pumpAndSettle();
+    expect(find.text('Hạn mức theo danh mục'), findsNothing);
   });
 }

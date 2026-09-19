@@ -10,6 +10,7 @@ import '../../../ui/category_avatar.dart';
 import '../../../ui/category_two_tier_label.dart';
 import '../../../ui/money_text.dart';
 import '../../../data/repositories/transaction_repository.dart';
+import '../../transactions/domain/transaction_row_display.dart';
 import '../../transactions/transaction_form_sheet.dart';
 import '../../transactions/transactions_providers.dart';
 
@@ -29,9 +30,14 @@ class SavedTransactionRow extends ConsumerWidget {
       for (final c in ref.watch(categoriesProvider).value ?? const <Category>[])
         c.id: c,
     };
-    // Màu/icon lấy từ danh mục CHA, tên hiện đủ hai tầng — xem
-    // `category_two_tier_label.dart`.
-    final category = displayCategory(entry.category, byId);
+    // Cùng một chỗ dùng chung với tab Giao dịch/Trang chủ/Tìm kiếm — xem
+    // `transaction_row_display.dart`. Hàng ở transcript hẹp hơn nên nhãn hai
+    // tầng gộp vào MỘT dòng ("Ăn uống › Cà phê", "Để dành › Mua nhà") thay vì
+    // tách ra thành chip như hàng đầy đủ, nhưng NỘI DUNG phải giống hệt.
+    final row = transactionRowDisplay(entry, byId);
+    final label = row.subcategoryLabel == null
+        ? row.title
+        : '${row.title} › ${row.subcategoryLabel}';
     return AppCard(
       padding: EdgeInsets.symmetric(
         horizontal: context.space.cardPadding,
@@ -43,16 +49,15 @@ class SavedTransactionRow extends ConsumerWidget {
         child: Row(
           children: [
             CategoryAvatar(
-              categoryColorId: category?.categoryColorId ?? 10,
-              iconCode: category?.iconCode ?? 'more_horiz',
+              categoryColorId: row.categoryColorId,
+              iconCode: row.iconCode,
+              emoji: row.emoji,
               size: 28,
             ),
             SizedBox(width: context.space.sm),
             Expanded(
               child: Text(
-                entry.isSplit
-                    ? 'Nhiều danh mục'
-                    : twoTierCategoryLabel(entry.category, byId),
+                label,
                 style: twoTierLabelStyle(context),
                 overflow: TextOverflow.ellipsis,
               ),

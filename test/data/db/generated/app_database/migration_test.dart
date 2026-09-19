@@ -14,6 +14,7 @@ import 'generated/schema_v5.dart' as v5;
 import 'generated/schema_v6.dart' as v6;
 import 'generated/schema_v7.dart' as v7;
 import 'generated/schema_v10.dart' as v10;
+import 'generated/schema_v13.dart' as v13;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -973,6 +974,58 @@ void main() {
       );
       // Quan hệ cha–con còn nguyên sau khi `alterTable` dựng lại bảng.
       expect(rows.firstWhere((c) => c.name == 'Tiêu vặt').parentCategoryId, 1);
+
+      await db.close();
+    },
+  );
+
+  // v13→v14: hũ có hai loại. Mọi hũ đã có TRƯỚC bản này đều là hũ tiêu —
+  // phải ra `kind = 'spend'`, không mất tỉ lệ/cờ cộng dồn, và chưa gắn quỹ.
+  test(
+    'migration from v13 to v14 — hũ cũ thành hũ tiêu, giữ nguyên số liệu',
+    () async {
+      final schema = await verifier.schemaAt(13);
+      final oldDb = v13.DatabaseAtV13(schema.newConnection());
+      await oldDb.batch((batch) {
+        batch.insert(
+          oldDb.wallets,
+          const v13.WalletsData(
+            id: 1,
+            name: 'Ví mặc định',
+            categoryColorId: 0,
+            iconCode: 'account_balance_wallet',
+            openingBalanceMinor: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+          ),
+        );
+        batch.insert(
+          oldDb.jars,
+          const v13.JarsData(
+            id: 3,
+            walletId: 1,
+            name: 'Thiết yếu',
+            percent: 55,
+            categoryColorId: 0,
+            iconCode: 'home',
+            carryOver: 1,
+            sortOrder: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+          ),
+        );
+      });
+      await oldDb.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 14);
+
+      final jar = await db.select(db.jars).getSingle();
+      expect(jar.name, 'Thiết yếu');
+      expect(jar.percent, 55);
+      expect(jar.carryOver, isTrue);
+      expect(jar.kind, 'spend');
+      expect(jar.goalId, null);
 
       await db.close();
     },

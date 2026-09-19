@@ -160,6 +160,18 @@ class Jars extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// `'spend'` (hũ tiêu) | `'saving'` (hũ tiết kiệm) — v14, xem `JarKind`.
+  ///
+  /// Hai loại đo NGƯỢC CHIỀU nhau nên phải là một cột, không suy ra được từ
+  /// tên hay icon: hũ tiêu đo tiền RA khỏi các danh mục của nó (vượt hạn mức
+  /// là xấu), hũ tiết kiệm đo tiền VÀO một quỹ trong kỳ (vượt mức là tốt).
+  TextColumn get kind => text().withDefault(const Constant('spend'))();
+
+  /// Quỹ (mục tiêu tiết kiệm) mà hũ tiết kiệm đổ vào — v14. Chỉ có nghĩa khi
+  /// [kind] là `'saving'`; mọi lần nạp/rút quỹ này trong kỳ tự động tính vào
+  /// hũ, không cần xếp danh mục nào.
+  IntColumn get goalId => integer().nullable().references(SavingsGoals, #id)();
 }
 
 /// Ví (Phase 13) — mọi giao dịch thuộc về đúng một ví. Lưu trữ (archive)

@@ -79,14 +79,18 @@ void main() {
       await pumpSavings(tester);
       expect(find.text('Du lịch'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Nạp vào mục tiêu (ví trừ tiền)'));
+      await tester.tap(find.byTooltip('Nạp tiền vào quỹ'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Thêm giao dịch'), findsOneWidget);
-      expect(find.textContaining('Gắn với mục tiêu: Du lịch'), findsOneWidget);
+      // Sheet RIÊNG cho việc nạp quỹ, không phải form "Thêm giao dịch": tiêu
+      // đề gọi đúng tên việc, và KHÔNG có lưới danh mục nào để chọn nhầm.
+      expect(find.text('Nạp vào quỹ Du lịch'), findsOneWidget);
+      expect(find.text('Thêm giao dịch'), findsNothing);
+      expect(find.text('Danh mục'), findsNothing);
+      expect(find.text('Tách giao dịch'), findsNothing);
 
       await tester.enterText(find.byType(TextField).first, '2000000');
-      await tester.tap(find.text('Lưu'));
+      await tester.tap(find.text('Nạp'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('2.000.000'), findsWidgets);
@@ -111,10 +115,10 @@ void main() {
       await pumpSavings(tester);
       expect(find.text('Đã đạt mục tiêu!'), findsNothing);
 
-      await tester.tap(find.byTooltip('Nạp vào mục tiêu (ví trừ tiền)'));
+      await tester.tap(find.byTooltip('Nạp tiền vào quỹ'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, '1000000');
-      await tester.tap(find.text('Lưu'));
+      await tester.tap(find.text('Nạp'));
       await tester.pumpAndSettle();
 
       expect(find.text('Đã đạt mục tiêu!'), findsOneWidget);
@@ -170,7 +174,18 @@ void main() {
           );
       await pumpSavings(tester);
 
-      await tester.tap(find.byType(PopupMenuButton<void>));
+      // "Lưu trữ" đã dời vào menu ⋮ của màn CHI TIẾT quỹ — thẻ trong danh
+      // sách giờ chỉ giữ đúng một nút icon (Nạp tiền), thay vì ba nút không
+      // nhãn chen nhau như trước.
+      await tester.tap(find.text('Du lịch'));
+      await tester.pumpAndSettle();
+      expect(find.text('Lịch sử'), findsOneWidget);
+
+      // Generic của menu là kiểu private của màn chi tiết nên `byType` không
+      // gọi tên được — tìm theo hình dạng widget.
+      await tester.tap(
+        find.byWidgetPredicate((w) => w is PopupMenuButton).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Lưu trữ'));
       await tester.pumpAndSettle();
