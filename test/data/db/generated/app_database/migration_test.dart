@@ -15,6 +15,8 @@ import 'generated/schema_v6.dart' as v6;
 import 'generated/schema_v7.dart' as v7;
 import 'generated/schema_v10.dart' as v10;
 import 'generated/schema_v13.dart' as v13;
+import 'generated/schema_v14.dart' as v14;
+import 'generated/schema_v15.dart' as v15;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -1025,8 +1027,117 @@ void main() {
       expect(jar.percent, 55);
       expect(jar.carryOver, isTrue);
       expect(jar.kind, 'spend');
-      expect(jar.goalId, null);
 
+      await db.close();
+    },
+  );
+
+  // v14→v15: dây nối hũ ↔ quỹ rời khỏi `jars.goal_id` sang bảng `jar_goals`.
+  // Mất bước chuyển dữ liệu là mọi hũ tiết kiệm mất quỹ mà không báo gì.
+  test(
+    'migration from v14 to v15 — hũ tiết kiệm giữ nguyên quỹ đã gắn',
+    () async {
+      final schema = await verifier.schemaAt(14);
+      final oldDb = v14.DatabaseAtV14(schema.newConnection());
+      await oldDb.batch((batch) {
+        batch.insert(
+          oldDb.wallets,
+          const v14.WalletsData(
+            id: 1,
+            name: 'Ví mặc định',
+            categoryColorId: 0,
+            iconCode: 'account_balance_wallet',
+            openingBalanceMinor: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+          ),
+        );
+        batch.insert(
+          oldDb.savingsGoals,
+          const v14.SavingsGoalsData(
+            id: 9,
+            name: 'Khám bệnh',
+            targetAmountMinor: 20000000,
+            currency: 'VND',
+            currencyScale: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+          ),
+        );
+        batch.insertAll(oldDb.jars, const <v14.JarsData>[
+          v14.JarsData(
+            id: 3,
+            walletId: 1,
+            name: 'Sức khoẻ',
+            percent: 10,
+            categoryColorId: 4,
+            iconCode: 'savings',
+            carryOver: 0,
+            sortOrder: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+            kind: 'saving',
+            goalId: 9,
+          ),
+          v14.JarsData(
+            id: 4,
+            walletId: 1,
+            name: 'Thiết yếu',
+            percent: 55,
+            categoryColorId: 0,
+            iconCode: 'home',
+            carryOver: 0,
+            sortOrder: 1,
+            isArchived: 0,
+            createdAt: 1755734400,
+            kind: 'spend',
+          ),
+        ]);
+      });
+      await oldDb.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 15);
+
+      final links = await db.select(db.jarGoals).get();
+      expect(links, hasLength(1), reason: 'chỉ hũ tiết kiệm có dây nối');
+      expect(links.single.jarId, 3);
+      expect(links.single.goalId, 9);
+      expect(links.single.percent, 100, reason: 'cả quỹ thuộc hũ như trước');
+      expect(await db.select(db.jars).get(), hasLength(2));
+
+      await db.close();
+    },
+  );
+
+  // v15→v16: bảng `notes` mới. Bảng mới mà quên đưa vào backup là mất sạch
+  // khi khôi phục (đã dính một lần với `jars`) — test round-trip riêng ở
+  // `backup_roundtrip_test.dart`; ở đây chỉ cần dữ liệu cũ còn nguyên.
+  test(
+    'migration from v15 to v16 — thêm bảng ghi chú, dữ liệu cũ giữ nguyên',
+    () async {
+      final schema = await verifier.schemaAt(15);
+      final oldDb = v15.DatabaseAtV15(schema.newConnection());
+      await oldDb.batch((batch) {
+        batch.insert(
+          oldDb.wallets,
+          const v15.WalletsData(
+            id: 1,
+            name: 'Ví mặc định',
+            categoryColorId: 0,
+            iconCode: 'account_balance_wallet',
+            openingBalanceMinor: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+          ),
+        );
+      });
+      await oldDb.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 16);
+      expect(await db.select(db.notes).get(), isEmpty);
+      expect(await db.select(db.wallets).get(), hasLength(1));
       await db.close();
     },
   );

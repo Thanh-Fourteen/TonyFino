@@ -167,11 +167,26 @@ class Jars extends Table {
   /// tên hay icon: hũ tiêu đo tiền RA khỏi các danh mục của nó (vượt hạn mức
   /// là xấu), hũ tiết kiệm đo tiền VÀO một quỹ trong kỳ (vượt mức là tốt).
   TextColumn get kind => text().withDefault(const Constant('spend'))();
+}
 
-  /// Quỹ (mục tiêu tiết kiệm) mà hũ tiết kiệm đổ vào — v14. Chỉ có nghĩa khi
-  /// [kind] là `'saving'`; mọi lần nạp/rút quỹ này trong kỳ tự động tính vào
-  /// hũ, không cần xếp danh mục nào.
-  IntColumn get goalId => integer().nullable().references(SavingsGoals, #id)();
+/// Dây nối hũ TIẾT KIỆM ↔ quỹ (v15) — NHIỀU-NHIỀU có trọng số.
+///
+/// v14 để `jars.goal_id`: mỗi hũ đúng một quỹ. Không đủ cho cách Tony dùng:
+/// một hũ "Sức khoẻ" gom nhiều quỹ liên quan (khám bệnh, bảo hiểm…), và
+/// "số tiền hũ = tổng các quỹ liên quan".
+///
+/// [percent] là phần của quỹ đó thuộc về hũ này — mặc định 100 (cả quỹ).
+/// Có nó thì một quỹ dùng chung chia được cho hai hũ mà tổng không đội lên;
+/// giữ nguyên 100 thì mọi thứ hành xử đúng như "gom cả quỹ vào hũ".
+class JarGoals extends Table {
+  IntColumn get jarId => integer().references(Jars, #id)();
+  IntColumn get goalId => integer().references(SavingsGoals, #id)();
+
+  /// 0–100. Số NGUYÊN phần trăm, cùng lý do với `Jars.percent`.
+  IntColumn get percent => integer().withDefault(const Constant(100))();
+
+  @override
+  Set<Column> get primaryKey => {jarId, goalId};
 }
 
 /// Ví (Phase 13) — mọi giao dịch thuộc về đúng một ví. Lưu trữ (archive)
@@ -396,4 +411,24 @@ class AppEvents extends Table {
   TextColumn get level => text()();
   TextColumn get message => text()();
   TextColumn get contextJson => text().nullable()();
+}
+
+/// Ghi chú tự do (v16) — chỗ Tony gõ bất cứ thứ gì: nhắc mình, dự tính chi,
+/// mật khẩu thẻ thành viên, danh sách cần mua.
+///
+/// KHÔNG dính gì tới giao dịch: không `transactionId`, không số tiền. Gắn
+/// nó vào giao dịch là biến một chỗ ghi tự do thành một trường bắt buộc
+/// phải điền đúng chỗ — đúng thứ làm người ta thôi ghi chú.
+class Notes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Có thể RỖNG — ghi vội một dòng thì không ai đặt tiêu đề. Danh sách tự
+  /// lấy dòng đầu của [body] làm nhãn khi tiêu đề rỗng.
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get body => text().withDefault(const Constant(''))();
+
+  /// Ghim lên đầu danh sách.
+  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }

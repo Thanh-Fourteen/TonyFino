@@ -55,6 +55,8 @@ class BackupService {
       ..sort((a, b) => a.id.compareTo(b.id));
     final debts = await _db.select(_db.debts).get()
       ..sort((a, b) => a.id.compareTo(b.id));
+    final jarGoals = await _db.select(_db.jarGoals).get();
+    final notes = await _db.select(_db.notes).get();
     final jars = await _db.select(_db.jars).get()
       ..sort((a, b) => a.id.compareTo(b.id));
     final tags = await _db.select(_db.tags).get()
@@ -107,6 +109,8 @@ class BackupService {
       // đọc code. `categories.jarId` (dây nối danh mục ↔ hũ) cũng phải đi
       // kèm, nếu không hũ về nhưng không hũ nào biết mình gồm danh mục gì.
       'jars': jars.map(_jarToJson).toList(),
+      'jarGoals': jarGoals.map(_jarGoalToJson).toList(),
+      'notes': notes.map(_noteToJson).toList(),
       'debts': debts.map(_debtToJson).toList(),
       'tags': tags.map(_tagToJson).toList(),
       'transactionTags': transactionTags.map(_transactionTagToJson).toList(),
@@ -162,6 +166,8 @@ class BackupService {
         await _db.delete(_db.categoryKeywords).go();
         await _db.delete(_db.budgets).go();
         await _db.delete(_db.transactions).go();
+        await _db.delete(_db.notes).go();
+        await _db.delete(_db.jarGoals).go();
         await _db.delete(_db.jars).go();
         await _db.delete(_db.savingsGoals).go();
         await _db.delete(_db.debts).go();
@@ -219,6 +225,23 @@ class BackupService {
           await _db
               .into(_db.jars)
               .insert(_jarFromJson(row), mode: InsertMode.insertOrReplace);
+        }
+        // Dây nối hũ ↔ quỹ (v15) — nạp SAU hũ, cùng lý do thứ tự với
+        // `categories.jarId`.
+        for (final row
+            in ((map['jarGoals'] as List?) ?? const [])
+                .cast<Map<String, Object?>>()) {
+          await _db
+              .into(_db.jarGoals)
+              .insert(_jarGoalFromJson(row), mode: InsertMode.insertOrReplace);
+        }
+        // Ghi chú (v16) — không phụ thuộc bảng nào, nạp lúc nào cũng được.
+        for (final row
+            in ((map['notes'] as List?) ?? const [])
+                .cast<Map<String, Object?>>()) {
+          await _db
+              .into(_db.notes)
+              .insert(_noteFromJson(row), mode: InsertMode.insertOrReplace);
         }
         for (final row
             in ((map['savingsGoals'] as List?) ?? const [])
@@ -585,10 +608,10 @@ class BackupService {
     'sortOrder': j.sortOrder,
     'isArchived': j.isArchived,
     'createdAt': j.createdAt.toIso8601String(),
-    // v14 — hũ tiết kiệm gắn quỹ. Thiếu hai khoá này thì khôi phục xong mọi
-    // hũ tiết kiệm biến thành hũ tiêu và mất dây nối tới quỹ.
+    // v14 — hũ tiết kiệm. Thiếu khoá này thì khôi phục xong mọi hũ tiết
+    // kiệm biến thành hũ tiêu. Dây nối tới quỹ nằm ở bảng riêng `jarGoals`
+    // từ v15.
     'kind': j.kind,
-    'goalId': j.goalId,
   };
 
   JarsCompanion _jarFromJson(Map<String, Object?> j) => JarsCompanion.insert(
@@ -602,9 +625,39 @@ class BackupService {
     sortOrder: Value(j['sortOrder'] as int? ?? 0),
     isArchived: Value(j['isArchived'] as bool? ?? false),
     createdAt: Value(DateTime.parse(j['createdAt'] as String)),
-    // Bản sao lưu trước v14 không có hai khoá này — mọi hũ hồi đó là hũ tiêu.
+    // Bản sao lưu trước v14 không có khoá này — mọi hũ hồi đó là hũ tiêu.
     kind: Value(j['kind'] as String? ?? 'spend'),
-    goalId: Value(j['goalId'] as int?),
+  );
+
+  Map<String, Object?> _jarGoalToJson(JarGoal l) => {
+    'jarId': l.jarId,
+    'goalId': l.goalId,
+    'percent': l.percent,
+  };
+
+  JarGoalsCompanion _jarGoalFromJson(Map<String, Object?> l) =>
+      JarGoalsCompanion.insert(
+        jarId: l['jarId'] as int,
+        goalId: l['goalId'] as int,
+        percent: Value(l['percent'] as int? ?? 100),
+      );
+
+  Map<String, Object?> _noteToJson(Note n) => {
+    'id': n.id,
+    'title': n.title,
+    'body': n.body,
+    'isPinned': n.isPinned,
+    'createdAt': n.createdAt.toIso8601String(),
+    'updatedAt': n.updatedAt.toIso8601String(),
+  };
+
+  NotesCompanion _noteFromJson(Map<String, Object?> n) => NotesCompanion.insert(
+    id: Value(n['id'] as int),
+    title: Value(n['title'] as String? ?? ''),
+    body: Value(n['body'] as String? ?? ''),
+    isPinned: Value(n['isPinned'] as bool? ?? false),
+    createdAt: Value(DateTime.parse(n['createdAt'] as String)),
+    updatedAt: Value(DateTime.parse(n['updatedAt'] as String)),
   );
 
   Map<String, Object?> _savingsGoalToJson(SavingsGoal g) => {

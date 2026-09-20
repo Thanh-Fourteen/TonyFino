@@ -36,7 +36,10 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
   late String _iconCode;
   late bool _carryOver;
   late JarKind _kind;
-  int? _goalId;
+
+  /// Quỹ đã chọn → tỉ lệ phần của quỹ thuộc hũ (mặc định 100).
+  final Map<int, int> _goalPercents = {};
+  bool _loadingGoals = false;
   bool _saving = false;
   String? _error;
 
@@ -52,7 +55,22 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     _iconCode = j?.iconCode ?? 'more_horiz';
     _carryOver = j?.carryOver ?? false;
     _kind = j?.jarKind ?? JarKind.spend;
-    _goalId = j?.goalId;
+    if (j != null) _loadGoalLinks(j.id);
+  }
+
+  /// Đọc dây nối hũ ↔ quỹ bằng FUTURE, không phải `Stream.first` — stream
+  /// lấy-một-giá-trị ngoài ngữ cảnh watch treo vô hạn trong widget test
+  /// (bẫy đã ghi ở project_tonyfino_gotchas).
+  Future<void> _loadGoalLinks(int jarId) async {
+    setState(() => _loadingGoals = true);
+    final links = await ref.read(jarRepositoryProvider).goalLinksOf(jarId);
+    if (!mounted) return;
+    setState(() {
+      _goalPercents
+        ..clear()
+        ..addEntries([for (final l in links) MapEntry(l.goalId, l.percent)]);
+      _loadingGoals = false;
+    });
   }
 
   @override
@@ -62,6 +80,11 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     super.dispose();
   }
 
+  List<JarGoalLink> get _goalLinks => [
+    for (final e in _goalPercents.entries)
+      JarGoalLink(goalId: e.key, percent: e.value),
+  ];
+
   Future<void> _save() async {
     final name = _name.text.trim();
     final percent = int.tryParse(_percent.text.trim()) ?? -1;
@@ -69,16 +92,22 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
       setState(() => _error = 'Nhập tên hũ');
       return;
     }
-    // 0% là một hũ không bao giờ nhận đồng nào — gần như chắc chắn là gõ
-    // nhầm, chặn ngay thay vì để nó nằm đó gây khó hiểu.
-    if (percent < 1 || percent > 100) {
-      setState(() => _error = 'Tỉ lệ phải từ 1 đến 100');
+    // Hũ TIÊU 0% không bao giờ nhận đồng nào — gần như chắc chắn gõ nhầm.
+    // Hũ TIẾT KIỆM thì 0% là hợp lệ và có nghĩa thật: tháng này không phân
+    // bổ thu nhập cho nó, nhưng tiền gửi vào các quỹ của hũ vẫn được đếm.
+    final minPercent = _kind == JarKind.saving ? 0 : 1;
+    if (percent < minPercent || percent > 100) {
+      setState(
+        () => _error = _kind == JarKind.saving
+            ? 'Tỉ lệ phải từ 0 đến 100'
+            : 'Tỉ lệ phải từ 1 đến 100',
+      );
       return;
     }
     // Hũ tiết kiệm không gắn quỹ thì không bao giờ đếm được đồng nào — nó
     // sẽ nằm đó báo "đã gửi 0 ₫" mãi mãi mà không ai hiểu vì sao.
-    if (_kind == JarKind.saving && _goalId == null) {
-      setState(() => _error = 'Chọn quỹ mà hũ tiết kiệm này gửi vào');
+    if (_kind == JarKind.saving && _goalPercents.isEmpty) {
+      setState(() => _error = 'Chọn ít nhất một quỹ cho hũ tiết kiệm');
       return;
     }
     setState(() {
@@ -96,7 +125,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
             iconCode: _iconCode,
             carryOver: _carryOver,
             kind: _kind,
-            goalId: _goalId,
+            goals: _goalLinks,
           )
         : await repo.insert(
             walletId: ref.read(selectedWalletIdProvider)!,
@@ -106,7 +135,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
             iconCode: _iconCode,
             carryOver: _carryOver,
             kind: _kind,
-            goalId: _goalId,
+            goals: _goalLinks,
           );
 
     if (!mounted) return;
@@ -197,10 +226,21 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                   ),
                   if (_kind == JarKind.saving) ...[
                     SizedBox(height: context.space.md),
-                    _GoalDropdown(
-                      selectedGoalId: _goalId,
-                      onChanged: (id) => setState(() => _goalId = id),
-                    ),
+                    if (_loadingGoals)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      _GoalPicker(
+                        selected: _goalPercents,
+                        onToggle: (goalId, checked) => setState(() {
+                          if (checked) {
+                            _goalPercents[goalId] = 100;
+                          } else {
+                            _goalPercents.remove(goalId);
+                          }
+                        }),
+                        onPercent: (goalId, percent) =>
+                            setState(() => _goalPercents[goalId] = percent),
+                      ),
                   ] else ...[
                     SizedBox(height: context.space.md),
                     SwitchListTile(
@@ -275,14 +315,25 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
   }
 }
 
-/// Chọn quỹ cho hũ tiết kiệm — chỉ quỹ ĐANG HOẠT ĐỘNG. Quỹ đã gắn nhưng giờ
-/// đã lưu trữ vẫn giữ được lựa chọn cũ (không âm thầm gỡ), chỉ không mời
-/// chọn mới.
-class _GoalDropdown extends ConsumerWidget {
-  const _GoalDropdown({required this.selectedGoalId, required this.onChanged});
+/// Chọn CÁC quỹ mà hũ tiết kiệm này gom, mỗi quỹ một tỉ lệ (v15).
+///
+/// Vì sao nhiều quỹ + tỉ lệ: Tony có hũ gom mấy quỹ liên quan ("khám bệnh",
+/// "bảo hiểm"…) và muốn "số tiền hũ bằng tổng các quỹ liên quan"; tỉ lệ để
+/// một quỹ dùng chung chia được cho hai hũ mà tổng không đội lên. Mặc định
+/// 100% — cứ tick là gom cả quỹ.
+///
+/// Chỉ mời chọn quỹ ĐANG HOẠT ĐỘNG; quỹ đã lưu trữ mà hũ đang gắn thì giữ
+/// nguyên dây nối (không âm thầm gỡ), chỉ không hiện ở đây.
+class _GoalPicker extends ConsumerWidget {
+  const _GoalPicker({
+    required this.selected,
+    required this.onToggle,
+    required this.onPercent,
+  });
 
-  final int? selectedGoalId;
-  final ValueChanged<int?> onChanged;
+  final Map<int, int> selected;
+  final void Function(int goalId, bool checked) onToggle;
+  final void Function(int goalId, int percent) onPercent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -297,19 +348,77 @@ class _GoalDropdown extends ConsumerWidget {
         ),
       );
     }
-    // `value` PHẢI khớp đúng một item hoặc là null — quỹ đã lưu trữ không có
-    // trong danh sách, đưa id của nó vào là DropdownButton ném assert.
-    final value = goals.any((g) => g.id == selectedGoalId)
-        ? selectedGoalId
-        : null;
-    return DropdownButtonFormField<int>(
-      initialValue: value,
-      decoration: const InputDecoration(labelText: 'Gửi vào quỹ'),
-      items: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Quỹ trong hũ', style: context.text.labelMedium),
+        Text(
+          'Tiền gửi vào các quỹ này được tính là tiền của hũ.',
+          style: context.text.labelSmall?.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
+        ),
         for (final g in goals)
-          DropdownMenuItem(value: g.id, child: Text(g.name)),
+          _GoalRow(
+            goal: g,
+            percent: selected[g.id],
+            onToggle: (checked) => onToggle(g.id, checked),
+            onPercent: (p) => onPercent(g.id, p),
+          ),
       ],
-      onChanged: onChanged,
+    );
+  }
+}
+
+class _GoalRow extends StatelessWidget {
+  const _GoalRow({
+    required this.goal,
+    required this.percent,
+    required this.onToggle,
+    required this.onPercent,
+  });
+
+  final SavingsGoal goal;
+
+  /// `null` = quỹ chưa được chọn.
+  final int? percent;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<int> onPercent;
+
+  @override
+  Widget build(BuildContext context) {
+    final checked = percent != null;
+    return Row(
+      children: [
+        Expanded(
+          child: CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            dense: true,
+            value: checked,
+            title: Text(goal.name, overflow: TextOverflow.ellipsis),
+            onChanged: (v) => onToggle(v ?? false),
+          ),
+        ),
+        // Tỉ lệ chỉ hiện khi quỹ ĐÃ chọn — một ô "%" mờ bên cạnh quỹ chưa
+        // tick chỉ làm rối, và 100% là câu trả lời đúng cho gần như mọi lần.
+        if (checked)
+          SizedBox(
+            width: 92,
+            child: DropdownButtonFormField<int>(
+              initialValue: percent,
+              isDense: true,
+              decoration: const InputDecoration(isDense: true, suffixText: '%'),
+              items: [
+                for (final p in const [100, 75, 50, 25, 10])
+                  DropdownMenuItem(value: p, child: Text('$p')),
+                if (!const [100, 75, 50, 25, 10].contains(percent))
+                  DropdownMenuItem(value: percent, child: Text('$percent')),
+              ],
+              onChanged: (p) => onPercent(p ?? 100),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -17,6 +17,7 @@ import 'jar_detail_screen.dart';
 import 'widgets/jar_categories_sheet.dart';
 import 'widgets/jar_edit_sheet.dart';
 import '../../core/money/money.dart';
+import '../../ui/amount_visibility.dart';
 import '../savings/widgets/savings_contribution_sheet.dart';
 import '../home/widgets/period_chip.dart';
 
@@ -70,10 +71,11 @@ class _JarsScreenState extends ConsumerState<JarsScreen> {
     return true;
   }
 
+  /// `onReorderItem` (KHÔNG phải `onReorder`, đã deprecated sau Flutter
+  /// 3.41): bản mới tự trừ chỗ trống của thẻ đang kéo, nên [newIndex] đã là
+  /// vị trí cuối cùng — không được tự `-1` nữa, làm thế là lệch một ô khi
+  /// kéo xuống.
   void _onReorder(List<JarProgress> jars, int oldIndex, int newIndex) {
-    // Quy ước của `ReorderableListView`: kéo XUỐNG thì `newIndex` tính cả
-    // chỗ trống của chính thẻ đang kéo, phải trừ đi một.
-    if (newIndex > oldIndex) newIndex -= 1;
     final ids = [for (final p in jars) p.jar.id];
     ids.insert(newIndex, ids.removeAt(oldIndex));
     setState(() => _pendingOrder = ids);
@@ -118,7 +120,7 @@ class _JarsScreenState extends ConsumerState<JarsScreen> {
                     context.space.screenHorizontal +
                         (embedded ? kBottomNavReservedHeight : 0),
                   ),
-                  onReorder: (from, to) => _onReorder(jars, from, to),
+                  onReorderItem: (from, to) => _onReorder(jars, from, to),
                   header: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -324,9 +326,11 @@ class _JarCard extends ConsumerWidget {
 
     final String subtitle;
     if (saving) {
-      subtitle = progress.goalName == null
-          ? '${jar.percent}% · Tiết kiệm · chưa gắn quỹ'
-          : '${jar.percent}% · Tiết kiệm → ${progress.goalName}';
+      subtitle = switch (progress.goals.length) {
+        0 => '${jar.percent}% · Tiết kiệm · chưa gắn quỹ',
+        1 => '${jar.percent}% · Tiết kiệm → ${progress.goals.single.goal.name}',
+        final n => '${jar.percent}% · Tiết kiệm · $n quỹ',
+      };
     } else {
       subtitle =
           '${jar.percent}% · ${progress.categoryCount} danh mục'
@@ -365,11 +369,35 @@ class _JarCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Hạn mức KHÔNG phải dòng tiền vào — hiện trung tính.
-              MoneyText(
-                progress.allotted,
-                size: MoneySize.medium,
-                signed: false,
+              // "đã tiêu / tổng nên tiêu" — Tony muốn thấy CẢ HAI con số ở
+              // đây, không chỉ hạn mức: một mình hạn mức không nói được
+              // tháng này đang đi tới đâu. Cùng lý do, dòng dưới chỉ còn
+              // phần CÒN LẠI thay vì lặp lại "đã tiêu".
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      MoneyText(
+                        progress.used,
+                        size: MoneySize.medium,
+                        signed: false,
+                      ),
+                      Text(
+                        AmountVisibility.mask(
+                          context,
+                          ' / ${progress.allotted.format()}',
+                        ),
+                        style: context.text.labelMedium?.copyWith(
+                          color: context.colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -378,13 +406,29 @@ class _JarCard extends ConsumerWidget {
           SizedBox(height: context.space.xs),
           Row(
             children: [
-              Text(
-                saving ? 'Đã gửi ' : 'Đã tiêu ',
-                style: context.text.labelMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant,
+              if (saving && progress.goals.isNotEmpty) ...[
+                Text(
+                  'Tổng quỹ ',
+                  style: context.text.labelMedium?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              MoneyText(progress.used, size: MoneySize.small, signed: false),
+                MoneyText(
+                  progress.savedTotal,
+                  size: MoneySize.small,
+                  signed: false,
+                ),
+                if (progress.goalTarget.minorUnits > 0)
+                  Text(
+                    AmountVisibility.mask(
+                      context,
+                      ' / ${progress.goalTarget.format()}',
+                    ),
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+              ],
               const Spacer(),
               ..._remainingLabel(context, progress),
             ],
@@ -414,6 +458,30 @@ class _JarCard extends ConsumerWidget {
     final String label;
     final Color color;
     final Money amount;
+    if (p.tracksGoalTotal) {
+      // Hũ 0%: không có mốc của kỳ để nói "còn cần gửi" — thay bằng phần
+      // còn thiếu so với ĐÍCH của các quỹ (thanh cũng đang đo cái đó).
+      final left = p.goalTarget - p.savedTotal;
+      if (p.goalTarget.minorUnits == 0 || left.minorUnits <= 0) {
+        return [
+          Text(
+            p.goalTarget.minorUnits == 0 ? '' : 'Đã đạt đích',
+            style: context.text.labelMedium?.copyWith(
+              color: context.colors.budgetOk,
+            ),
+          ),
+        ];
+      }
+      return [
+        Text(
+          'Còn thiếu ',
+          style: context.text.labelMedium?.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
+        ),
+        MoneyText(left, size: MoneySize.small, signed: false),
+      ];
+    }
     if (p.kind == JarKind.saving) {
       if (remaining.minorUnits <= 0) {
         label = remaining.minorUnits == 0 ? 'Đã đủ' : 'Đã đủ, dư ';
@@ -450,8 +518,15 @@ class _SavingAction extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final goalId = progress.jar.goalId;
-    if (goalId == null || progress.goalName == null) {
+    if (progress.goals.length > 1) {
+      return TextButton.icon(
+        onPressed: () => openJarDetailScreen(context, progress.jar.id),
+        icon: const Icon(kIconSavings, size: 18),
+        label: Text('Xem ${progress.goals.length} quỹ trong hũ'),
+      );
+    }
+    final linked = progress.goals.singleOrNull;
+    if (linked == null) {
       return TextButton.icon(
         onPressed: () =>
             showJarEditSheet(context: context, existing: progress.jar),
@@ -463,14 +538,14 @@ class _SavingAction extends ConsumerWidget {
     return TextButton.icon(
       onPressed: () => showSavingsContributionSheet(
         context: context,
-        goalId: goalId,
-        goalName: progress.goalName!,
+        goalId: linked.goal.id,
+        goalName: linked.goal.name,
         move: SavingsMove.deposit,
         // Gợi ý đúng phần còn thiếu của kỳ — lý do chính để mở nút này.
         prefillMinor: remaining > 0 ? remaining : null,
       ),
       icon: const Icon(kIconAdd, size: 18),
-      label: Text('Gửi vào "${progress.goalName}"'),
+      label: Text('Gửi vào "${linked.goal.name}"'),
     );
   }
 }

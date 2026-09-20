@@ -30,6 +30,8 @@ const kDefaultWalletName = 'Ví mặc định';
     TransactionTags,
     AppEvents,
     Jars,
+    JarGoals,
+    Notes,
   ],
   // Bảng ảo FTS5 duy nhất của app — chỉ khai được qua `.drift` file (xem
   // comment đầu file đó), KHÔNG qua Dart `Table`. `searchTransactionIds`
@@ -47,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -356,6 +358,22 @@ class AppDatabase extends _$AppDatabase {
       from13To14: (m, schema) async {
         await m.addColumn(schema.jars, schema.jars.kind);
         await m.addColumn(schema.jars, schema.jars.goalId);
+      },
+      // v14→v15: hũ tiết kiệm nối NHIỀU quỹ, mỗi quỹ một tỉ lệ. Dây nối rời
+      // khỏi `jars.goal_id` sang bảng `jar_goals`, nên phải CHUYỂN dữ liệu
+      // trước rồi mới bỏ cột — `alterTable` dựng lại `jars` theo hình dạng
+      // v15 (không còn `goal_id`), đọc sau khi bỏ cột là mất trắng dây nối.
+      from14To15: (m, schema) async {
+        await m.createTable(schema.jarGoals);
+        await m.database.customStatement(
+          'INSERT INTO jar_goals (jar_id, goal_id, percent) '
+          'SELECT id, goal_id, 100 FROM jars WHERE goal_id IS NOT NULL',
+        );
+        await m.alterTable(TableMigration(schema.jars));
+      },
+      // v15→v16: bảng `notes` — bảng MỚI hoàn toàn, không đụng dữ liệu cũ.
+      from15To16: (m, schema) async {
+        await m.createTable(schema.notes);
       },
     ),
     beforeOpen: (details) async {

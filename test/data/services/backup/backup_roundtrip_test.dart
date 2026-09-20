@@ -492,9 +492,12 @@ void main() {
             categoryColorId: 3,
             iconCode: 'savings',
             kind: const Value('saving'),
-            goalId: Value(goalId),
           ),
         );
+
+    await db
+        .into(db.jarGoals)
+        .insert(JarGoalsCompanion.insert(jarId: jarId, goalId: goalId));
 
     final export = await backup.exportToJson(exportedAt: DateTime(2026, 9, 19));
     await db.delete(db.jars).go();
@@ -504,22 +507,62 @@ void main() {
       db.jars,
     )..where((j) => j.id.equals(jarId))).getSingle();
     expect(restored.kind, 'saving');
-    expect(restored.goalId, goalId);
+    final links = await (db.select(
+      db.jarGoals,
+    )..where((l) => l.jarId.equals(jarId))).get();
+    expect(links.single.goalId, goalId);
+    expect(links.single.percent, 100);
 
     // Bản sao lưu làm TRƯỚC v14: không có hai khoá mới.
     final map = jsonDecode(utf8.decode(export)) as Map<String, Object?>;
     for (final j in (map['jars'] as List).cast<Map<String, Object?>>()) {
-      j
-        ..remove('kind')
-        ..remove('goalId');
+      j.remove('kind');
     }
+    map.remove('jarGoals');
     final old = Uint8List.fromList(utf8.encode(jsonEncode(map)));
     expect((await backup.importFromJson(old)).isOk, isTrue);
     final legacy = await (db.select(
       db.jars,
     )..where((j) => j.id.equals(jarId))).getSingle();
     expect(legacy.kind, 'spend');
-    expect(legacy.goalId, null);
+    expect(await db.select(db.jarGoals).get(), isEmpty);
+  });
+
+  test('ghi chú (v16) sống sót qua round-trip; backup cũ không có khoá '
+      '"notes" vẫn import được', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final backup = BackupService(db);
+
+    final noteId = await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            title: const Value('Cần mua'),
+            body: const Value('sữa\nbánh mì'),
+            isPinned: const Value(true),
+            createdAt: Value(DateTime(2026, 9, 1)),
+            updatedAt: Value(DateTime(2026, 9, 2)),
+          ),
+        );
+
+    final export = await backup.exportToJson(exportedAt: DateTime(2026, 9, 20));
+    await db.delete(db.notes).go();
+    expect((await backup.importFromJson(export)).isOk, isTrue);
+
+    final restored = await (db.select(
+      db.notes,
+    )..where((n) => n.id.equals(noteId))).getSingle();
+    expect(restored.title, 'Cần mua');
+    expect(restored.body, 'sữa\nbánh mì');
+    expect(restored.isPinned, isTrue);
+    expect(restored.updatedAt, DateTime(2026, 9, 2));
+
+    final map = jsonDecode(utf8.decode(export)) as Map<String, Object?>;
+    map.remove('notes');
+    final old = Uint8List.fromList(utf8.encode(jsonEncode(map)));
+    expect((await backup.importFromJson(old)).isOk, isTrue);
+    expect(await db.select(db.notes).get(), isEmpty);
   });
 
   test('backup CŨ (trước v13, không có khoá "jars") vẫn import được', () async {

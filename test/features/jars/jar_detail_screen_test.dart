@@ -96,7 +96,7 @@ void main() {
       categoryColorId: 4,
       iconCode: 'savings',
       kind: JarKind.saving,
-      goalId: goalId,
+      goals: [JarGoalLink(goalId: goalId)],
     )).when(ok: (id) => id, err: (e) => throw e);
     final now = DateTime.now();
     await db
@@ -123,6 +123,56 @@ void main() {
     expect(find.text('Các lần nạp/rút quỹ'), findsOneWidget);
     expect(find.text('Theo danh mục'), findsNothing);
     expect(find.text('gửi đợt 1'), findsOneWidget);
-    expect(find.text('Đã gửi'), findsOneWidget);
+    expect(find.text('Đã gửi kỳ này'), findsOneWidget);
+  });
+
+  testWidgets('hũ tiết kiệm 0%: ô thứ ba nói về ĐÍCH các quỹ, không phải mốc '
+      'của kỳ', (tester) async {
+    final walletId = await defaultWalletId(db);
+    final goalId = await db
+        .into(db.savingsGoals)
+        .insert(
+          SavingsGoalsCompanion.insert(
+            name: 'Khám bệnh',
+            targetAmountMinor: 20000000,
+            currency: 'VND',
+            currencyScale: 0,
+          ),
+        );
+    final jarId = (await JarRepository(db).insert(
+      walletId: walletId,
+      name: 'Sức khoẻ',
+      percent: 0,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      goals: [JarGoalLink(goalId: goalId)],
+    )).when(ok: (id) => id, err: (e) => throw e);
+    final now = DateTime.now();
+    await db
+        .into(db.transactions)
+        .insert(
+          TransactionsCompanion.insert(
+            amountMinor: -5000000,
+            currency: 'VND',
+            currencyScale: 0,
+            occurredAt: DateTime(now.year, now.month, 2),
+            walletId: walletId,
+            goalId: Value(goalId),
+          ),
+        );
+
+    await pumpApp(
+      tester,
+      db: db,
+      child: JarDetailScreen(jarId: jarId),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hạn mức 0%'), findsOneWidget);
+    expect(find.text('Còn thiếu'), findsOneWidget);
+    expect(find.text('Đã đủ, dư'), findsNothing);
+    // 20tr đích − 5tr đã có = 15tr.
+    expect(find.textContaining('15.000.000'), findsWidgets);
   });
 }

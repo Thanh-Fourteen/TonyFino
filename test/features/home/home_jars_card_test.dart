@@ -49,7 +49,7 @@ void main() {
       categoryColorId: 4,
       iconCode: 'savings',
       kind: JarKind.saving,
-      goalId: goalId,
+      goals: [JarGoalLink(goalId: goalId)],
     );
     final now = DateTime.now();
     Future<void> add(int amount, {int? goal}) => db

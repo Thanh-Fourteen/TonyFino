@@ -13,6 +13,7 @@ import '../../data/repositories/transaction_repository.dart';
 import '../../data/repositories/transaction_template_repository.dart';
 import '../../data/repositories/wallet_repository.dart';
 import '../../data/repositories/jar_repository.dart';
+import '../../data/repositories/note_repository.dart';
 
 /// Mở DB thật xong (async, cần secure storage cho khoá mã hoá — Phase 4) rồi
 /// override provider này bằng giá trị đã sẵn TRƯỚC `runApp()` (`bootstrap.dart`).
@@ -73,4 +74,8 @@ final tagRepositoryProvider = Provider<TagRepository>((ref) {
 
 final jarRepositoryProvider = Provider<JarRepository>((ref) {
   return JarRepository(ref.watch(appDatabaseProvider));
+});
+
+final noteRepositoryProvider = Provider<NoteRepository>((ref) {
+  return NoteRepository(ref.watch(appDatabaseProvider));
 });

@@ -320,7 +320,7 @@ void main() {
       categoryColorId: 4,
       iconCode: 'savings',
       kind: JarKind.saving,
-      goalId: quy,
+      goals: [JarGoalLink(goalId: quy)],
     );
 
     await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
@@ -351,7 +351,7 @@ void main() {
       categoryColorId: 4,
       iconCode: 'savings',
       kind: JarKind.saving,
-      goalId: quy,
+      goals: [JarGoalLink(goalId: quy)],
     );
     await tx(amountMinor: 1000000, at: DateTime(2026, 8, 1));
     await tx(amountMinor: -300000, at: DateTime(2026, 8, 2), goalId: quy);
@@ -377,7 +377,7 @@ void main() {
       iconCode: jar.iconCode,
       carryOver: jar.carryOver,
       kind: JarKind.saving,
-      goalId: quy,
+      goals: [JarGoalLink(goalId: quy)],
     );
 
     final after = await (db.select(
@@ -388,7 +388,7 @@ void main() {
       db.jars,
     )..where((j) => j.id.equals(jar.id))).getSingle();
     expect(saved.jarKind, JarKind.saving);
-    expect(saved.goalId, quy);
+    expect(await repo.goalLinksOf(jar.id), hasLength(1));
   });
 
   test('hũ tiêu không giữ quỹ "ma" dù được truyền goalId', () async {
@@ -399,12 +399,13 @@ void main() {
       percent: 10,
       categoryColorId: 0,
       iconCode: 'home',
-      goalId: quy,
+      goals: [JarGoalLink(goalId: quy)],
     )).when(ok: (id) => id, err: (e) => throw e);
-    final jar = await (db.select(
-      db.jars,
-    )..where((j) => j.id.equals(id))).getSingle();
-    expect(jar.goalId, null);
+    expect(
+      await repo.goalLinksOf(id),
+      isEmpty,
+      reason: 'hũ TIÊU không giữ dây nối quỹ',
+    );
   });
 
   test(
@@ -422,6 +423,121 @@ void main() {
       expect(after.first.name, 'Cho đi');
       final overview = await august();
       expect([for (final p in overview.jars) p.jar.id], next);
+    },
+  );
+
+  test('hũ tiết kiệm gom NHIỀU quỹ: đã gửi = tổng tiền vào các quỹ trong kỳ; '
+      'tổng quỹ đang có = số dư mọi thời gian', () async {
+    final khamBenh = await goal('Khám bệnh');
+    final baoHiem = await goal('Bảo hiểm');
+    final khac = await goal('Quỹ khác');
+    await repo.insert(
+      walletId: walletId,
+      name: 'Sức khoẻ',
+      percent: 10,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      goals: [
+        JarGoalLink(goalId: khamBenh),
+        JarGoalLink(goalId: baoHiem),
+      ],
+    );
+
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    // Kỳ TRƯỚC — vào "đang có", không vào "gửi kỳ này".
+    await tx(
+      amountMinor: -2000000,
+      at: DateTime(2026, 7, 10),
+      goalId: khamBenh,
+    );
+    await tx(amountMinor: -300000, at: DateTime(2026, 8, 5), goalId: khamBenh);
+    await tx(amountMinor: -200000, at: DateTime(2026, 8, 6), goalId: baoHiem);
+    // Quỹ KHÔNG thuộc hũ.
+    await tx(amountMinor: -900000, at: DateTime(2026, 8, 7), goalId: khac);
+
+    final p = (await august()).jars.single;
+    expect(p.goals, hasLength(2));
+    expect(p.used.minorUnits, 500000, reason: '300k + 200k trong kỳ');
+    expect(p.savedTotal.minorUnits, 2500000, reason: '2tr kỳ trước + 500k');
+    expect(p.allotted.minorUnits, 1000000);
+    expect(p.tracksGoalTotal, isFalse);
+  });
+
+  test('tỉ lệ từng quỹ: 50% thì chỉ nửa số tiền của quỹ đó thuộc hũ', () async {
+    final chung = await goal('Quỹ chung');
+    await repo.insert(
+      walletId: walletId,
+      name: 'Hũ A',
+      percent: 10,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      goals: [JarGoalLink(goalId: chung, percent: 50)],
+    );
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    await tx(amountMinor: -400000, at: DateTime(2026, 8, 4), goalId: chung);
+
+    final p = (await august()).jars.single;
+    expect(p.used.minorUnits, 200000);
+    expect(p.savedTotal.minorUnits, 200000);
+    expect(p.goals.single.percent, 50);
+  });
+
+  test('hũ tiết kiệm 0%: không có hạn mức kỳ, thanh đo theo tiền đã để dành '
+      'so với đích các quỹ', () async {
+    final quy = await goal('Khám bệnh'); // đích 50tr (xem helper `goal`)
+    await repo.insert(
+      walletId: walletId,
+      name: 'Sức khoẻ',
+      percent: 0,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      goals: [JarGoalLink(goalId: quy)],
+    );
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    await tx(amountMinor: -5000000, at: DateTime(2026, 8, 3), goalId: quy);
+
+    final p = (await august()).jars.single;
+    expect(p.allotted.minorUnits, 0);
+    expect(p.used.minorUnits, 5000000);
+    expect(p.tracksGoalTotal, isTrue);
+    expect(p.goalTarget.minorUnits, 50000000);
+    expect(p.ratio, closeTo(0.1, 0.0001));
+    expect(p.isOverspent, isFalse);
+  });
+
+  test(
+    'sửa hũ: danh sách quỹ ghi đè hoàn toàn, không để lại dây nối cũ',
+    () async {
+      final a = await goal('A');
+      final b = await goal('B');
+      final id = (await repo.insert(
+        walletId: walletId,
+        name: 'Hũ',
+        percent: 10,
+        categoryColorId: 4,
+        iconCode: 'savings',
+        kind: JarKind.saving,
+        goals: [JarGoalLink(goalId: a)],
+      )).when(ok: (id) => id, err: (e) => throw e);
+
+      await repo.update(
+        id: id,
+        name: 'Hũ',
+        percent: 10,
+        categoryColorId: 4,
+        iconCode: 'savings',
+        carryOver: false,
+        kind: JarKind.saving,
+        goals: [JarGoalLink(goalId: b, percent: 25)],
+      );
+
+      final links = await repo.goalLinksOf(id);
+      expect(links, hasLength(1));
+      expect(links.single.goalId, b);
+      expect(links.single.percent, 25);
     },
   );
 }

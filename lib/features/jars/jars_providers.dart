@@ -56,12 +56,20 @@ Stream<List<TransactionWithCategory>> watchJarTransactions(
 }) {
   final repo = ref.watch(transactionRepositoryProvider);
   if (jar.jarKind == JarKind.saving) {
-    if (jar.goalId == null) return Stream.value(const []);
+    // Các quỹ của hũ đọc từ chính `jarProgressProvider` đang chạy — không
+    // mở truy vấn thứ hai cho cùng một dây nối.
+    final goalIds = {
+      for (final g
+          in ref.watch(jarOverviewEntryProvider(jar.id))?.goals ??
+              const <JarGoalProgress>[])
+        g.goal.id,
+    };
+    if (goalIds.isEmpty) return Stream.value(const []);
     return repo.watchAllWithCategory(
       tagIds: tagIds,
       from: range.start,
       to: range.end,
-      goalId: jar.goalId,
+      goalIds: goalIds,
     );
   }
   final categoryIds = jarCategoryIds(ref, jar.id);

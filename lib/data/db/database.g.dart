@@ -702,577 +702,6 @@ class WalletsCompanion extends UpdateCompanion<Wallet> {
   }
 }
 
-class $SavingsGoalsTable extends SavingsGoals
-    with TableInfo<$SavingsGoalsTable, SavingsGoal> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $SavingsGoalsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _targetAmountMinorMeta = const VerificationMeta(
-    'targetAmountMinor',
-  );
-  @override
-  late final GeneratedColumn<int> targetAmountMinor = GeneratedColumn<int>(
-    'target_amount_minor',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _currencyMeta = const VerificationMeta(
-    'currency',
-  );
-  @override
-  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
-    'currency',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 3,
-      maxTextLength: 3,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _currencyScaleMeta = const VerificationMeta(
-    'currencyScale',
-  );
-  @override
-  late final GeneratedColumn<int> currencyScale = GeneratedColumn<int>(
-    'currency_scale',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _targetDateMeta = const VerificationMeta(
-    'targetDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> targetDate = GeneratedColumn<DateTime>(
-    'target_date',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
-    'isArchived',
-  );
-  @override
-  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
-    'is_archived',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_archived" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
-    'sourceId',
-  );
-  @override
-  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
-    'source_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    targetAmountMinor,
-    currency,
-    currencyScale,
-    targetDate,
-    isArchived,
-    createdAt,
-    sourceId,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'savings_goals';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<SavingsGoal> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('target_amount_minor')) {
-      context.handle(
-        _targetAmountMinorMeta,
-        targetAmountMinor.isAcceptableOrUnknown(
-          data['target_amount_minor']!,
-          _targetAmountMinorMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_targetAmountMinorMeta);
-    }
-    if (data.containsKey('currency')) {
-      context.handle(
-        _currencyMeta,
-        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_currencyMeta);
-    }
-    if (data.containsKey('currency_scale')) {
-      context.handle(
-        _currencyScaleMeta,
-        currencyScale.isAcceptableOrUnknown(
-          data['currency_scale']!,
-          _currencyScaleMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_currencyScaleMeta);
-    }
-    if (data.containsKey('target_date')) {
-      context.handle(
-        _targetDateMeta,
-        targetDate.isAcceptableOrUnknown(data['target_date']!, _targetDateMeta),
-      );
-    }
-    if (data.containsKey('is_archived')) {
-      context.handle(
-        _isArchivedMeta,
-        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    }
-    if (data.containsKey('source_id')) {
-      context.handle(
-        _sourceIdMeta,
-        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  SavingsGoal map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SavingsGoal(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      targetAmountMinor: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}target_amount_minor'],
-      )!,
-      currency: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}currency'],
-      )!,
-      currencyScale: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}currency_scale'],
-      )!,
-      targetDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}target_date'],
-      ),
-      isArchived: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_archived'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      sourceId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}source_id'],
-      ),
-    );
-  }
-
-  @override
-  $SavingsGoalsTable createAlias(String alias) {
-    return $SavingsGoalsTable(attachedDatabase, alias);
-  }
-}
-
-class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
-  final int id;
-  final String name;
-  final int targetAmountMinor;
-  final String currency;
-  final int currencyScale;
-  final DateTime? targetDate;
-  final bool isArchived;
-  final DateTime createdAt;
-
-  /// ID của mục tiêu Rolly gốc (Phase 19, vd `'rolly-savings:49755'`) — dùng
-  /// để import idempotent, cùng quy ước `Transactions.sourceId` (Phase 9).
-  /// Nullable vì mục tiêu tạo tay trong app không có nguồn Rolly nào.
-  final String? sourceId;
-  const SavingsGoal({
-    required this.id,
-    required this.name,
-    required this.targetAmountMinor,
-    required this.currency,
-    required this.currencyScale,
-    this.targetDate,
-    required this.isArchived,
-    required this.createdAt,
-    this.sourceId,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['name'] = Variable<String>(name);
-    map['target_amount_minor'] = Variable<int>(targetAmountMinor);
-    map['currency'] = Variable<String>(currency);
-    map['currency_scale'] = Variable<int>(currencyScale);
-    if (!nullToAbsent || targetDate != null) {
-      map['target_date'] = Variable<DateTime>(targetDate);
-    }
-    map['is_archived'] = Variable<bool>(isArchived);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    if (!nullToAbsent || sourceId != null) {
-      map['source_id'] = Variable<String>(sourceId);
-    }
-    return map;
-  }
-
-  SavingsGoalsCompanion toCompanion(bool nullToAbsent) {
-    return SavingsGoalsCompanion(
-      id: Value(id),
-      name: Value(name),
-      targetAmountMinor: Value(targetAmountMinor),
-      currency: Value(currency),
-      currencyScale: Value(currencyScale),
-      targetDate: targetDate == null && nullToAbsent
-          ? const Value.absent()
-          : Value(targetDate),
-      isArchived: Value(isArchived),
-      createdAt: Value(createdAt),
-      sourceId: sourceId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(sourceId),
-    );
-  }
-
-  factory SavingsGoal.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SavingsGoal(
-      id: serializer.fromJson<int>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      targetAmountMinor: serializer.fromJson<int>(json['targetAmountMinor']),
-      currency: serializer.fromJson<String>(json['currency']),
-      currencyScale: serializer.fromJson<int>(json['currencyScale']),
-      targetDate: serializer.fromJson<DateTime?>(json['targetDate']),
-      isArchived: serializer.fromJson<bool>(json['isArchived']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      sourceId: serializer.fromJson<String?>(json['sourceId']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'name': serializer.toJson<String>(name),
-      'targetAmountMinor': serializer.toJson<int>(targetAmountMinor),
-      'currency': serializer.toJson<String>(currency),
-      'currencyScale': serializer.toJson<int>(currencyScale),
-      'targetDate': serializer.toJson<DateTime?>(targetDate),
-      'isArchived': serializer.toJson<bool>(isArchived),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'sourceId': serializer.toJson<String?>(sourceId),
-    };
-  }
-
-  SavingsGoal copyWith({
-    int? id,
-    String? name,
-    int? targetAmountMinor,
-    String? currency,
-    int? currencyScale,
-    Value<DateTime?> targetDate = const Value.absent(),
-    bool? isArchived,
-    DateTime? createdAt,
-    Value<String?> sourceId = const Value.absent(),
-  }) => SavingsGoal(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    targetAmountMinor: targetAmountMinor ?? this.targetAmountMinor,
-    currency: currency ?? this.currency,
-    currencyScale: currencyScale ?? this.currencyScale,
-    targetDate: targetDate.present ? targetDate.value : this.targetDate,
-    isArchived: isArchived ?? this.isArchived,
-    createdAt: createdAt ?? this.createdAt,
-    sourceId: sourceId.present ? sourceId.value : this.sourceId,
-  );
-  SavingsGoal copyWithCompanion(SavingsGoalsCompanion data) {
-    return SavingsGoal(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      targetAmountMinor: data.targetAmountMinor.present
-          ? data.targetAmountMinor.value
-          : this.targetAmountMinor,
-      currency: data.currency.present ? data.currency.value : this.currency,
-      currencyScale: data.currencyScale.present
-          ? data.currencyScale.value
-          : this.currencyScale,
-      targetDate: data.targetDate.present
-          ? data.targetDate.value
-          : this.targetDate,
-      isArchived: data.isArchived.present
-          ? data.isArchived.value
-          : this.isArchived,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SavingsGoal(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('targetAmountMinor: $targetAmountMinor, ')
-          ..write('currency: $currency, ')
-          ..write('currencyScale: $currencyScale, ')
-          ..write('targetDate: $targetDate, ')
-          ..write('isArchived: $isArchived, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('sourceId: $sourceId')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    name,
-    targetAmountMinor,
-    currency,
-    currencyScale,
-    targetDate,
-    isArchived,
-    createdAt,
-    sourceId,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is SavingsGoal &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.targetAmountMinor == this.targetAmountMinor &&
-          other.currency == this.currency &&
-          other.currencyScale == this.currencyScale &&
-          other.targetDate == this.targetDate &&
-          other.isArchived == this.isArchived &&
-          other.createdAt == this.createdAt &&
-          other.sourceId == this.sourceId);
-}
-
-class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
-  final Value<int> id;
-  final Value<String> name;
-  final Value<int> targetAmountMinor;
-  final Value<String> currency;
-  final Value<int> currencyScale;
-  final Value<DateTime?> targetDate;
-  final Value<bool> isArchived;
-  final Value<DateTime> createdAt;
-  final Value<String?> sourceId;
-  const SavingsGoalsCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.targetAmountMinor = const Value.absent(),
-    this.currency = const Value.absent(),
-    this.currencyScale = const Value.absent(),
-    this.targetDate = const Value.absent(),
-    this.isArchived = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.sourceId = const Value.absent(),
-  });
-  SavingsGoalsCompanion.insert({
-    this.id = const Value.absent(),
-    required String name,
-    required int targetAmountMinor,
-    required String currency,
-    required int currencyScale,
-    this.targetDate = const Value.absent(),
-    this.isArchived = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.sourceId = const Value.absent(),
-  }) : name = Value(name),
-       targetAmountMinor = Value(targetAmountMinor),
-       currency = Value(currency),
-       currencyScale = Value(currencyScale);
-  static Insertable<SavingsGoal> custom({
-    Expression<int>? id,
-    Expression<String>? name,
-    Expression<int>? targetAmountMinor,
-    Expression<String>? currency,
-    Expression<int>? currencyScale,
-    Expression<DateTime>? targetDate,
-    Expression<bool>? isArchived,
-    Expression<DateTime>? createdAt,
-    Expression<String>? sourceId,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (targetAmountMinor != null) 'target_amount_minor': targetAmountMinor,
-      if (currency != null) 'currency': currency,
-      if (currencyScale != null) 'currency_scale': currencyScale,
-      if (targetDate != null) 'target_date': targetDate,
-      if (isArchived != null) 'is_archived': isArchived,
-      if (createdAt != null) 'created_at': createdAt,
-      if (sourceId != null) 'source_id': sourceId,
-    });
-  }
-
-  SavingsGoalsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? name,
-    Value<int>? targetAmountMinor,
-    Value<String>? currency,
-    Value<int>? currencyScale,
-    Value<DateTime?>? targetDate,
-    Value<bool>? isArchived,
-    Value<DateTime>? createdAt,
-    Value<String?>? sourceId,
-  }) {
-    return SavingsGoalsCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      targetAmountMinor: targetAmountMinor ?? this.targetAmountMinor,
-      currency: currency ?? this.currency,
-      currencyScale: currencyScale ?? this.currencyScale,
-      targetDate: targetDate ?? this.targetDate,
-      isArchived: isArchived ?? this.isArchived,
-      createdAt: createdAt ?? this.createdAt,
-      sourceId: sourceId ?? this.sourceId,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (targetAmountMinor.present) {
-      map['target_amount_minor'] = Variable<int>(targetAmountMinor.value);
-    }
-    if (currency.present) {
-      map['currency'] = Variable<String>(currency.value);
-    }
-    if (currencyScale.present) {
-      map['currency_scale'] = Variable<int>(currencyScale.value);
-    }
-    if (targetDate.present) {
-      map['target_date'] = Variable<DateTime>(targetDate.value);
-    }
-    if (isArchived.present) {
-      map['is_archived'] = Variable<bool>(isArchived.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (sourceId.present) {
-      map['source_id'] = Variable<String>(sourceId.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SavingsGoalsCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('targetAmountMinor: $targetAmountMinor, ')
-          ..write('currency: $currency, ')
-          ..write('currencyScale: $currencyScale, ')
-          ..write('targetDate: $targetDate, ')
-          ..write('isArchived: $isArchived, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('sourceId: $sourceId')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1411,18 +840,6 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
     requiredDuringInsert: false,
     defaultValue: const Constant('spend'),
   );
-  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
-  @override
-  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
-    'goal_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES savings_goals (id)',
-    ),
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1436,7 +853,6 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
     isArchived,
     createdAt,
     kind,
-    goalId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1526,12 +942,6 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
         kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
       );
     }
-    if (data.containsKey('goal_id')) {
-      context.handle(
-        _goalIdMeta,
-        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
-      );
-    }
     return context;
   }
 
@@ -1585,10 +995,6 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
         DriftSqlType.string,
         data['${effectivePrefix}kind'],
       )!,
-      goalId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}goal_id'],
-      ),
     );
   }
 
@@ -1624,11 +1030,6 @@ class Jar extends DataClass implements Insertable<Jar> {
   /// tên hay icon: hũ tiêu đo tiền RA khỏi các danh mục của nó (vượt hạn mức
   /// là xấu), hũ tiết kiệm đo tiền VÀO một quỹ trong kỳ (vượt mức là tốt).
   final String kind;
-
-  /// Quỹ (mục tiêu tiết kiệm) mà hũ tiết kiệm đổ vào — v14. Chỉ có nghĩa khi
-  /// [kind] là `'saving'`; mọi lần nạp/rút quỹ này trong kỳ tự động tính vào
-  /// hũ, không cần xếp danh mục nào.
-  final int? goalId;
   const Jar({
     required this.id,
     required this.walletId,
@@ -1641,7 +1042,6 @@ class Jar extends DataClass implements Insertable<Jar> {
     required this.isArchived,
     required this.createdAt,
     required this.kind,
-    this.goalId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1657,9 +1057,6 @@ class Jar extends DataClass implements Insertable<Jar> {
     map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['kind'] = Variable<String>(kind);
-    if (!nullToAbsent || goalId != null) {
-      map['goal_id'] = Variable<int>(goalId);
-    }
     return map;
   }
 
@@ -1676,9 +1073,6 @@ class Jar extends DataClass implements Insertable<Jar> {
       isArchived: Value(isArchived),
       createdAt: Value(createdAt),
       kind: Value(kind),
-      goalId: goalId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(goalId),
     );
   }
 
@@ -1699,7 +1093,6 @@ class Jar extends DataClass implements Insertable<Jar> {
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       kind: serializer.fromJson<String>(json['kind']),
-      goalId: serializer.fromJson<int?>(json['goalId']),
     );
   }
   @override
@@ -1717,7 +1110,6 @@ class Jar extends DataClass implements Insertable<Jar> {
       'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'kind': serializer.toJson<String>(kind),
-      'goalId': serializer.toJson<int?>(goalId),
     };
   }
 
@@ -1733,7 +1125,6 @@ class Jar extends DataClass implements Insertable<Jar> {
     bool? isArchived,
     DateTime? createdAt,
     String? kind,
-    Value<int?> goalId = const Value.absent(),
   }) => Jar(
     id: id ?? this.id,
     walletId: walletId ?? this.walletId,
@@ -1746,7 +1137,6 @@ class Jar extends DataClass implements Insertable<Jar> {
     isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
     kind: kind ?? this.kind,
-    goalId: goalId.present ? goalId.value : this.goalId,
   );
   Jar copyWithCompanion(JarsCompanion data) {
     return Jar(
@@ -1765,7 +1155,6 @@ class Jar extends DataClass implements Insertable<Jar> {
           : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       kind: data.kind.present ? data.kind.value : this.kind,
-      goalId: data.goalId.present ? data.goalId.value : this.goalId,
     );
   }
 
@@ -1782,8 +1171,7 @@ class Jar extends DataClass implements Insertable<Jar> {
           ..write('sortOrder: $sortOrder, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
-          ..write('kind: $kind, ')
-          ..write('goalId: $goalId')
+          ..write('kind: $kind')
           ..write(')'))
         .toString();
   }
@@ -1801,7 +1189,6 @@ class Jar extends DataClass implements Insertable<Jar> {
     isArchived,
     createdAt,
     kind,
-    goalId,
   );
   @override
   bool operator ==(Object other) =>
@@ -1817,8 +1204,7 @@ class Jar extends DataClass implements Insertable<Jar> {
           other.sortOrder == this.sortOrder &&
           other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
-          other.kind == this.kind &&
-          other.goalId == this.goalId);
+          other.kind == this.kind);
 }
 
 class JarsCompanion extends UpdateCompanion<Jar> {
@@ -1833,7 +1219,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
   final Value<bool> isArchived;
   final Value<DateTime> createdAt;
   final Value<String> kind;
-  final Value<int?> goalId;
   const JarsCompanion({
     this.id = const Value.absent(),
     this.walletId = const Value.absent(),
@@ -1846,7 +1231,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.kind = const Value.absent(),
-    this.goalId = const Value.absent(),
   });
   JarsCompanion.insert({
     this.id = const Value.absent(),
@@ -1860,7 +1244,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.kind = const Value.absent(),
-    this.goalId = const Value.absent(),
   }) : walletId = Value(walletId),
        name = Value(name),
        percent = Value(percent),
@@ -1878,7 +1261,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
     Expression<String>? kind,
-    Expression<int>? goalId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1892,7 +1274,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
       if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
       if (kind != null) 'kind': kind,
-      if (goalId != null) 'goal_id': goalId,
     });
   }
 
@@ -1908,7 +1289,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     Value<bool>? isArchived,
     Value<DateTime>? createdAt,
     Value<String>? kind,
-    Value<int?>? goalId,
   }) {
     return JarsCompanion(
       id: id ?? this.id,
@@ -1922,7 +1302,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
       kind: kind ?? this.kind,
-      goalId: goalId ?? this.goalId,
     );
   }
 
@@ -1962,9 +1341,6 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     if (kind.present) {
       map['kind'] = Variable<String>(kind.value);
     }
-    if (goalId.present) {
-      map['goal_id'] = Variable<int>(goalId.value);
-    }
     return map;
   }
 
@@ -1981,8 +1357,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
           ..write('sortOrder: $sortOrder, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
-          ..write('kind: $kind, ')
-          ..write('goalId: $goalId')
+          ..write('kind: $kind')
           ..write(')'))
         .toString();
   }
@@ -2727,6 +2102,577 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('sortOrder: $sortOrder, ')
           ..write('walletId: $walletId, ')
           ..write('jarId: $jarId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SavingsGoalsTable extends SavingsGoals
+    with TableInfo<$SavingsGoalsTable, SavingsGoal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavingsGoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetAmountMinorMeta = const VerificationMeta(
+    'targetAmountMinor',
+  );
+  @override
+  late final GeneratedColumn<int> targetAmountMinor = GeneratedColumn<int>(
+    'target_amount_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 3,
+      maxTextLength: 3,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyScaleMeta = const VerificationMeta(
+    'currencyScale',
+  );
+  @override
+  late final GeneratedColumn<int> currencyScale = GeneratedColumn<int>(
+    'currency_scale',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetDateMeta = const VerificationMeta(
+    'targetDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> targetDate = GeneratedColumn<DateTime>(
+    'target_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+    'source_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    targetAmountMinor,
+    currency,
+    currencyScale,
+    targetDate,
+    isArchived,
+    createdAt,
+    sourceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'savings_goals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavingsGoal> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('target_amount_minor')) {
+      context.handle(
+        _targetAmountMinorMeta,
+        targetAmountMinor.isAcceptableOrUnknown(
+          data['target_amount_minor']!,
+          _targetAmountMinorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetAmountMinorMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyMeta);
+    }
+    if (data.containsKey('currency_scale')) {
+      context.handle(
+        _currencyScaleMeta,
+        currencyScale.isAcceptableOrUnknown(
+          data['currency_scale']!,
+          _currencyScaleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyScaleMeta);
+    }
+    if (data.containsKey('target_date')) {
+      context.handle(
+        _targetDateMeta,
+        targetDate.isAcceptableOrUnknown(data['target_date']!, _targetDateMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('source_id')) {
+      context.handle(
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SavingsGoal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavingsGoal(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      targetAmountMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_amount_minor'],
+      )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      currencyScale: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}currency_scale'],
+      )!,
+      targetDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}target_date'],
+      ),
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      sourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_id'],
+      ),
+    );
+  }
+
+  @override
+  $SavingsGoalsTable createAlias(String alias) {
+    return $SavingsGoalsTable(attachedDatabase, alias);
+  }
+}
+
+class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
+  final int id;
+  final String name;
+  final int targetAmountMinor;
+  final String currency;
+  final int currencyScale;
+  final DateTime? targetDate;
+  final bool isArchived;
+  final DateTime createdAt;
+
+  /// ID của mục tiêu Rolly gốc (Phase 19, vd `'rolly-savings:49755'`) — dùng
+  /// để import idempotent, cùng quy ước `Transactions.sourceId` (Phase 9).
+  /// Nullable vì mục tiêu tạo tay trong app không có nguồn Rolly nào.
+  final String? sourceId;
+  const SavingsGoal({
+    required this.id,
+    required this.name,
+    required this.targetAmountMinor,
+    required this.currency,
+    required this.currencyScale,
+    this.targetDate,
+    required this.isArchived,
+    required this.createdAt,
+    this.sourceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['target_amount_minor'] = Variable<int>(targetAmountMinor);
+    map['currency'] = Variable<String>(currency);
+    map['currency_scale'] = Variable<int>(currencyScale);
+    if (!nullToAbsent || targetDate != null) {
+      map['target_date'] = Variable<DateTime>(targetDate);
+    }
+    map['is_archived'] = Variable<bool>(isArchived);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || sourceId != null) {
+      map['source_id'] = Variable<String>(sourceId);
+    }
+    return map;
+  }
+
+  SavingsGoalsCompanion toCompanion(bool nullToAbsent) {
+    return SavingsGoalsCompanion(
+      id: Value(id),
+      name: Value(name),
+      targetAmountMinor: Value(targetAmountMinor),
+      currency: Value(currency),
+      currencyScale: Value(currencyScale),
+      targetDate: targetDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetDate),
+      isArchived: Value(isArchived),
+      createdAt: Value(createdAt),
+      sourceId: sourceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceId),
+    );
+  }
+
+  factory SavingsGoal.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavingsGoal(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      targetAmountMinor: serializer.fromJson<int>(json['targetAmountMinor']),
+      currency: serializer.fromJson<String>(json['currency']),
+      currencyScale: serializer.fromJson<int>(json['currencyScale']),
+      targetDate: serializer.fromJson<DateTime?>(json['targetDate']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      sourceId: serializer.fromJson<String?>(json['sourceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'targetAmountMinor': serializer.toJson<int>(targetAmountMinor),
+      'currency': serializer.toJson<String>(currency),
+      'currencyScale': serializer.toJson<int>(currencyScale),
+      'targetDate': serializer.toJson<DateTime?>(targetDate),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'sourceId': serializer.toJson<String?>(sourceId),
+    };
+  }
+
+  SavingsGoal copyWith({
+    int? id,
+    String? name,
+    int? targetAmountMinor,
+    String? currency,
+    int? currencyScale,
+    Value<DateTime?> targetDate = const Value.absent(),
+    bool? isArchived,
+    DateTime? createdAt,
+    Value<String?> sourceId = const Value.absent(),
+  }) => SavingsGoal(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    targetAmountMinor: targetAmountMinor ?? this.targetAmountMinor,
+    currency: currency ?? this.currency,
+    currencyScale: currencyScale ?? this.currencyScale,
+    targetDate: targetDate.present ? targetDate.value : this.targetDate,
+    isArchived: isArchived ?? this.isArchived,
+    createdAt: createdAt ?? this.createdAt,
+    sourceId: sourceId.present ? sourceId.value : this.sourceId,
+  );
+  SavingsGoal copyWithCompanion(SavingsGoalsCompanion data) {
+    return SavingsGoal(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      targetAmountMinor: data.targetAmountMinor.present
+          ? data.targetAmountMinor.value
+          : this.targetAmountMinor,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      currencyScale: data.currencyScale.present
+          ? data.currencyScale.value
+          : this.currencyScale,
+      targetDate: data.targetDate.present
+          ? data.targetDate.value
+          : this.targetDate,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavingsGoal(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('targetAmountMinor: $targetAmountMinor, ')
+          ..write('currency: $currency, ')
+          ..write('currencyScale: $currencyScale, ')
+          ..write('targetDate: $targetDate, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('sourceId: $sourceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    targetAmountMinor,
+    currency,
+    currencyScale,
+    targetDate,
+    isArchived,
+    createdAt,
+    sourceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavingsGoal &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.targetAmountMinor == this.targetAmountMinor &&
+          other.currency == this.currency &&
+          other.currencyScale == this.currencyScale &&
+          other.targetDate == this.targetDate &&
+          other.isArchived == this.isArchived &&
+          other.createdAt == this.createdAt &&
+          other.sourceId == this.sourceId);
+}
+
+class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> targetAmountMinor;
+  final Value<String> currency;
+  final Value<int> currencyScale;
+  final Value<DateTime?> targetDate;
+  final Value<bool> isArchived;
+  final Value<DateTime> createdAt;
+  final Value<String?> sourceId;
+  const SavingsGoalsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.targetAmountMinor = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.currencyScale = const Value.absent(),
+    this.targetDate = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.sourceId = const Value.absent(),
+  });
+  SavingsGoalsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required int targetAmountMinor,
+    required String currency,
+    required int currencyScale,
+    this.targetDate = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.sourceId = const Value.absent(),
+  }) : name = Value(name),
+       targetAmountMinor = Value(targetAmountMinor),
+       currency = Value(currency),
+       currencyScale = Value(currencyScale);
+  static Insertable<SavingsGoal> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? targetAmountMinor,
+    Expression<String>? currency,
+    Expression<int>? currencyScale,
+    Expression<DateTime>? targetDate,
+    Expression<bool>? isArchived,
+    Expression<DateTime>? createdAt,
+    Expression<String>? sourceId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (targetAmountMinor != null) 'target_amount_minor': targetAmountMinor,
+      if (currency != null) 'currency': currency,
+      if (currencyScale != null) 'currency_scale': currencyScale,
+      if (targetDate != null) 'target_date': targetDate,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (createdAt != null) 'created_at': createdAt,
+      if (sourceId != null) 'source_id': sourceId,
+    });
+  }
+
+  SavingsGoalsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int>? targetAmountMinor,
+    Value<String>? currency,
+    Value<int>? currencyScale,
+    Value<DateTime?>? targetDate,
+    Value<bool>? isArchived,
+    Value<DateTime>? createdAt,
+    Value<String?>? sourceId,
+  }) {
+    return SavingsGoalsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      targetAmountMinor: targetAmountMinor ?? this.targetAmountMinor,
+      currency: currency ?? this.currency,
+      currencyScale: currencyScale ?? this.currencyScale,
+      targetDate: targetDate ?? this.targetDate,
+      isArchived: isArchived ?? this.isArchived,
+      createdAt: createdAt ?? this.createdAt,
+      sourceId: sourceId ?? this.sourceId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (targetAmountMinor.present) {
+      map['target_amount_minor'] = Variable<int>(targetAmountMinor.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (currencyScale.present) {
+      map['currency_scale'] = Variable<int>(currencyScale.value);
+    }
+    if (targetDate.present) {
+      map['target_date'] = Variable<DateTime>(targetDate.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavingsGoalsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('targetAmountMinor: $targetAmountMinor, ')
+          ..write('currency: $currency, ')
+          ..write('currencyScale: $currencyScale, ')
+          ..write('targetDate: $targetDate, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('sourceId: $sourceId')
           ..write(')'))
         .toString();
   }
@@ -7626,14 +7572,674 @@ class AppEventsCompanion extends UpdateCompanion<AppEvent> {
   }
 }
 
+class $JarGoalsTable extends JarGoals with TableInfo<$JarGoalsTable, JarGoal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $JarGoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _jarIdMeta = const VerificationMeta('jarId');
+  @override
+  late final GeneratedColumn<int> jarId = GeneratedColumn<int>(
+    'jar_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES jars (id)',
+    ),
+  );
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
+    'goal_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES savings_goals (id)',
+    ),
+  );
+  static const VerificationMeta _percentMeta = const VerificationMeta(
+    'percent',
+  );
+  @override
+  late final GeneratedColumn<int> percent = GeneratedColumn<int>(
+    'percent',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(100),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [jarId, goalId, percent];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'jar_goals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<JarGoal> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('jar_id')) {
+      context.handle(
+        _jarIdMeta,
+        jarId.isAcceptableOrUnknown(data['jar_id']!, _jarIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_jarIdMeta);
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(
+        _goalIdMeta,
+        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('percent')) {
+      context.handle(
+        _percentMeta,
+        percent.isAcceptableOrUnknown(data['percent']!, _percentMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {jarId, goalId};
+  @override
+  JarGoal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return JarGoal(
+      jarId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}jar_id'],
+      )!,
+      goalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}goal_id'],
+      )!,
+      percent: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}percent'],
+      )!,
+    );
+  }
+
+  @override
+  $JarGoalsTable createAlias(String alias) {
+    return $JarGoalsTable(attachedDatabase, alias);
+  }
+}
+
+class JarGoal extends DataClass implements Insertable<JarGoal> {
+  final int jarId;
+  final int goalId;
+
+  /// 0–100. Số NGUYÊN phần trăm, cùng lý do với `Jars.percent`.
+  final int percent;
+  const JarGoal({
+    required this.jarId,
+    required this.goalId,
+    required this.percent,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['jar_id'] = Variable<int>(jarId);
+    map['goal_id'] = Variable<int>(goalId);
+    map['percent'] = Variable<int>(percent);
+    return map;
+  }
+
+  JarGoalsCompanion toCompanion(bool nullToAbsent) {
+    return JarGoalsCompanion(
+      jarId: Value(jarId),
+      goalId: Value(goalId),
+      percent: Value(percent),
+    );
+  }
+
+  factory JarGoal.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return JarGoal(
+      jarId: serializer.fromJson<int>(json['jarId']),
+      goalId: serializer.fromJson<int>(json['goalId']),
+      percent: serializer.fromJson<int>(json['percent']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'jarId': serializer.toJson<int>(jarId),
+      'goalId': serializer.toJson<int>(goalId),
+      'percent': serializer.toJson<int>(percent),
+    };
+  }
+
+  JarGoal copyWith({int? jarId, int? goalId, int? percent}) => JarGoal(
+    jarId: jarId ?? this.jarId,
+    goalId: goalId ?? this.goalId,
+    percent: percent ?? this.percent,
+  );
+  JarGoal copyWithCompanion(JarGoalsCompanion data) {
+    return JarGoal(
+      jarId: data.jarId.present ? data.jarId.value : this.jarId,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      percent: data.percent.present ? data.percent.value : this.percent,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JarGoal(')
+          ..write('jarId: $jarId, ')
+          ..write('goalId: $goalId, ')
+          ..write('percent: $percent')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(jarId, goalId, percent);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is JarGoal &&
+          other.jarId == this.jarId &&
+          other.goalId == this.goalId &&
+          other.percent == this.percent);
+}
+
+class JarGoalsCompanion extends UpdateCompanion<JarGoal> {
+  final Value<int> jarId;
+  final Value<int> goalId;
+  final Value<int> percent;
+  final Value<int> rowid;
+  const JarGoalsCompanion({
+    this.jarId = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.percent = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  JarGoalsCompanion.insert({
+    required int jarId,
+    required int goalId,
+    this.percent = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : jarId = Value(jarId),
+       goalId = Value(goalId);
+  static Insertable<JarGoal> custom({
+    Expression<int>? jarId,
+    Expression<int>? goalId,
+    Expression<int>? percent,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (jarId != null) 'jar_id': jarId,
+      if (goalId != null) 'goal_id': goalId,
+      if (percent != null) 'percent': percent,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  JarGoalsCompanion copyWith({
+    Value<int>? jarId,
+    Value<int>? goalId,
+    Value<int>? percent,
+    Value<int>? rowid,
+  }) {
+    return JarGoalsCompanion(
+      jarId: jarId ?? this.jarId,
+      goalId: goalId ?? this.goalId,
+      percent: percent ?? this.percent,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (jarId.present) {
+      map['jar_id'] = Variable<int>(jarId.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<int>(goalId.value);
+    }
+    if (percent.present) {
+      map['percent'] = Variable<int>(percent.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JarGoalsCompanion(')
+          ..write('jarId: $jarId, ')
+          ..write('goalId: $goalId, ')
+          ..write('percent: $percent, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isPinnedMeta = const VerificationMeta(
+    'isPinned',
+  );
+  @override
+  late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
+    'is_pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    body,
+    isPinned,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'notes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Note> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    }
+    if (data.containsKey('is_pinned')) {
+      context.handle(
+        _isPinnedMeta,
+        isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Note map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Note(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      isPinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_pinned'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $NotesTable createAlias(String alias) {
+    return $NotesTable(attachedDatabase, alias);
+  }
+}
+
+class Note extends DataClass implements Insertable<Note> {
+  final int id;
+
+  /// Có thể RỖNG — ghi vội một dòng thì không ai đặt tiêu đề. Danh sách tự
+  /// lấy dòng đầu của [body] làm nhãn khi tiêu đề rỗng.
+  final String title;
+  final String body;
+
+  /// Ghim lên đầu danh sách.
+  final bool isPinned;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Note({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.isPinned,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['title'] = Variable<String>(title);
+    map['body'] = Variable<String>(body);
+    map['is_pinned'] = Variable<bool>(isPinned);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  NotesCompanion toCompanion(bool nullToAbsent) {
+    return NotesCompanion(
+      id: Value(id),
+      title: Value(title),
+      body: Value(body),
+      isPinned: Value(isPinned),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Note.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Note(
+      id: serializer.fromJson<int>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      body: serializer.fromJson<String>(json['body']),
+      isPinned: serializer.fromJson<bool>(json['isPinned']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'title': serializer.toJson<String>(title),
+      'body': serializer.toJson<String>(body),
+      'isPinned': serializer.toJson<bool>(isPinned),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Note copyWith({
+    int? id,
+    String? title,
+    String? body,
+    bool? isPinned,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Note(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    body: body ?? this.body,
+    isPinned: isPinned ?? this.isPinned,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Note copyWithCompanion(NotesCompanion data) {
+    return Note(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      body: data.body.present ? data.body.value : this.body,
+      isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Note(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, title, body, isPinned, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Note &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.body == this.body &&
+          other.isPinned == this.isPinned &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class NotesCompanion extends UpdateCompanion<Note> {
+  final Value<int> id;
+  final Value<String> title;
+  final Value<String> body;
+  final Value<bool> isPinned;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const NotesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.body = const Value.absent(),
+    this.isPinned = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  NotesCompanion.insert({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.body = const Value.absent(),
+    this.isPinned = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  static Insertable<Note> custom({
+    Expression<int>? id,
+    Expression<String>? title,
+    Expression<String>? body,
+    Expression<bool>? isPinned,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (body != null) 'body': body,
+      if (isPinned != null) 'is_pinned': isPinned,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  NotesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? title,
+    Value<String>? body,
+    Value<bool>? isPinned,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return NotesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      isPinned: isPinned ?? this.isPinned,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (isPinned.present) {
+      map['is_pinned'] = Variable<bool>(isPinned.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final TransactionsFtsTable transactionsFts = TransactionsFtsTable(this);
   late final $WalletsTable wallets = $WalletsTable(this);
-  late final $SavingsGoalsTable savingsGoals = $SavingsGoalsTable(this);
   late final $JarsTable jars = $JarsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
+  late final $SavingsGoalsTable savingsGoals = $SavingsGoalsTable(this);
   late final $DebtsTable debts = $DebtsTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
   late final $CategoryKeywordsTable categoryKeywords = $CategoryKeywordsTable(
@@ -7652,6 +8258,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $AppEventsTable appEvents = $AppEventsTable(this);
+  late final $JarGoalsTable jarGoals = $JarGoalsTable(this);
+  late final $NotesTable notes = $NotesTable(this);
   late final Index idxTransactionsSourceId = Index(
     'idx_transactions_source_id',
     'CREATE UNIQUE INDEX idx_transactions_source_id ON transactions (source_id)',
@@ -7675,9 +8283,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     transactionsFts,
     wallets,
-    savingsGoals,
     jars,
     categories,
+    savingsGoals,
     debts,
     transactions,
     categoryKeywords,
@@ -7688,6 +8296,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tags,
     transactionTags,
     appEvents,
+    jarGoals,
+    notes,
     idxTransactionsSourceId,
     idxSavingsGoalsSourceId,
   ];
@@ -8373,481 +8983,6 @@ typedef $$WalletsTableProcessedTableManager =
         bool transactionsRefs,
       })
     >;
-typedef $$SavingsGoalsTableCreateCompanionBuilder =
-    SavingsGoalsCompanion Function({
-      Value<int> id,
-      required String name,
-      required int targetAmountMinor,
-      required String currency,
-      required int currencyScale,
-      Value<DateTime?> targetDate,
-      Value<bool> isArchived,
-      Value<DateTime> createdAt,
-      Value<String?> sourceId,
-    });
-typedef $$SavingsGoalsTableUpdateCompanionBuilder =
-    SavingsGoalsCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<int> targetAmountMinor,
-      Value<String> currency,
-      Value<int> currencyScale,
-      Value<DateTime?> targetDate,
-      Value<bool> isArchived,
-      Value<DateTime> createdAt,
-      Value<String?> sourceId,
-    });
-
-final class $$SavingsGoalsTableReferences
-    extends BaseReferences<_$AppDatabase, $SavingsGoalsTable, SavingsGoal> {
-  $$SavingsGoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$JarsTable, List<Jar>> _jarsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.jars,
-    aliasName: 'savings_goals__id__jars__goal_id',
-  );
-
-  $$JarsTableProcessedTableManager get jarsRefs {
-    final manager = $$JarsTableTableManager(
-      $_db,
-      $_db.jars,
-    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_jarsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
-  _transactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.transactions,
-    aliasName: 'savings_goals__id__transactions__goal_id',
-  );
-
-  $$TransactionsTableProcessedTableManager get transactionsRefs {
-    final manager = $$TransactionsTableTableManager(
-      $_db,
-      $_db.transactions,
-    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_transactionsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$SavingsGoalsTableFilterComposer
-    extends Composer<_$AppDatabase, $SavingsGoalsTable> {
-  $$SavingsGoalsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get targetAmountMinor => $composableBuilder(
-    column: $table.targetAmountMinor,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get currency => $composableBuilder(
-    column: $table.currency,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get currencyScale => $composableBuilder(
-    column: $table.currencyScale,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get targetDate => $composableBuilder(
-    column: $table.targetDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isArchived => $composableBuilder(
-    column: $table.isArchived,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get sourceId => $composableBuilder(
-    column: $table.sourceId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> jarsRefs(
-    Expression<bool> Function($$JarsTableFilterComposer f) f,
-  ) {
-    final $$JarsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.jars,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$JarsTableFilterComposer(
-            $db: $db,
-            $table: $db.jars,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> transactionsRefs(
-    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
-  ) {
-    final $$TransactionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.transactions,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TransactionsTableFilterComposer(
-            $db: $db,
-            $table: $db.transactions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$SavingsGoalsTableOrderingComposer
-    extends Composer<_$AppDatabase, $SavingsGoalsTable> {
-  $$SavingsGoalsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get targetAmountMinor => $composableBuilder(
-    column: $table.targetAmountMinor,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get currency => $composableBuilder(
-    column: $table.currency,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get currencyScale => $composableBuilder(
-    column: $table.currencyScale,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get targetDate => $composableBuilder(
-    column: $table.targetDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isArchived => $composableBuilder(
-    column: $table.isArchived,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get sourceId => $composableBuilder(
-    column: $table.sourceId,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$SavingsGoalsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $SavingsGoalsTable> {
-  $$SavingsGoalsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<int> get targetAmountMinor => $composableBuilder(
-    column: $table.targetAmountMinor,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get currency =>
-      $composableBuilder(column: $table.currency, builder: (column) => column);
-
-  GeneratedColumn<int> get currencyScale => $composableBuilder(
-    column: $table.currencyScale,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get targetDate => $composableBuilder(
-    column: $table.targetDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get isArchived => $composableBuilder(
-    column: $table.isArchived,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<String> get sourceId =>
-      $composableBuilder(column: $table.sourceId, builder: (column) => column);
-
-  Expression<T> jarsRefs<T extends Object>(
-    Expression<T> Function($$JarsTableAnnotationComposer a) f,
-  ) {
-    final $$JarsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.jars,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$JarsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.jars,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> transactionsRefs<T extends Object>(
-    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
-  ) {
-    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.transactions,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TransactionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.transactions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$SavingsGoalsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $SavingsGoalsTable,
-          SavingsGoal,
-          $$SavingsGoalsTableFilterComposer,
-          $$SavingsGoalsTableOrderingComposer,
-          $$SavingsGoalsTableAnnotationComposer,
-          $$SavingsGoalsTableCreateCompanionBuilder,
-          $$SavingsGoalsTableUpdateCompanionBuilder,
-          (SavingsGoal, $$SavingsGoalsTableReferences),
-          SavingsGoal,
-          PrefetchHooks Function({bool jarsRefs, bool transactionsRefs})
-        > {
-  $$SavingsGoalsTableTableManager(_$AppDatabase db, $SavingsGoalsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$SavingsGoalsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$SavingsGoalsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$SavingsGoalsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<int> targetAmountMinor = const Value.absent(),
-                Value<String> currency = const Value.absent(),
-                Value<int> currencyScale = const Value.absent(),
-                Value<DateTime?> targetDate = const Value.absent(),
-                Value<bool> isArchived = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<String?> sourceId = const Value.absent(),
-              }) => SavingsGoalsCompanion(
-                id: id,
-                name: name,
-                targetAmountMinor: targetAmountMinor,
-                currency: currency,
-                currencyScale: currencyScale,
-                targetDate: targetDate,
-                isArchived: isArchived,
-                createdAt: createdAt,
-                sourceId: sourceId,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String name,
-                required int targetAmountMinor,
-                required String currency,
-                required int currencyScale,
-                Value<DateTime?> targetDate = const Value.absent(),
-                Value<bool> isArchived = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<String?> sourceId = const Value.absent(),
-              }) => SavingsGoalsCompanion.insert(
-                id: id,
-                name: name,
-                targetAmountMinor: targetAmountMinor,
-                currency: currency,
-                currencyScale: currencyScale,
-                targetDate: targetDate,
-                isArchived: isArchived,
-                createdAt: createdAt,
-                sourceId: sourceId,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$SavingsGoalsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({jarsRefs = false, transactionsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (jarsRefs) db.jars,
-                    if (transactionsRefs) db.transactions,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (jarsRefs)
-                        await $_getPrefetchedData<
-                          SavingsGoal,
-                          $SavingsGoalsTable,
-                          Jar
-                        >(
-                          currentTable: table,
-                          referencedTable: $$SavingsGoalsTableReferences
-                              ._jarsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$SavingsGoalsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).jarsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.goalId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (transactionsRefs)
-                        await $_getPrefetchedData<
-                          SavingsGoal,
-                          $SavingsGoalsTable,
-                          Transaction
-                        >(
-                          currentTable: table,
-                          referencedTable: $$SavingsGoalsTableReferences
-                              ._transactionsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$SavingsGoalsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).transactionsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.goalId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$SavingsGoalsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $SavingsGoalsTable,
-      SavingsGoal,
-      $$SavingsGoalsTableFilterComposer,
-      $$SavingsGoalsTableOrderingComposer,
-      $$SavingsGoalsTableAnnotationComposer,
-      $$SavingsGoalsTableCreateCompanionBuilder,
-      $$SavingsGoalsTableUpdateCompanionBuilder,
-      (SavingsGoal, $$SavingsGoalsTableReferences),
-      SavingsGoal,
-      PrefetchHooks Function({bool jarsRefs, bool transactionsRefs})
-    >;
 typedef $$JarsTableCreateCompanionBuilder =
     JarsCompanion Function({
       Value<int> id,
@@ -8861,7 +8996,6 @@ typedef $$JarsTableCreateCompanionBuilder =
       Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<String> kind,
-      Value<int?> goalId,
     });
 typedef $$JarsTableUpdateCompanionBuilder =
     JarsCompanion Function({
@@ -8876,7 +9010,6 @@ typedef $$JarsTableUpdateCompanionBuilder =
       Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<String> kind,
-      Value<int?> goalId,
     });
 
 final class $$JarsTableReferences
@@ -8900,23 +9033,6 @@ final class $$JarsTableReferences
     );
   }
 
-  static $SavingsGoalsTable _goalIdTable(_$AppDatabase db) =>
-      db.savingsGoals.createAlias('jars__goal_id__savings_goals__id');
-
-  $$SavingsGoalsTableProcessedTableManager? get goalId {
-    final $_column = $_itemColumn<int>('goal_id');
-    if ($_column == null) return null;
-    final manager = $$SavingsGoalsTableTableManager(
-      $_db,
-      $_db.savingsGoals,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
   static MultiTypedResultKey<$CategoriesTable, List<Category>>
   _categoriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.categories,
@@ -8930,6 +9046,25 @@ final class $$JarsTableReferences
     ).filter((f) => f.jarId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_categoriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$JarGoalsTable, List<JarGoal>> _jarGoalsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.jarGoals,
+    aliasName: 'jars__id__jar_goals__jar_id',
+  );
+
+  $$JarGoalsTableProcessedTableManager get jarGoalsRefs {
+    final manager = $$JarGoalsTableTableManager(
+      $_db,
+      $_db.jarGoals,
+    ).filter((f) => f.jarId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_jarGoalsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -9017,29 +9152,6 @@ class $$JarsTableFilterComposer extends Composer<_$AppDatabase, $JarsTable> {
     return composer;
   }
 
-  $$SavingsGoalsTableFilterComposer get goalId {
-    final $$SavingsGoalsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.savingsGoals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingsGoalsTableFilterComposer(
-            $db: $db,
-            $table: $db.savingsGoals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
   Expression<bool> categoriesRefs(
     Expression<bool> Function($$CategoriesTableFilterComposer f) f,
   ) {
@@ -9056,6 +9168,31 @@ class $$JarsTableFilterComposer extends Composer<_$AppDatabase, $JarsTable> {
           }) => $$CategoriesTableFilterComposer(
             $db: $db,
             $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> jarGoalsRefs(
+    Expression<bool> Function($$JarGoalsTableFilterComposer f) f,
+  ) {
+    final $$JarGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.jarGoals,
+      getReferencedColumn: (t) => t.jarId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.jarGoals,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -9146,29 +9283,6 @@ class $$JarsTableOrderingComposer extends Composer<_$AppDatabase, $JarsTable> {
     );
     return composer;
   }
-
-  $$SavingsGoalsTableOrderingComposer get goalId {
-    final $$SavingsGoalsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.savingsGoals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingsGoalsTableOrderingComposer(
-            $db: $db,
-            $table: $db.savingsGoals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$JarsTableAnnotationComposer
@@ -9237,29 +9351,6 @@ class $$JarsTableAnnotationComposer
     return composer;
   }
 
-  $$SavingsGoalsTableAnnotationComposer get goalId {
-    final $$SavingsGoalsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.savingsGoals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingsGoalsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.savingsGoals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
   Expression<T> categoriesRefs<T extends Object>(
     Expression<T> Function($$CategoriesTableAnnotationComposer a) f,
   ) {
@@ -9276,6 +9367,31 @@ class $$JarsTableAnnotationComposer
           }) => $$CategoriesTableAnnotationComposer(
             $db: $db,
             $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> jarGoalsRefs<T extends Object>(
+    Expression<T> Function($$JarGoalsTableAnnotationComposer a) f,
+  ) {
+    final $$JarGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.jarGoals,
+      getReferencedColumn: (t) => t.jarId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.jarGoals,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -9301,8 +9417,8 @@ class $$JarsTableTableManager
           Jar,
           PrefetchHooks Function({
             bool walletId,
-            bool goalId,
             bool categoriesRefs,
+            bool jarGoalsRefs,
           })
         > {
   $$JarsTableTableManager(_$AppDatabase db, $JarsTable table)
@@ -9329,7 +9445,6 @@ class $$JarsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> kind = const Value.absent(),
-                Value<int?> goalId = const Value.absent(),
               }) => JarsCompanion(
                 id: id,
                 walletId: walletId,
@@ -9342,7 +9457,6 @@ class $$JarsTableTableManager
                 isArchived: isArchived,
                 createdAt: createdAt,
                 kind: kind,
-                goalId: goalId,
               ),
           createCompanionCallback:
               ({
@@ -9357,7 +9471,6 @@ class $$JarsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> kind = const Value.absent(),
-                Value<int?> goalId = const Value.absent(),
               }) => JarsCompanion.insert(
                 id: id,
                 walletId: walletId,
@@ -9370,7 +9483,6 @@ class $$JarsTableTableManager
                 isArchived: isArchived,
                 createdAt: createdAt,
                 kind: kind,
-                goalId: goalId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -9379,10 +9491,17 @@ class $$JarsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({walletId = false, goalId = false, categoriesRefs = false}) {
+              ({
+                walletId = false,
+                categoriesRefs = false,
+                jarGoalsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [if (categoriesRefs) db.categories],
+                  explicitlyWatchedTables: [
+                    if (categoriesRefs) db.categories,
+                    if (jarGoalsRefs) db.jarGoals,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -9412,19 +9531,6 @@ class $$JarsTableTableManager
                                   )
                                   as T;
                         }
-                        if (goalId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.goalId,
-                                    referencedTable: $$JarsTableReferences
-                                        ._goalIdTable(db),
-                                    referencedColumn: $$JarsTableReferences
-                                        ._goalIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
-                        }
 
                         return state;
                       },
@@ -9440,6 +9546,19 @@ class $$JarsTableTableManager
                             table,
                             p0,
                           ).categoriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.jarId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (jarGoalsRefs)
+                        await $_getPrefetchedData<Jar, $JarsTable, JarGoal>(
+                          currentTable: table,
+                          referencedTable: $$JarsTableReferences
+                              ._jarGoalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$JarsTableReferences(db, table, p0).jarGoalsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.jarId == item.id,
@@ -9466,7 +9585,11 @@ typedef $$JarsTableProcessedTableManager =
       $$JarsTableUpdateCompanionBuilder,
       (Jar, $$JarsTableReferences),
       Jar,
-      PrefetchHooks Function({bool walletId, bool goalId, bool categoriesRefs})
+      PrefetchHooks Function({
+        bool walletId,
+        bool categoriesRefs,
+        bool jarGoalsRefs,
+      })
     >;
 typedef $$CategoriesTableCreateCompanionBuilder =
     CategoriesCompanion Function({
@@ -10686,6 +10809,481 @@ typedef $$CategoriesTableProcessedTableManager =
         bool transactionLinesRefs,
         bool transactionTemplatesRefs,
       })
+    >;
+typedef $$SavingsGoalsTableCreateCompanionBuilder =
+    SavingsGoalsCompanion Function({
+      Value<int> id,
+      required String name,
+      required int targetAmountMinor,
+      required String currency,
+      required int currencyScale,
+      Value<DateTime?> targetDate,
+      Value<bool> isArchived,
+      Value<DateTime> createdAt,
+      Value<String?> sourceId,
+    });
+typedef $$SavingsGoalsTableUpdateCompanionBuilder =
+    SavingsGoalsCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<int> targetAmountMinor,
+      Value<String> currency,
+      Value<int> currencyScale,
+      Value<DateTime?> targetDate,
+      Value<bool> isArchived,
+      Value<DateTime> createdAt,
+      Value<String?> sourceId,
+    });
+
+final class $$SavingsGoalsTableReferences
+    extends BaseReferences<_$AppDatabase, $SavingsGoalsTable, SavingsGoal> {
+  $$SavingsGoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
+  _transactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.transactions,
+    aliasName: 'savings_goals__id__transactions__goal_id',
+  );
+
+  $$TransactionsTableProcessedTableManager get transactionsRefs {
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_transactionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$JarGoalsTable, List<JarGoal>> _jarGoalsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.jarGoals,
+    aliasName: 'savings_goals__id__jar_goals__goal_id',
+  );
+
+  $$JarGoalsTableProcessedTableManager get jarGoalsRefs {
+    final manager = $$JarGoalsTableTableManager(
+      $_db,
+      $_db.jarGoals,
+    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_jarGoalsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SavingsGoalsTableFilterComposer
+    extends Composer<_$AppDatabase, $SavingsGoalsTable> {
+  $$SavingsGoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetAmountMinor => $composableBuilder(
+    column: $table.targetAmountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currencyScale => $composableBuilder(
+    column: $table.currencyScale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> transactionsRefs(
+    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
+  ) {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> jarGoalsRefs(
+    Expression<bool> Function($$JarGoalsTableFilterComposer f) f,
+  ) {
+    final $$JarGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.jarGoals,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.jarGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SavingsGoalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavingsGoalsTable> {
+  $$SavingsGoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetAmountMinor => $composableBuilder(
+    column: $table.targetAmountMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currencyScale => $composableBuilder(
+    column: $table.currencyScale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavingsGoalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavingsGoalsTable> {
+  $$SavingsGoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get targetAmountMinor => $composableBuilder(
+    column: $table.targetAmountMinor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<int> get currencyScale => $composableBuilder(
+    column: $table.currencyScale,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceId =>
+      $composableBuilder(column: $table.sourceId, builder: (column) => column);
+
+  Expression<T> transactionsRefs<T extends Object>(
+    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> jarGoalsRefs<T extends Object>(
+    Expression<T> Function($$JarGoalsTableAnnotationComposer a) f,
+  ) {
+    final $$JarGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.jarGoals,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.jarGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SavingsGoalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavingsGoalsTable,
+          SavingsGoal,
+          $$SavingsGoalsTableFilterComposer,
+          $$SavingsGoalsTableOrderingComposer,
+          $$SavingsGoalsTableAnnotationComposer,
+          $$SavingsGoalsTableCreateCompanionBuilder,
+          $$SavingsGoalsTableUpdateCompanionBuilder,
+          (SavingsGoal, $$SavingsGoalsTableReferences),
+          SavingsGoal,
+          PrefetchHooks Function({bool transactionsRefs, bool jarGoalsRefs})
+        > {
+  $$SavingsGoalsTableTableManager(_$AppDatabase db, $SavingsGoalsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavingsGoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavingsGoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavingsGoalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> targetAmountMinor = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<int> currencyScale = const Value.absent(),
+                Value<DateTime?> targetDate = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> sourceId = const Value.absent(),
+              }) => SavingsGoalsCompanion(
+                id: id,
+                name: name,
+                targetAmountMinor: targetAmountMinor,
+                currency: currency,
+                currencyScale: currencyScale,
+                targetDate: targetDate,
+                isArchived: isArchived,
+                createdAt: createdAt,
+                sourceId: sourceId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required int targetAmountMinor,
+                required String currency,
+                required int currencyScale,
+                Value<DateTime?> targetDate = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> sourceId = const Value.absent(),
+              }) => SavingsGoalsCompanion.insert(
+                id: id,
+                name: name,
+                targetAmountMinor: targetAmountMinor,
+                currency: currency,
+                currencyScale: currencyScale,
+                targetDate: targetDate,
+                isArchived: isArchived,
+                createdAt: createdAt,
+                sourceId: sourceId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SavingsGoalsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({transactionsRefs = false, jarGoalsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (transactionsRefs) db.transactions,
+                    if (jarGoalsRefs) db.jarGoals,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (transactionsRefs)
+                        await $_getPrefetchedData<
+                          SavingsGoal,
+                          $SavingsGoalsTable,
+                          Transaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SavingsGoalsTableReferences
+                              ._transactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SavingsGoalsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).transactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.goalId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (jarGoalsRefs)
+                        await $_getPrefetchedData<
+                          SavingsGoal,
+                          $SavingsGoalsTable,
+                          JarGoal
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SavingsGoalsTableReferences
+                              ._jarGoalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SavingsGoalsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).jarGoalsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.goalId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SavingsGoalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavingsGoalsTable,
+      SavingsGoal,
+      $$SavingsGoalsTableFilterComposer,
+      $$SavingsGoalsTableOrderingComposer,
+      $$SavingsGoalsTableAnnotationComposer,
+      $$SavingsGoalsTableCreateCompanionBuilder,
+      $$SavingsGoalsTableUpdateCompanionBuilder,
+      (SavingsGoal, $$SavingsGoalsTableReferences),
+      SavingsGoal,
+      PrefetchHooks Function({bool transactionsRefs, bool jarGoalsRefs})
     >;
 typedef $$DebtsTableCreateCompanionBuilder =
     DebtsCompanion Function({
@@ -14926,6 +15524,577 @@ typedef $$AppEventsTableProcessedTableManager =
       AppEvent,
       PrefetchHooks Function()
     >;
+typedef $$JarGoalsTableCreateCompanionBuilder =
+    JarGoalsCompanion Function({
+      required int jarId,
+      required int goalId,
+      Value<int> percent,
+      Value<int> rowid,
+    });
+typedef $$JarGoalsTableUpdateCompanionBuilder =
+    JarGoalsCompanion Function({
+      Value<int> jarId,
+      Value<int> goalId,
+      Value<int> percent,
+      Value<int> rowid,
+    });
+
+final class $$JarGoalsTableReferences
+    extends BaseReferences<_$AppDatabase, $JarGoalsTable, JarGoal> {
+  $$JarGoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $JarsTable _jarIdTable(_$AppDatabase db) =>
+      db.jars.createAlias('jar_goals__jar_id__jars__id');
+
+  $$JarsTableProcessedTableManager get jarId {
+    final $_column = $_itemColumn<int>('jar_id')!;
+
+    final manager = $$JarsTableTableManager(
+      $_db,
+      $_db.jars,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_jarIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SavingsGoalsTable _goalIdTable(_$AppDatabase db) =>
+      db.savingsGoals.createAlias('jar_goals__goal_id__savings_goals__id');
+
+  $$SavingsGoalsTableProcessedTableManager get goalId {
+    final $_column = $_itemColumn<int>('goal_id')!;
+
+    final manager = $$SavingsGoalsTableTableManager(
+      $_db,
+      $_db.savingsGoals,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$JarGoalsTableFilterComposer
+    extends Composer<_$AppDatabase, $JarGoalsTable> {
+  $$JarGoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get percent => $composableBuilder(
+    column: $table.percent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$JarsTableFilterComposer get jarId {
+    final $$JarsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.jarId,
+      referencedTable: $db.jars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarsTableFilterComposer(
+            $db: $db,
+            $table: $db.jars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavingsGoalsTableFilterComposer get goalId {
+    final $$SavingsGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.savingsGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavingsGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.savingsGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$JarGoalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $JarGoalsTable> {
+  $$JarGoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get percent => $composableBuilder(
+    column: $table.percent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$JarsTableOrderingComposer get jarId {
+    final $$JarsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.jarId,
+      referencedTable: $db.jars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarsTableOrderingComposer(
+            $db: $db,
+            $table: $db.jars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavingsGoalsTableOrderingComposer get goalId {
+    final $$SavingsGoalsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.savingsGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavingsGoalsTableOrderingComposer(
+            $db: $db,
+            $table: $db.savingsGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$JarGoalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $JarGoalsTable> {
+  $$JarGoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get percent =>
+      $composableBuilder(column: $table.percent, builder: (column) => column);
+
+  $$JarsTableAnnotationComposer get jarId {
+    final $$JarsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.jarId,
+      referencedTable: $db.jars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JarsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.jars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SavingsGoalsTableAnnotationComposer get goalId {
+    final $$SavingsGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.savingsGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavingsGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.savingsGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$JarGoalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $JarGoalsTable,
+          JarGoal,
+          $$JarGoalsTableFilterComposer,
+          $$JarGoalsTableOrderingComposer,
+          $$JarGoalsTableAnnotationComposer,
+          $$JarGoalsTableCreateCompanionBuilder,
+          $$JarGoalsTableUpdateCompanionBuilder,
+          (JarGoal, $$JarGoalsTableReferences),
+          JarGoal,
+          PrefetchHooks Function({bool jarId, bool goalId})
+        > {
+  $$JarGoalsTableTableManager(_$AppDatabase db, $JarGoalsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$JarGoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$JarGoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$JarGoalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> jarId = const Value.absent(),
+                Value<int> goalId = const Value.absent(),
+                Value<int> percent = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JarGoalsCompanion(
+                jarId: jarId,
+                goalId: goalId,
+                percent: percent,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int jarId,
+                required int goalId,
+                Value<int> percent = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JarGoalsCompanion.insert(
+                jarId: jarId,
+                goalId: goalId,
+                percent: percent,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$JarGoalsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({jarId = false, goalId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (jarId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.jarId,
+                                referencedTable: $$JarGoalsTableReferences
+                                    ._jarIdTable(db),
+                                referencedColumn: $$JarGoalsTableReferences
+                                    ._jarIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (goalId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.goalId,
+                                referencedTable: $$JarGoalsTableReferences
+                                    ._goalIdTable(db),
+                                referencedColumn: $$JarGoalsTableReferences
+                                    ._goalIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$JarGoalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $JarGoalsTable,
+      JarGoal,
+      $$JarGoalsTableFilterComposer,
+      $$JarGoalsTableOrderingComposer,
+      $$JarGoalsTableAnnotationComposer,
+      $$JarGoalsTableCreateCompanionBuilder,
+      $$JarGoalsTableUpdateCompanionBuilder,
+      (JarGoal, $$JarGoalsTableReferences),
+      JarGoal,
+      PrefetchHooks Function({bool jarId, bool goalId})
+    >;
+typedef $$NotesTableCreateCompanionBuilder =
+    NotesCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<String> body,
+      Value<bool> isPinned,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$NotesTableUpdateCompanionBuilder =
+    NotesCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<String> body,
+      Value<bool> isPinned,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
+  $$NotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPinned => $composableBuilder(
+    column: $table.isPinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NotesTableOrderingComposer
+    extends Composer<_$AppDatabase, $NotesTable> {
+  $$NotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPinned => $composableBuilder(
+    column: $table.isPinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NotesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NotesTable> {
+  $$NotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPinned =>
+      $composableBuilder(column: $table.isPinned, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$NotesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NotesTable,
+          Note,
+          $$NotesTableFilterComposer,
+          $$NotesTableOrderingComposer,
+          $$NotesTableAnnotationComposer,
+          $$NotesTableCreateCompanionBuilder,
+          $$NotesTableUpdateCompanionBuilder,
+          (Note, BaseReferences<_$AppDatabase, $NotesTable, Note>),
+          Note,
+          PrefetchHooks Function()
+        > {
+  $$NotesTableTableManager(_$AppDatabase db, $NotesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<bool> isPinned = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => NotesCompanion(
+                id: id,
+                title: title,
+                body: body,
+                isPinned: isPinned,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<bool> isPinned = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => NotesCompanion.insert(
+                id: id,
+                title: title,
+                body: body,
+                isPinned: isPinned,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NotesTable,
+      Note,
+      $$NotesTableFilterComposer,
+      $$NotesTableOrderingComposer,
+      $$NotesTableAnnotationComposer,
+      $$NotesTableCreateCompanionBuilder,
+      $$NotesTableUpdateCompanionBuilder,
+      (Note, BaseReferences<_$AppDatabase, $NotesTable, Note>),
+      Note,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14934,11 +16103,11 @@ class $AppDatabaseManager {
       $TransactionsFtsTableTableManager(_db, _db.transactionsFts);
   $$WalletsTableTableManager get wallets =>
       $$WalletsTableTableManager(_db, _db.wallets);
-  $$SavingsGoalsTableTableManager get savingsGoals =>
-      $$SavingsGoalsTableTableManager(_db, _db.savingsGoals);
   $$JarsTableTableManager get jars => $$JarsTableTableManager(_db, _db.jars);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
+  $$SavingsGoalsTableTableManager get savingsGoals =>
+      $$SavingsGoalsTableTableManager(_db, _db.savingsGoals);
   $$DebtsTableTableManager get debts =>
       $$DebtsTableTableManager(_db, _db.debts);
   $$TransactionsTableTableManager get transactions =>
@@ -14958,4 +16127,8 @@ class $AppDatabaseManager {
       $$TransactionTagsTableTableManager(_db, _db.transactionTags);
   $$AppEventsTableTableManager get appEvents =>
       $$AppEventsTableTableManager(_db, _db.appEvents);
+  $$JarGoalsTableTableManager get jarGoals =>
+      $$JarGoalsTableTableManager(_db, _db.jarGoals);
+  $$NotesTableTableManager get notes =>
+      $$NotesTableTableManager(_db, _db.notes);
 }

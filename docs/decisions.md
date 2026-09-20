@@ -2283,3 +2283,47 @@ dải "Chi theo hũ") đọc theo `sortOrder` nên tự theo.
 Chạy tay trên `tonyfino36`: kéo "Tiết kiệm dài hạn" lên đầu → khởi động lại app vẫn giữ thứ tự; chi
 tiết Thiết yếu chỉ có "an sang 30k" (không có "Tiêu vặt" đã tách sang Hưởng thụ); chi tiết Hưởng thụ
 có đúng "Tiêu vặt 20k".
+
+## 2026-09-20 · Hũ tiết kiệm gom NHIỀU quỹ (v15), thẻ hũ hiện hai con số, trang Ghi chú (v16)
+
+### 1. Một hũ tiết kiệm ↔ nhiều quỹ, mỗi quỹ một tỉ lệ (schema v15)
+
+Tony: *"ví dụ tôi có quỹ khám bệnh, hũ liên kết với hũ đó, số tiền hũ bằng tổng các quỹ liên quan.
+hoặc nếu không tổng các quỹ liên quan thì mỗi quỹ bao nhiêu % mặc định 100%. hũ đó có thể chiếm 0%
+1 tháng"*.
+
+`jars.goal_id` (v14, đúng một quỹ) chuyển thành bảng nối `jar_goals(jar_id, goal_id, percent)`.
+Migration chuyển dữ liệu TRƯỚC rồi mới `alterTable` bỏ cột — làm ngược là mất sạch dây nối mà không
+báo gì. `percent` mặc định 100: cứ tick một quỹ là gom cả quỹ; đặt 50 khi một quỹ dùng chung phải
+chia cho hai hũ, để tổng các hũ không đội lên.
+
+Hũ tiết kiệm giờ có HAI con số (hỏi Tony chọn, trả lời "cả hai"):
+- **Đã gửi kỳ này** = tổng tiền vào các quỹ của hũ TRONG KỲ (đã nhân tỉ lệ) — so với hạn mức kỳ.
+- **Tổng quỹ đang có** = số dư tích luỹ của các quỹ đó (mọi thời gian, đã nhân tỉ lệ).
+
+**Hũ 0%**: hợp lệ với hũ tiết kiệm (hũ tiêu vẫn phải ≥1% — 0% là hũ không bao giờ nhận đồng nào, gần
+như chắc chắn gõ nhầm). Khi 0% thì không có mốc "kỳ này phải gửi bao nhiêu", nên thanh tiến độ
+chuyển sang đo **tiền đã để dành / tổng đích các quỹ** (Tony: "vẫn có thanh, số tiền tiết kiệm được
+từ các quỹ"), và ô "còn cần gửi" đổi thành "Còn thiếu" so với đích.
+
+### 2. Thẻ hũ hiện "đã tiêu / tổng nên tiêu" bằng số
+
+Trước: một số lớn duy nhất là HẠN MỨC. Một mình nó không nói được tháng này đang đi tới đâu, mà
+người ta nhìn vào thẻ hũ chính là để hỏi câu đó. Giờ góc phải là `đã tiêu / hạn mức`; dòng dưới thôi
+lặp lại "đã tiêu", chỉ còn phần còn lại (hũ tiết kiệm: tổng quỹ đang có / đích).
+
+### 3. Trang Ghi chú (schema v16)
+
+Bảng `notes(title, body, is_pinned, created_at, updated_at)`, vào từ Quản lý → Ghi chú. Cố ý KHÔNG
+dính gì tới giao dịch: không danh mục, không số tiền, không ngày. Mỗi trường bắt phải điền là một lý
+do để thôi ghi chú. Tiêu đề để trống được — danh sách tự lấy dòng đầu của nội dung làm nhãn
+(`noteDisplayTitle`) và bỏ đúng dòng đó khỏi phần xem trước để không lặp. Ghim KHÔNG đụng
+`updatedAt`: ghim không phải sửa nội dung, để nó đẩy ghi chú lên đầu danh sách "mới sửa" là nói sai.
+Soạn ghi chú là MÀN RIÊNG, không phải sheet — nội dung dài thì bàn phím ăn gần hết sheet.
+
+Cả `jar_goals` lẫn `notes` vào `BackupService` ngay trong cùng bản (luật đã trả giá một lần với bảng
+`jars`), có test round-trip và test "bản sao lưu cũ không có khoá này vẫn khôi phục được".
+
+Kiểm chứng: 1132 test xanh (+41), analyze sạch, `check_arch.sh` PASS. Chạy tay trên `tonyfino36`:
+cài đè 1.0.8, gom hũ "Tiết kiệm dài hạn" vào 2 quỹ (Mua nha 50%, Kham benh 100%) và đặt hũ 0% →
+"Đã gửi kỳ này 2.500.000" (đúng 5tr × 50%), thanh đo theo đích 45tr; tạo/sửa/ghim/xoá ghi chú.

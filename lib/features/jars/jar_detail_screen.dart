@@ -14,6 +14,7 @@ import '../../ui/app_card.dart';
 import '../../ui/category_avatar.dart';
 import '../../ui/day_header.dart';
 import '../../ui/empty_state.dart';
+import '../../ui/money_text.dart';
 import '../../ui/transaction_row.dart';
 import '../categories/category_detail_screen.dart';
 import '../home/home_period_provider.dart';
@@ -77,6 +78,7 @@ class JarDetailScreen extends ConsumerWidget {
 
     final jar = progress.jar;
     final saving = progress.kind == JarKind.saving;
+    final remainingOfPeriod = progress.remaining.minorUnits;
 
     return Scaffold(
       appBar: AppBar(
@@ -97,8 +99,8 @@ class JarDetailScreen extends ConsumerWidget {
                   Text(jar.name, overflow: TextOverflow.ellipsis),
                   Text(
                     saving
-                        ? '${jar.percent}% · Tiết kiệm'
-                              '${progress.goalName == null ? '' : ' → ${progress.goalName}'}'
+                        ? '${jar.percent}% · Tiết kiệm · '
+                              '${progress.goals.length} quỹ'
                         : '${jar.percent}% · ${progress.categoryCount} danh mục',
                     overflow: TextOverflow.ellipsis,
                     style: context.text.labelSmall?.copyWith(
@@ -149,6 +151,15 @@ class JarDetailScreen extends ConsumerWidget {
                     rangeLabel: period.label,
                   ),
                 ],
+                if (saving && progress.goals.isNotEmpty) ...[
+                  SizedBox(height: context.space.lg),
+                  Text('Quỹ trong hũ', style: context.text.titleMedium),
+                  SizedBox(height: context.space.sm),
+                  for (final g in progress.goals) ...[
+                    _JarGoalCard(goal: g, jarRemainingMinor: remainingOfPeriod),
+                    SizedBox(height: context.space.sm),
+                  ],
+                ],
                 SizedBox(height: context.space.lg),
                 Text(
                   saving ? 'Các lần nạp/rút quỹ' : 'Giao dịch',
@@ -172,10 +183,16 @@ class _JarSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final saving = progress.kind == JarKind.saving;
-    final remaining = progress.remaining;
+    var remaining = progress.remaining;
     final String remainingLabel;
     Color? remainingColor;
-    if (saving) {
+    if (progress.tracksGoalTotal) {
+      // Hũ 0%: không có mốc của KỲ, nên ô thứ ba nói về ĐÍCH các quỹ —
+      // đúng thứ thanh tiến độ ngay dưới đang đo.
+      remaining = progress.goalTarget - progress.savedTotal;
+      remainingLabel = remaining.minorUnits <= 0 ? 'Đã đạt đích' : 'Còn thiếu';
+      if (remaining.minorUnits <= 0) remainingColor = context.colors.budgetOk;
+    } else if (saving) {
       remainingLabel = remaining.minorUnits <= 0 ? 'Đã đủ, dư' : 'Còn cần gửi';
       if (remaining.minorUnits <= 0) remainingColor = context.colors.budgetOk;
     } else if (remaining.minorUnits < 0) {
@@ -200,7 +217,7 @@ class _JarSummaryCard extends StatelessWidget {
               ),
               Expanded(
                 child: JarStat(
-                  label: saving ? 'Đã gửi' : 'Đã tiêu',
+                  label: saving ? 'Đã gửi kỳ này' : 'Đã tiêu',
                   amount: progress.used,
                 ),
               ),
@@ -215,25 +232,36 @@ class _JarSummaryCard extends StatelessWidget {
           ),
           SizedBox(height: context.space.md),
           JarProgressBar(progress: progress, height: 8),
-          if (saving &&
-              progress.jar.goalId != null &&
-              progress.goalName != null)
-            Padding(
-              padding: EdgeInsets.only(top: context.space.xs),
-              child: TextButton.icon(
-                onPressed: () => showSavingsContributionSheet(
-                  context: context,
-                  goalId: progress.jar.goalId!,
-                  goalName: progress.goalName!,
-                  move: SavingsMove.deposit,
-                  prefillMinor: remaining.minorUnits > 0
-                      ? remaining.minorUnits
-                      : null,
+          if (saving && progress.goals.isNotEmpty) ...[
+            SizedBox(height: context.space.xs),
+            // Hai con số khác nhau, Tony muốn thấy cả hai: ô trên là tiền
+            // BỎ VÀO trong kỳ, dòng này là tiền ĐANG CÓ trong các quỹ.
+            Row(
+              children: [
+                Text(
+                  'Tổng quỹ đang có ',
+                  style: context.text.labelMedium?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
                 ),
-                icon: const Icon(kIconAdd, size: 18),
-                label: Text('Gửi vào "${progress.goalName}"'),
-              ),
+                MoneyText(
+                  progress.savedTotal,
+                  size: MoneySize.small,
+                  signed: false,
+                ),
+                if (progress.goalTarget.minorUnits > 0)
+                  Text(
+                    AmountVisibility.mask(
+                      context,
+                      ' / ${progress.goalTarget.format()}',
+                    ),
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+              ],
             ),
+          ],
         ],
       ),
     );
@@ -490,6 +518,88 @@ class _JarTransactionList extends ConsumerWidget {
             ),
         ],
       ],
+    );
+  }
+}
+
+/// Một quỹ trong hũ tiết kiệm: tháng này bỏ vào bao nhiêu, đang có bao
+/// nhiêu, và nút gửi thêm cho ĐÚNG quỹ đó.
+class _JarGoalCard extends StatelessWidget {
+  const _JarGoalCard({required this.goal, required this.jarRemainingMinor});
+
+  final JarGoalProgress goal;
+
+  /// Phần còn thiếu của CẢ HŨ trong kỳ — điền sẵn khi hũ chỉ có ích một
+  /// chỗ để bỏ tiền vào; nhiều quỹ thì để Tony tự gõ, app không đoán chia.
+  final int jarRemainingMinor;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  goal.goal.name,
+                  style: context.text.bodyLarge,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Tỉ lệ chỉ hiện khi KHÁC 100% — "100%" ở mọi hàng là nhiễu.
+              if (goal.percent != 100)
+                Text(
+                  '${goal.percent}% thuộc hũ',
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: context.space.xs),
+          Row(
+            spacing: context.space.sm,
+            children: [
+              Expanded(
+                child: JarStat(
+                  label: 'Gửi kỳ này',
+                  amount: Money.vnd(goal.depositedMinor),
+                ),
+              ),
+              Expanded(
+                child: JarStat(
+                  label: 'Đang có',
+                  amount: Money.vnd(goal.savedMinor),
+                ),
+              ),
+              Expanded(
+                child: JarStat(
+                  label: 'Đích',
+                  amount: Money.vnd(goal.targetMinor),
+                ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => showSavingsContributionSheet(
+                context: context,
+                goalId: goal.goal.id,
+                goalName: goal.goal.name,
+                move: SavingsMove.deposit,
+                savedMinor: goal.savedMinor,
+                targetAmountMinor: goal.targetMinor,
+                prefillMinor: jarRemainingMinor > 0 ? jarRemainingMinor : null,
+              ),
+              icon: const Icon(kIconAdd, size: 18),
+              label: const Text('Gửi vào quỹ này'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

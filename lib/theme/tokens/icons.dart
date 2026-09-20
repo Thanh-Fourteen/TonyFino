@@ -781,6 +781,15 @@ const kIconCallSplit = IconData(
   fontFamily: _fontFamily,
   fontPackage: _fontPackage,
 );
+/// Ghim ghi chú (v16). Codepoint xác nhận trong
+/// `material_symbols_icons-4.2960.0/lib/symbols.dart` (`push_pin`), không
+/// đoán — cùng kỷ luật với mọi icon khác ở file này.
+const kIconPushPin = IconData(
+  0xf10d,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+
 const kIconBookmark = IconData(
   0xe8e7,
   fontFamily: _fontFamily,

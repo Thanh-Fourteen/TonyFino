@@ -78,6 +78,19 @@ enum JarKind {
       raw == saving.dbValue ? JarKind.saving : JarKind.spend;
 }
 
+/// Một dây nối hũ ↔ quỹ đang được soạn ở UI (chưa ghi xuống DB).
+class JarGoalLink {
+  const JarGoalLink({required this.goalId, this.percent = 100});
+
+  final int goalId;
+
+  /// Phần của quỹ thuộc về hũ, 1–100. Mặc định 100 = cả quỹ.
+  final int percent;
+
+  JarGoalLink copyWith({int? percent}) =>
+      JarGoalLink(goalId: goalId, percent: percent ?? this.percent);
+}
+
 extension JarKindX on Jar {
   JarKind get jarKind => JarKind.parse(kind);
 }
@@ -89,7 +102,7 @@ class JarProgress {
     required this.allotted,
     required this.used,
     required this.categoryCount,
-    this.goalName,
+    this.goals = const [],
   });
 
   final Jar jar;
@@ -106,9 +119,20 @@ class JarProgress {
 
   final int categoryCount;
 
-  /// Tên quỹ mà hũ tiết kiệm đổ vào — `null` khi chưa gắn quỹ nào (hoặc hũ
-  /// tiêu).
-  final String? goalName;
+  /// Các quỹ hũ tiết kiệm này gom (v15) — rỗng với hũ tiêu, hoặc hũ tiết
+  /// kiệm chưa gắn quỹ nào.
+  final List<JarGoalProgress> goals;
+
+  String? get goalName => goals.length == 1 ? goals.single.goal.name : null;
+
+  /// Tổng tiền ĐANG CÓ trong các quỹ của hũ (mọi thời gian, đã nhân tỉ lệ
+  /// từng quỹ) — khác [used] là tiền gửi vào TRONG KỲ. Tony muốn thấy cả
+  /// hai: "tháng này bỏ vào bao nhiêu" và "đang để dành được bao nhiêu".
+  Money get savedTotal => Money.vnd(goals.fold(0, (s, g) => s + g.savedMinor));
+
+  /// Tổng đích của các quỹ (đã nhân tỉ lệ) — mốc cho thanh tiến độ khi hũ
+  /// không lấy phần trăm thu nhập nào trong kỳ. 0 = không quỹ nào đặt đích.
+  Money get goalTarget => Money.vnd(goals.fold(0, (s, g) => s + g.targetMinor));
 
   Money get remaining => allotted - used;
 
@@ -123,8 +147,44 @@ class JarProgress {
       allotted.minorUnits > 0 &&
       used.minorUnits >= allotted.minorUnits;
 
-  double get ratio =>
-      allotted.minorUnits == 0 ? 0 : used.minorUnits / allotted.minorUnits;
+  /// Hũ tiết kiệm KHÔNG lấy phần trăm nào của kỳ (0%) thì không có mốc
+  /// "kỳ này phải gửi bao nhiêu" — thanh chuyển sang đo tiền đã để dành
+  /// được trong các quỹ so với tổng đích của chúng. Tony chốt: hũ 0% vẫn
+  /// phải có thanh, đo theo tiền tiết kiệm được.
+  bool get tracksGoalTotal =>
+      kind == JarKind.saving && allotted.minorUnits == 0 && goals.isNotEmpty;
+
+  double get ratio {
+    if (tracksGoalTotal) {
+      final target = goalTarget.minorUnits;
+      return target == 0 ? 0 : savedTotal.minorUnits / target;
+    }
+    return allotted.minorUnits == 0 ? 0 : used.minorUnits / allotted.minorUnits;
+  }
+}
+
+/// Một quỹ trong một hũ tiết kiệm, kèm số liệu đã NHÂN tỉ lệ của dây nối.
+class JarGoalProgress {
+  const JarGoalProgress({
+    required this.goal,
+    required this.percent,
+    required this.depositedMinor,
+    required this.savedMinor,
+  });
+
+  final SavingsGoal goal;
+
+  /// Phần của quỹ này thuộc hũ, 0–100 (mặc định 100 = cả quỹ).
+  final int percent;
+
+  /// Gửi RÒNG vào quỹ TRONG KỲ (nạp trừ rút), đã nhân [percent].
+  final int depositedMinor;
+
+  /// Tiền đang có trong quỹ (mọi thời gian), đã nhân [percent].
+  final int savedMinor;
+
+  /// Đích của quỹ, đã nhân [percent]. 0 = quỹ không đặt đích.
+  int get targetMinor => goal.targetAmountMinor * percent ~/ 100;
 }
 
 /// Bộ hũ của một kỳ + nguồn chia của nó.
@@ -154,6 +214,10 @@ class JarsOverview {
       Money.vnd(jars.fold(0, (s, p) => s + p.used.minorUnits));
 
   Money get totalRemaining => totalAllotted - totalUsed;
+
+  /// Tổng tiền đang có trong mọi quỹ được các hũ tiết kiệm gom.
+  Money get totalSaved =>
+      Money.vnd(jars.fold(0, (s, p) => s + p.savedTotal.minorUnits));
 }
 
 class JarRepository {
@@ -246,6 +310,14 @@ class JarRepository {
       ..where(effGoalId.isNotNull())
       ..groupBy([effGoalId]);
 
+    // Tiền ĐANG CÓ trong từng quỹ — KHÔNG giới hạn kỳ (đó là điểm khác với
+    // [savedQuery]). Dùng chung quy ước dấu với `SavingsGoalRepository`.
+    final balanceExpr = effAmount.sum();
+    final balanceQuery = eff.selectOnly()
+      ..addColumns([effGoalId, balanceExpr])
+      ..where(effGoalId.isNotNull())
+      ..groupBy([effGoalId]);
+
     // Đếm mọi danh mục ĐƯỢC XẾP TƯỜNG MINH vào hũ, cả cha lẫn con — từ khi
     // danh mục con xếp riêng được, "3 danh mục" phải gồm cả con đã tách ra.
     // Con chỉ THỪA HƯỞNG hũ của cha thì không đếm thêm: đếm vậy ra những con
@@ -270,6 +342,7 @@ class JarRepository {
             _db.transactions,
             _db.transactionLines,
             _db.savingsGoals,
+            _db.jarGoals,
           },
         )
         .watch();
@@ -292,19 +365,45 @@ class JarRepository {
         for (final row in await savedQuery.get())
           row.read(effGoalId)!: -(row.read(savedExpr) ?? 0),
       };
+      final balanceByGoal = {
+        for (final row in await balanceQuery.get())
+          row.read(effGoalId)!: -(row.read(balanceExpr) ?? 0),
+      };
       final countByJar = {
         for (final row in await countQuery.get())
           row.read(c.jarId)!: row.read(c.id.count()) ?? 0,
       };
-      final goalIds = jars.map((j) => j.goalId).nonNulls.toSet();
-      final goalNames = goalIds.isEmpty
-          ? const <int, String>{}
+      // Dây nối hũ ↔ quỹ (v15) + bản ghi quỹ, đọc một lần cho cả bộ hũ.
+      final links =
+          await (_db.select(_db.jarGoals)
+                ..where((l) => l.jarId.isIn([for (final j in jars) j.id]))
+                ..orderBy([(l) => OrderingTerm.asc(l.goalId)]))
+              .get();
+      final goalById = links.isEmpty
+          ? const <int, SavingsGoal>{}
           : {
-              for (final g in await (_db.select(
-                _db.savingsGoals,
-              )..where((g) => g.id.isIn(goalIds))).get())
-                g.id: g.name,
+              for (final g
+                  in await (_db.select(_db.savingsGoals)..where(
+                        (g) => g.id.isIn(links.map((l) => l.goalId).toSet()),
+                      ))
+                      .get())
+                g.id: g,
             };
+      final goalsByJar = <int, List<JarGoalProgress>>{};
+      for (final link in links) {
+        final goal = goalById[link.goalId];
+        if (goal == null) continue;
+        (goalsByJar[link.jarId] ??= []).add(
+          JarGoalProgress(
+            goal: goal,
+            percent: link.percent,
+            // Làm tròn XUỐNG như hạn mức hũ, cùng lý do.
+            depositedMinor:
+                (savedByGoal[link.goalId] ?? 0) * link.percent ~/ 100,
+            savedMinor: (balanceByGoal[link.goalId] ?? 0) * link.percent ~/ 100,
+          ),
+        );
+      }
 
       return JarsOverview(
         income: Money.vnd(incomeMinor),
@@ -317,14 +416,19 @@ class JarRepository {
               allotted: Money.vnd(incomeMinor * jar.percent ~/ 100),
               used: switch (jar.jarKind) {
                 JarKind.spend => Money.vnd(-(spentByJar[jar.id] ?? 0)),
+                // Hũ tiết kiệm gom NHIỀU quỹ: cộng phần thuộc hũ của từng
+                // quỹ (v15).
                 JarKind.saving => Money.vnd(
-                  jar.goalId == null ? 0 : (savedByGoal[jar.goalId] ?? 0),
+                  (goalsByJar[jar.id] ?? const <JarGoalProgress>[]).fold(
+                    0,
+                    (sum, g) => sum + g.depositedMinor,
+                  ),
                 ),
               },
               categoryCount: jar.jarKind == JarKind.spend
                   ? countByJar[jar.id] ?? 0
                   : 0,
-              goalName: jar.goalId == null ? null : goalNames[jar.goalId],
+              goals: goalsByJar[jar.id] ?? const <JarGoalProgress>[],
             ),
         ],
       );
@@ -369,7 +473,7 @@ class JarRepository {
     required String iconCode,
     bool carryOver = false,
     JarKind kind = JarKind.spend,
-    int? goalId,
+    List<JarGoalLink> goals = const [],
   }) async {
     try {
       final maxOrder =
@@ -390,11 +494,11 @@ class JarRepository {
               carryOver: Value(carryOver),
               sortOrder: Value((maxOrder ?? -1) + 1),
               kind: Value(kind.dbValue),
-              // Quỹ chỉ có nghĩa với hũ tiết kiệm — hũ tiêu mà mang theo một
-              // quỹ "ma" thì sau này đổi loại sẽ tự dưng đếm tiền của quỹ đó.
-              goalId: Value(kind == JarKind.saving ? goalId : null),
             ),
           );
+      // Quỹ chỉ có nghĩa với hũ tiết kiệm — hũ tiêu mà mang theo quỹ "ma"
+      // thì sau này đổi loại sẽ tự dưng đếm tiền của quỹ đó.
+      if (kind == JarKind.saving) await _writeGoalLinks(id, goals);
       return Ok(id);
     } catch (e) {
       return Err(AppError('Không tạo được hũ.', cause: e));
@@ -409,7 +513,7 @@ class JarRepository {
     required String iconCode,
     required bool carryOver,
     JarKind kind = JarKind.spend,
-    int? goalId,
+    List<JarGoalLink> goals = const [],
   }) async {
     try {
       await _db.transaction(() async {
@@ -421,9 +525,9 @@ class JarRepository {
             iconCode: Value(iconCode),
             carryOver: Value(carryOver),
             kind: Value(kind.dbValue),
-            goalId: Value(kind == JarKind.saving ? goalId : null),
           ),
         );
+        await _writeGoalLinks(id, kind == JarKind.saving ? goals : const []);
         // Hũ tiết kiệm không gom danh mục. Đổi một hũ tiêu thành hũ tiết
         // kiệm mà để nguyên dây nối thì các danh mục đó KẸT: chi của chúng
         // không còn tính vào hũ nào, và bảng chọn danh mục của hũ tiết kiệm
@@ -437,6 +541,42 @@ class JarRepository {
     } catch (e) {
       return Err(AppError('Không sửa được hũ.', cause: e));
     }
+  }
+
+  /// Ghi lại TOÀN BỘ dây nối hũ ↔ quỹ: xoá hết rồi chèn lại đúng danh sách
+  /// mới. Gọi trong transaction của caller — nửa chừng mà hỏng thì hũ mất
+  /// sạch quỹ mà vẫn còn là hũ tiết kiệm.
+  ///
+  /// Bỏ qua dây nối tỉ lệ 0 (không đóng góp gì, chỉ làm rối bảng) và kẹp
+  /// tỉ lệ vào 1–100.
+  Future<void> _writeGoalLinks(int jarId, List<JarGoalLink> goals) async {
+    await (_db.delete(_db.jarGoals)..where((l) => l.jarId.equals(jarId))).go();
+    final seen = <int>{};
+    for (final link in goals) {
+      if (!seen.add(link.goalId)) continue;
+      final percent = link.percent.clamp(1, 100);
+      await _db
+          .into(_db.jarGoals)
+          .insert(
+            JarGoalsCompanion.insert(
+              jarId: jarId,
+              goalId: link.goalId,
+              percent: Value(percent),
+            ),
+          );
+    }
+  }
+
+  /// Dây nối hiện có của một hũ — nguồn cho sheet sửa hũ.
+  Future<List<JarGoalLink>> goalLinksOf(int jarId) async {
+    final rows =
+        await (_db.select(_db.jarGoals)
+              ..where((l) => l.jarId.equals(jarId))
+              ..orderBy([(l) => OrderingTerm.asc(l.goalId)]))
+            .get();
+    return [
+      for (final r in rows) JarGoalLink(goalId: r.goalId, percent: r.percent),
+    ];
   }
 
   /// Ghi thứ tự mới sau khi Tony kéo thả: [jarIdsInOrder] là TOÀN BỘ hũ

@@ -4,6 +4,7 @@ import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
 import '../categories/categories_screen.dart';
 import '../jars/jars_screen.dart';
+import '../notes/notes_screen.dart';
 import '../savings/savings_screen.dart';
 import '../settings/recurring/recurring_screen.dart';
 import '../tags/tags_screen.dart';
@@ -40,6 +41,12 @@ class ManageScreen extends StatelessWidget {
                 label: 'Ví',
                 subtitle: 'Tài khoản, số dư ban đầu, chuyển khoản',
                 builder: (_) => const WalletsScreen(),
+              ),
+              _ManageRow(
+                icon: kIconEdit,
+                label: 'Ghi chú',
+                subtitle: 'Gõ gì tuỳ ý: cần mua, cần nhớ, dự tính',
+                builder: (_) => const NotesScreen(),
               ),
               _ManageRow(
                 icon: kIconInbox,

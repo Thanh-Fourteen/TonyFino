@@ -96,6 +96,7 @@ class TransactionRepository {
     DateTime? from,
     DateTime? to,
     int? goalId,
+    Set<int>? goalIds,
     bool excludeGoalLinked = false,
   }) {
     final linesCountExpr = subqueryExpression<int>(
@@ -124,6 +125,16 @@ class TransactionRepository {
           ..orderBy(_newestFirstJoined);
     if (goalId != null) {
       query.where(_db.transactions.goalId.equals(goalId));
+    }
+    // Hũ tiết kiệm gom NHIỀU quỹ (v15) — lấy mọi lần nạp/rút của cả nhóm.
+    // Tập RỖNG nghĩa là "không quỹ nào", phải ra danh sách rỗng chứ không
+    // phải bỏ lọc; caller chặn trước cho rõ ý, ở đây chặn nốt cho chắc.
+    if (goalIds != null) {
+      query.where(
+        goalIds.isEmpty
+            ? const Constant(false)
+            : _db.transactions.goalId.isIn(goalIds),
+      );
     }
     // Lọc theo hũ TIÊU: một lần nạp quỹ mang danh mục "Phát sinh" không phải
     // chi của hũ chứa "Phát sinh" (xem `JarRepository.watchProgress`), nên
