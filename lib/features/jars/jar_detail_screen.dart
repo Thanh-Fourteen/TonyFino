@@ -99,7 +99,8 @@ class JarDetailScreen extends ConsumerWidget {
                   Text(jar.name, overflow: TextOverflow.ellipsis),
                   Text(
                     saving
-                        ? '${jar.percent}% · Tiết kiệm · '
+                        ? '${jar.percent}% · '
+                              '${progress.spendsFromGoals ? 'Tiêu từ quỹ' : 'Tiết kiệm'} · '
                               '${progress.goals.length} quỹ'
                         : '${jar.percent}% · ${progress.categoryCount} danh mục',
                     overflow: TextOverflow.ellipsis,
@@ -156,7 +157,11 @@ class JarDetailScreen extends ConsumerWidget {
                   Text('Quỹ trong hũ', style: context.text.titleMedium),
                   SizedBox(height: context.space.sm),
                   for (final g in progress.goals) ...[
-                    _JarGoalCard(goal: g, jarRemainingMinor: remainingOfPeriod),
+                    _JarGoalCard(
+                      goal: g,
+                      jarRemainingMinor: remainingOfPeriod,
+                      spendsFromGoal: progress.spendsFromGoals,
+                    ),
                     SizedBox(height: context.space.sm),
                   ],
                 ],
@@ -186,7 +191,15 @@ class _JarSummaryCard extends StatelessWidget {
     var remaining = progress.remaining;
     final String remainingLabel;
     Color? remainingColor;
-    if (progress.tracksGoalTotal) {
+    if (progress.tracksGoalDrawdown) {
+      // Tiêu từ quỹ, không trần: ô thứ ba là tiền CÒN trong quỹ.
+      remaining = progress.goalBalance;
+      remainingLabel = 'Còn trong quỹ';
+      if (remaining.minorUnits <= 0) remainingColor = context.colors.budgetOver;
+    } else if (progress.spendsFromGoals) {
+      remainingLabel = remaining.minorUnits < 0 ? 'Vượt trần' : 'Còn được rút';
+      if (remaining.minorUnits < 0) remainingColor = context.colors.budgetOver;
+    } else if (progress.tracksGoalTotal) {
       // Hũ 0%: không có mốc của KỲ, nên ô thứ ba nói về ĐÍCH các quỹ —
       // đúng thứ thanh tiến độ ngay dưới đang đo.
       remaining = progress.goalTarget - progress.savedTotal;
@@ -217,7 +230,11 @@ class _JarSummaryCard extends StatelessWidget {
               ),
               Expanded(
                 child: JarStat(
-                  label: saving ? 'Đã gửi kỳ này' : 'Đã tiêu',
+                  label: saving
+                      ? (progress.spendsFromGoals
+                            ? 'Đã rút kỳ này'
+                            : 'Đã gửi kỳ này')
+                      : 'Đã tiêu',
                   amount: progress.used,
                 ),
               ),
@@ -239,7 +256,9 @@ class _JarSummaryCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Tổng quỹ đang có ',
+                  progress.spendsFromGoals
+                      ? 'Còn trong quỹ '
+                      : 'Tổng quỹ đang có ',
                   style: context.text.labelMedium?.copyWith(
                     color: context.colors.onSurfaceVariant,
                   ),
@@ -249,7 +268,8 @@ class _JarSummaryCard extends StatelessWidget {
                   size: MoneySize.small,
                   signed: false,
                 ),
-                if (progress.goalTarget.minorUnits > 0)
+                if (!progress.spendsFromGoals &&
+                    progress.goalTarget.minorUnits > 0)
                   Text(
                     AmountVisibility.mask(
                       context,
@@ -525,9 +545,16 @@ class _JarTransactionList extends ConsumerWidget {
 /// Một quỹ trong hũ tiết kiệm: tháng này bỏ vào bao nhiêu, đang có bao
 /// nhiêu, và nút gửi thêm cho ĐÚNG quỹ đó.
 class _JarGoalCard extends StatelessWidget {
-  const _JarGoalCard({required this.goal, required this.jarRemainingMinor});
+  const _JarGoalCard({
+    required this.goal,
+    required this.jarRemainingMinor,
+    required this.spendsFromGoal,
+  });
 
   final JarGoalProgress goal;
+
+  /// Hũ chiều "tiêu từ quỹ" — đổi nhãn và đổi nút sang RÚT.
+  final bool spendsFromGoal;
 
   /// Phần còn thiếu của CẢ HŨ trong kỳ — điền sẵn khi hũ chỉ có ích một
   /// chỗ để bỏ tiền vào; nhiều quỹ thì để Tony tự gõ, app không đoán chia.
@@ -564,20 +591,24 @@ class _JarGoalCard extends StatelessWidget {
             children: [
               Expanded(
                 child: JarStat(
-                  label: 'Gửi kỳ này',
-                  amount: Money.vnd(goal.depositedMinor),
+                  label: spendsFromGoal ? 'Rút kỳ này' : 'Gửi kỳ này',
+                  amount: Money.vnd(
+                    spendsFromGoal ? goal.withdrawnMinor : goal.depositedMinor,
+                  ),
                 ),
               ),
               Expanded(
                 child: JarStat(
-                  label: 'Đang có',
+                  label: spendsFromGoal ? 'Còn lại' : 'Đang có',
                   amount: Money.vnd(goal.savedMinor),
                 ),
               ),
               Expanded(
                 child: JarStat(
-                  label: 'Đích',
-                  amount: Money.vnd(goal.targetMinor),
+                  label: spendsFromGoal ? 'Đã nạp kỳ này' : 'Đích',
+                  amount: Money.vnd(
+                    spendsFromGoal ? goal.inMinor : goal.targetMinor,
+                  ),
                 ),
               ),
             ],
@@ -589,13 +620,19 @@ class _JarGoalCard extends StatelessWidget {
                 context: context,
                 goalId: goal.goal.id,
                 goalName: goal.goal.name,
-                move: SavingsMove.deposit,
+                move: spendsFromGoal
+                    ? SavingsMove.withdraw
+                    : SavingsMove.deposit,
                 savedMinor: goal.savedMinor,
                 targetAmountMinor: goal.targetMinor,
-                prefillMinor: jarRemainingMinor > 0 ? jarRemainingMinor : null,
+                prefillMinor: !spendsFromGoal && jarRemainingMinor > 0
+                    ? jarRemainingMinor
+                    : null,
               ),
               icon: const Icon(kIconAdd, size: 18),
-              label: const Text('Gửi vào quỹ này'),
+              label: Text(
+                spendsFromGoal ? 'Rút từ quỹ này' : 'Gửi vào quỹ này',
+              ),
             ),
           ),
         ],

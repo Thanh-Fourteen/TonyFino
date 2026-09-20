@@ -495,7 +495,6 @@ class _DraftCardState extends ConsumerState<DraftCard>
   }
 }
 
-
 /// Trạng thái lỗi — Luật bố cục Phase 8: MỘT THẺ, không phải toast. Giữ
 /// nguyên chữ gốc trong ô sửa được; ô số tiền tự focus, bàn phím bật ngay.
 class _ErrorCard extends ConsumerStatefulWidget {

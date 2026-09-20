@@ -161,6 +161,16 @@ class Jars extends Table {
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
+  /// Chiều của hũ QUỸ (v17): `'in'` = đo tiền NẠP VÀO các quỹ của hũ,
+  /// `'out'` = đo tiền RÚT TỪ quỹ ra để tiêu. Chỉ có nghĩa khi [kind] là
+  /// `'saving'`.
+  ///
+  /// Hai dạng thật sự khác nhau, không suy ra được từ nhau: "quỹ tiết kiệm
+  /// dài hạn" đo tiền bỏ vào (càng nhiều càng tốt), còn "quỹ khám bệnh" đo
+  /// tiền lấy ra tiêu (càng ít càng tốt, và mốc là tiền CÒN trong quỹ chứ
+  /// không phải phần trăm thu nhập).
+  TextColumn get goalFlow => text().withDefault(const Constant('in'))();
+
   /// `'spend'` (hũ tiêu) | `'saving'` (hũ tiết kiệm) — v14, xem `JarKind`.
   ///
   /// Hai loại đo NGƯỢC CHIỀU nhau nên phải là một cột, không suy ra được từ

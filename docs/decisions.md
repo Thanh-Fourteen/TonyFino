@@ -2327,3 +2327,42 @@ Cả `jar_goals` lẫn `notes` vào `BackupService` ngay trong cùng bản (lu�
 Kiểm chứng: 1132 test xanh (+41), analyze sạch, `check_arch.sh` PASS. Chạy tay trên `tonyfino36`:
 cài đè 1.0.8, gom hũ "Tiết kiệm dài hạn" vào 2 quỹ (Mua nha 50%, Kham benh 100%) và đặt hũ 0% →
 "Đã gửi kỳ này 2.500.000" (đúng 5tr × 50%), thanh đo theo đích 45tr; tạo/sửa/ghim/xoá ghi chú.
+
+## 2026-09-20 (tiếp) · Hũ quỹ có HAI CHIỀU (v17), Ghi chú thành trang rời
+
+### Hai chiều: nạp vào quỹ / tiêu từ quỹ
+
+Tony: *"hũ liên quan tới quỹ có 2 dạng: nạp tiền vào quỹ, sài tiền từ quỹ"*. Thêm `jars.goal_flow`
+(`'in'`/`'out'`, mặc định `'in'` — đúng với mọi hũ quỹ đang có).
+
+- **Nạp vào quỹ** (như cũ): đo tiền bỏ vào quỹ trong kỳ, mốc là phần trăm thu nhập (hoặc đích các
+  quỹ khi hũ 0%). Gửi nhiều là tốt.
+- **Tiêu từ quỹ**: đo tiền RÚT TỪ quỹ ra tiêu trong kỳ. Mốc tự nhiên là tiền CÒN trong quỹ — "quỹ
+  khám bệnh còn bao nhiêu" mới là câu hỏi. Đặt phần trăm > 0 thì đó là TRẦN rút của kỳ (vượt trần =
+  đỏ như hũ tiêu); để 0 thì thanh đo phần quỹ đã tiêu trong kỳ so với chính quỹ đó đầu kỳ.
+
+Truy vấn tách hai chiều bằng hai `SUM(...) FILTER` (nạp là dòng âm, rút là dòng dương) thay vì chỉ
+lấy số ròng — số ròng một mình không trả lời được cả hai câu hỏi.
+
+🚨 **Sửa sau khi bấm thật**: bản đầu tính "đã rút" theo số RÒNG (rút − nạp, kẹp ở 0). Trên máy, quỹ
+vừa được nạp 5tr trong kỳ nên rút 500k xong hũ vẫn hiện "Đã rút 0 ₫" — vô nghĩa. Chiều "tiêu từ quỹ"
+phải đọc TỔNG tiền rút: tháng này nạp thêm 1tr rồi lấy 300k đi khám thì "tiêu từ quỹ" là 300k, không
+phải 0. Chiều "nạp vào" vẫn đọc phần ròng (bỏ vào được bao nhiêu). Không bài test nào bắt được cái
+này vì cả hai cách đều "trông hợp lý" trên dữ liệu test cân bằng.
+
+Nhãn đi theo chiều ở cả ba chỗ (thẻ hũ, Trang chủ, màn chi tiết): "Đã rút kỳ này" · "Còn trong quỹ" ·
+nút "Rút từ quỹ này" thay cho "Gửi vào quỹ này". Hũ không đặt mức của kỳ thì bỏ hẳn vế "/ 0 ₫".
+
+### Ghi chú là trang rời
+
+Tony: *"trang note là trang rời"*. Thêm icon Ghi chú vào thanh trên cùng (thấy từ mọi tab), bên cạnh
+Tìm kiếm/Ẩn số tiền/Quản lý/Cài đặt — năm icon vẫn vừa một hàng ở 1080px, đã chụp màn kiểm. Giữ cả
+lối vào trong Quản lý vì màn đó là mục lục đầy đủ. KHÔNG thêm tab thứ năm ở thanh dưới (TODOS.md D:
+"5 tab là lúc nav bắt đầu trông như thanh công cụ bảng tính").
+
+### Bẫy tái diễn
+
+Test migration dừng ở phiên bản TRUNG GIAN (v13→v14, v14→v15) đọc dữ liệu bằng `db.select(db.jars)`
+— lớp bảng SỐNG luôn mang hình dạng mới nhất, nên thêm `goal_flow` ở v17 làm hai bài test cũ nổ "Null
+check operator used on a null value". Đọc bằng `customSelect('SELECT … FROM jars')` ở những bài dừng
+giữa chừng; cùng họ bẫy với `alterTable` dùng getter bảng sống (Phase 16).

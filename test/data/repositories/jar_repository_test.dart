@@ -540,4 +540,90 @@ void main() {
       expect(links.single.percent, 25);
     },
   );
+
+  test(
+    'hũ "TIÊU TỪ QUỸ": đếm tiền RÚT ra trong kỳ, mốc là tiền còn trong quỹ',
+    () async {
+      final quy = await goal('Khám bệnh');
+      await repo.insert(
+        walletId: walletId,
+        name: 'Khám bệnh',
+        percent: 0,
+        categoryColorId: 4,
+        iconCode: 'savings',
+        kind: JarKind.saving,
+        flow: JarGoalFlow.spend,
+        goals: [JarGoalLink(goalId: quy)],
+      );
+      await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+      // Kỳ trước nạp 3tr vào quỹ.
+      await tx(amountMinor: -3000000, at: DateTime(2026, 7, 5), goalId: quy);
+      // Kỳ này rút 800k ra tiêu, và nạp thêm 200k.
+      await tx(amountMinor: 800000, at: DateTime(2026, 8, 10), goalId: quy);
+      await tx(amountMinor: -200000, at: DateTime(2026, 8, 12), goalId: quy);
+
+      final p = (await august()).jars.single;
+      expect(p.spendsFromGoals, isTrue);
+      expect(
+        p.used.minorUnits,
+        800000,
+        reason: 'TỔNG tiền rút ra, KHÔNG trừ phần nạp thêm trong kỳ',
+      );
+      expect(p.savedTotal.minorUnits, 2400000, reason: '3tr − 800k + 200k');
+      expect(p.tracksGoalDrawdown, isTrue);
+      // Thanh đo phần quỹ đã tiêu trong kỳ: 800k / (2,4tr + 800k) = 25%.
+      expect(p.ratio, closeTo(0.25, 0.0001));
+      expect(p.isOverspent, isFalse);
+      expect(p.goals.single.inMinor, 200000);
+      expect(p.goals.single.outMinor, 800000);
+    },
+  );
+
+  test('hũ "tiêu từ quỹ" CÓ đặt trần: vượt trần là vượt', () async {
+    final quy = await goal('Khám bệnh');
+    await repo.insert(
+      walletId: walletId,
+      name: 'Khám bệnh',
+      percent: 5,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      flow: JarGoalFlow.spend,
+      goals: [JarGoalLink(goalId: quy)],
+    );
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    await tx(amountMinor: -3000000, at: DateTime(2026, 7, 5), goalId: quy);
+    await tx(amountMinor: 700000, at: DateTime(2026, 8, 10), goalId: quy);
+
+    final p = (await august()).jars.single;
+    expect(p.allotted.minorUnits, 500000, reason: 'trần 5% của 10tr');
+    expect(p.used.minorUnits, 700000);
+    expect(p.isOverspent, isTrue);
+    expect(p.tracksGoalDrawdown, isFalse);
+  });
+
+  test('hũ "nạp vào quỹ" KHÔNG đếm nhầm tiền rút thành tiền tiêu', () async {
+    final quy = await goal('Dài hạn');
+    await repo.insert(
+      walletId: walletId,
+      name: 'Tiết kiệm',
+      percent: 10,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      goals: [JarGoalLink(goalId: quy)],
+    );
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    await tx(amountMinor: -1000000, at: DateTime(2026, 8, 3), goalId: quy);
+    await tx(amountMinor: 400000, at: DateTime(2026, 8, 20), goalId: quy);
+
+    final p = (await august()).jars.single;
+    expect(p.spendsFromGoals, isFalse);
+    expect(
+      p.used.minorUnits,
+      600000,
+      reason: 'chiều NẠP đọc phần RÒNG: nạp 1tr trừ rút 400k',
+    );
+    expect(p.goals.single.outMinor, 400000);
+  });
 }

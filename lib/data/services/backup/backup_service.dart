@@ -612,6 +612,8 @@ class BackupService {
     // kiệm biến thành hũ tiêu. Dây nối tới quỹ nằm ở bảng riêng `jarGoals`
     // từ v15.
     'kind': j.kind,
+    // v17 — chiều của hũ quỹ (nạp vào / tiêu từ quỹ).
+    'goalFlow': j.goalFlow,
   };
 
   JarsCompanion _jarFromJson(Map<String, Object?> j) => JarsCompanion.insert(
@@ -627,6 +629,8 @@ class BackupService {
     createdAt: Value(DateTime.parse(j['createdAt'] as String)),
     // Bản sao lưu trước v14 không có khoá này — mọi hũ hồi đó là hũ tiêu.
     kind: Value(j['kind'] as String? ?? 'spend'),
+    // Bản sao lưu trước v17: mọi hũ quỹ hồi đó đều là chiều "nạp vào".
+    goalFlow: Value(j['goalFlow'] as String? ?? 'in'),
   );
 
   Map<String, Object?> _jarGoalToJson(JarGoal l) => {

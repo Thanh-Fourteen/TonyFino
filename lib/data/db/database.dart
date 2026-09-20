@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -374,6 +374,12 @@ class AppDatabase extends _$AppDatabase {
       // v15→v16: bảng `notes` — bảng MỚI hoàn toàn, không đụng dữ liệu cũ.
       from15To16: (m, schema) async {
         await m.createTable(schema.notes);
+      },
+      // v16→v17: hũ quỹ có hai chiều (nạp vào / tiêu từ quỹ). Cột thêm
+      // thuần tuý, `DEFAULT 'in'` đúng với mọi hũ quỹ đang có — trước bản
+      // này chỉ có chiều nạp vào.
+      from16To17: (m, schema) async {
+        await m.addColumn(schema.jars, schema.jars.goalFlow);
       },
     ),
     beforeOpen: (details) async {

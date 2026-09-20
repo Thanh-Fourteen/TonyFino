@@ -36,6 +36,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
   late String _iconCode;
   late bool _carryOver;
   late JarKind _kind;
+  late JarGoalFlow _flow;
 
   /// Quỹ đã chọn → tỉ lệ phần của quỹ thuộc hũ (mặc định 100).
   final Map<int, int> _goalPercents = {};
@@ -55,6 +56,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     _iconCode = j?.iconCode ?? 'more_horiz';
     _carryOver = j?.carryOver ?? false;
     _kind = j?.jarKind ?? JarKind.spend;
+    _flow = j?.flow ?? JarGoalFlow.deposit;
     if (j != null) _loadGoalLinks(j.id);
   }
 
@@ -125,6 +127,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
             iconCode: _iconCode,
             carryOver: _carryOver,
             kind: _kind,
+            flow: _flow,
             goals: _goalLinks,
           )
         : await repo.insert(
@@ -135,6 +138,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
             iconCode: _iconCode,
             carryOver: _carryOver,
             kind: _kind,
+            flow: _flow,
             goals: _goalLinks,
           );
 
@@ -218,13 +222,44 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                   Text(
                     _kind == JarKind.spend
                         ? 'Đo tiền CHI ra từ các danh mục bạn xếp vào hũ.'
-                        : 'Đo tiền GỬI VÀO một quỹ trong kỳ — mỗi lần nạp '
+                        : 'Gắn hũ với một hoặc nhiều quỹ — mỗi lần nạp/rút '
                               'quỹ đó tự tính vào hũ, không cần danh mục.',
                     style: context.text.labelSmall?.copyWith(
                       color: context.colors.onSurfaceVariant,
                     ),
                   ),
                   if (_kind == JarKind.saving) ...[
+                    SizedBox(height: context.space.md),
+                    Text('Chiều của hũ quỹ', style: context.text.labelMedium),
+                    SizedBox(height: context.space.xs),
+                    SegmentedButton<JarGoalFlow>(
+                      segments: const [
+                        ButtonSegment(
+                          value: JarGoalFlow.deposit,
+                          label: Text('Nạp vào quỹ'),
+                        ),
+                        ButtonSegment(
+                          value: JarGoalFlow.spend,
+                          label: Text('Tiêu từ quỹ'),
+                        ),
+                      ],
+                      selected: {_flow},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (v) =>
+                          setState(() => _flow = v.first),
+                    ),
+                    SizedBox(height: context.space.xs),
+                    Text(
+                      _flow == JarGoalFlow.deposit
+                          ? 'Đo tiền BỎ VÀO quỹ trong kỳ. Tỉ lệ thu nhập ở '
+                                'trên là mức nên gửi mỗi kỳ.'
+                          : 'Đo tiền RÚT TỪ quỹ ra tiêu trong kỳ, so với tiền '
+                                'còn trong quỹ. Tỉ lệ > 0 là TRẦN được rút '
+                                'mỗi kỳ; để 0 nếu không đặt trần.',
+                      style: context.text.labelSmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
                     SizedBox(height: context.space.md),
                     if (_loadingGoals)
                       const Center(child: CircularProgressIndicator())
@@ -353,7 +388,7 @@ class _GoalPicker extends ConsumerWidget {
       children: [
         Text('Quỹ trong hũ', style: context.text.labelMedium),
         Text(
-          'Tiền gửi vào các quỹ này được tính là tiền của hũ.',
+          'Tiền vào/ra các quỹ này được tính là tiền của hũ.',
           style: context.text.labelSmall?.copyWith(
             color: context.colors.onSurfaceVariant,
           ),

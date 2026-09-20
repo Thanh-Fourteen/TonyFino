@@ -62,8 +62,7 @@ class CategoryPieCard extends StatefulWidget {
   /// Thay cho hành vi mặc định "bấm một danh mục → mở màn Chi tiết danh
   /// mục". Màn Chi tiết hũ cần: một hũ có thể chỉ chứa VÀI danh mục con của
   /// "Ăn uống", nên mở nguyên màn "Ăn uống" (mọi con) sẽ ra con số khác hẳn.
-  final void Function(BuildContext context, int rootCategoryId)?
-  onOpenCategory;
+  final void Function(BuildContext context, int rootCategoryId)? onOpenCategory;
 
   /// Đang ở chế độ "gom theo thẻ" — [slices]/[allSources] khi đó đã là
   /// nhóm thẻ + danh mục của phần không gắn thẻ (xem `buildTagModeSources`).
@@ -348,8 +347,7 @@ class _FullBreakdownSheet extends StatelessWidget {
   final List<CategorySourceAmount> sources;
   final ReportRange range;
   final String rangeLabel;
-  final void Function(BuildContext context, int rootCategoryId)?
-  onOpenCategory;
+  final void Function(BuildContext context, int rootCategoryId)? onOpenCategory;
 
   @override
   Widget build(BuildContext context) {

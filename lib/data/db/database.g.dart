@@ -830,6 +830,18 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _goalFlowMeta = const VerificationMeta(
+    'goalFlow',
+  );
+  @override
+  late final GeneratedColumn<String> goalFlow = GeneratedColumn<String>(
+    'goal_flow',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('in'),
+  );
   static const VerificationMeta _kindMeta = const VerificationMeta('kind');
   @override
   late final GeneratedColumn<String> kind = GeneratedColumn<String>(
@@ -852,6 +864,7 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
     sortOrder,
     isArchived,
     createdAt,
+    goalFlow,
     kind,
   ];
   @override
@@ -936,6 +949,12 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('goal_flow')) {
+      context.handle(
+        _goalFlowMeta,
+        goalFlow.isAcceptableOrUnknown(data['goal_flow']!, _goalFlowMeta),
+      );
+    }
     if (data.containsKey('kind')) {
       context.handle(
         _kindMeta,
@@ -991,6 +1010,10 @@ class $JarsTable extends Jars with TableInfo<$JarsTable, Jar> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      goalFlow: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}goal_flow'],
+      )!,
       kind: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}kind'],
@@ -1024,6 +1047,16 @@ class Jar extends DataClass implements Insertable<Jar> {
   final bool isArchived;
   final DateTime createdAt;
 
+  /// Chiều của hũ QUỸ (v17): `'in'` = đo tiền NẠP VÀO các quỹ của hũ,
+  /// `'out'` = đo tiền RÚT TỪ quỹ ra để tiêu. Chỉ có nghĩa khi [kind] là
+  /// `'saving'`.
+  ///
+  /// Hai dạng thật sự khác nhau, không suy ra được từ nhau: "quỹ tiết kiệm
+  /// dài hạn" đo tiền bỏ vào (càng nhiều càng tốt), còn "quỹ khám bệnh" đo
+  /// tiền lấy ra tiêu (càng ít càng tốt, và mốc là tiền CÒN trong quỹ chứ
+  /// không phải phần trăm thu nhập).
+  final String goalFlow;
+
   /// `'spend'` (hũ tiêu) | `'saving'` (hũ tiết kiệm) — v14, xem `JarKind`.
   ///
   /// Hai loại đo NGƯỢC CHIỀU nhau nên phải là một cột, không suy ra được từ
@@ -1041,6 +1074,7 @@ class Jar extends DataClass implements Insertable<Jar> {
     required this.sortOrder,
     required this.isArchived,
     required this.createdAt,
+    required this.goalFlow,
     required this.kind,
   });
   @override
@@ -1056,6 +1090,7 @@ class Jar extends DataClass implements Insertable<Jar> {
     map['sort_order'] = Variable<int>(sortOrder);
     map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['goal_flow'] = Variable<String>(goalFlow);
     map['kind'] = Variable<String>(kind);
     return map;
   }
@@ -1072,6 +1107,7 @@ class Jar extends DataClass implements Insertable<Jar> {
       sortOrder: Value(sortOrder),
       isArchived: Value(isArchived),
       createdAt: Value(createdAt),
+      goalFlow: Value(goalFlow),
       kind: Value(kind),
     );
   }
@@ -1092,6 +1128,7 @@ class Jar extends DataClass implements Insertable<Jar> {
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      goalFlow: serializer.fromJson<String>(json['goalFlow']),
       kind: serializer.fromJson<String>(json['kind']),
     );
   }
@@ -1109,6 +1146,7 @@ class Jar extends DataClass implements Insertable<Jar> {
       'sortOrder': serializer.toJson<int>(sortOrder),
       'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'goalFlow': serializer.toJson<String>(goalFlow),
       'kind': serializer.toJson<String>(kind),
     };
   }
@@ -1124,6 +1162,7 @@ class Jar extends DataClass implements Insertable<Jar> {
     int? sortOrder,
     bool? isArchived,
     DateTime? createdAt,
+    String? goalFlow,
     String? kind,
   }) => Jar(
     id: id ?? this.id,
@@ -1136,6 +1175,7 @@ class Jar extends DataClass implements Insertable<Jar> {
     sortOrder: sortOrder ?? this.sortOrder,
     isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
+    goalFlow: goalFlow ?? this.goalFlow,
     kind: kind ?? this.kind,
   );
   Jar copyWithCompanion(JarsCompanion data) {
@@ -1154,6 +1194,7 @@ class Jar extends DataClass implements Insertable<Jar> {
           ? data.isArchived.value
           : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      goalFlow: data.goalFlow.present ? data.goalFlow.value : this.goalFlow,
       kind: data.kind.present ? data.kind.value : this.kind,
     );
   }
@@ -1171,6 +1212,7 @@ class Jar extends DataClass implements Insertable<Jar> {
           ..write('sortOrder: $sortOrder, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
+          ..write('goalFlow: $goalFlow, ')
           ..write('kind: $kind')
           ..write(')'))
         .toString();
@@ -1188,6 +1230,7 @@ class Jar extends DataClass implements Insertable<Jar> {
     sortOrder,
     isArchived,
     createdAt,
+    goalFlow,
     kind,
   );
   @override
@@ -1204,6 +1247,7 @@ class Jar extends DataClass implements Insertable<Jar> {
           other.sortOrder == this.sortOrder &&
           other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
+          other.goalFlow == this.goalFlow &&
           other.kind == this.kind);
 }
 
@@ -1218,6 +1262,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
   final Value<int> sortOrder;
   final Value<bool> isArchived;
   final Value<DateTime> createdAt;
+  final Value<String> goalFlow;
   final Value<String> kind;
   const JarsCompanion({
     this.id = const Value.absent(),
@@ -1230,6 +1275,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     this.sortOrder = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.goalFlow = const Value.absent(),
     this.kind = const Value.absent(),
   });
   JarsCompanion.insert({
@@ -1243,6 +1289,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     this.sortOrder = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.goalFlow = const Value.absent(),
     this.kind = const Value.absent(),
   }) : walletId = Value(walletId),
        name = Value(name),
@@ -1260,6 +1307,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     Expression<int>? sortOrder,
     Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
+    Expression<String>? goalFlow,
     Expression<String>? kind,
   }) {
     return RawValuesInsertable({
@@ -1273,6 +1321,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
+      if (goalFlow != null) 'goal_flow': goalFlow,
       if (kind != null) 'kind': kind,
     });
   }
@@ -1288,6 +1337,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     Value<int>? sortOrder,
     Value<bool>? isArchived,
     Value<DateTime>? createdAt,
+    Value<String>? goalFlow,
     Value<String>? kind,
   }) {
     return JarsCompanion(
@@ -1301,6 +1351,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
       sortOrder: sortOrder ?? this.sortOrder,
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
+      goalFlow: goalFlow ?? this.goalFlow,
       kind: kind ?? this.kind,
     );
   }
@@ -1338,6 +1389,9 @@ class JarsCompanion extends UpdateCompanion<Jar> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (goalFlow.present) {
+      map['goal_flow'] = Variable<String>(goalFlow.value);
+    }
     if (kind.present) {
       map['kind'] = Variable<String>(kind.value);
     }
@@ -1357,6 +1411,7 @@ class JarsCompanion extends UpdateCompanion<Jar> {
           ..write('sortOrder: $sortOrder, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
+          ..write('goalFlow: $goalFlow, ')
           ..write('kind: $kind')
           ..write(')'))
         .toString();
@@ -8995,6 +9050,7 @@ typedef $$JarsTableCreateCompanionBuilder =
       Value<int> sortOrder,
       Value<bool> isArchived,
       Value<DateTime> createdAt,
+      Value<String> goalFlow,
       Value<String> kind,
     });
 typedef $$JarsTableUpdateCompanionBuilder =
@@ -9009,6 +9065,7 @@ typedef $$JarsTableUpdateCompanionBuilder =
       Value<int> sortOrder,
       Value<bool> isArchived,
       Value<DateTime> createdAt,
+      Value<String> goalFlow,
       Value<String> kind,
     });
 
@@ -9121,6 +9178,11 @@ class $$JarsTableFilterComposer extends Composer<_$AppDatabase, $JarsTable> {
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get goalFlow => $composableBuilder(
+    column: $table.goalFlow,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9256,6 +9318,11 @@ class $$JarsTableOrderingComposer extends Composer<_$AppDatabase, $JarsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get goalFlow => $composableBuilder(
+    column: $table.goalFlow,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get kind => $composableBuilder(
     column: $table.kind,
     builder: (column) => ColumnOrderings(column),
@@ -9324,6 +9391,9 @@ class $$JarsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get goalFlow =>
+      $composableBuilder(column: $table.goalFlow, builder: (column) => column);
 
   GeneratedColumn<String> get kind =>
       $composableBuilder(column: $table.kind, builder: (column) => column);
@@ -9444,6 +9514,7 @@ class $$JarsTableTableManager
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String> goalFlow = const Value.absent(),
                 Value<String> kind = const Value.absent(),
               }) => JarsCompanion(
                 id: id,
@@ -9456,6 +9527,7 @@ class $$JarsTableTableManager
                 sortOrder: sortOrder,
                 isArchived: isArchived,
                 createdAt: createdAt,
+                goalFlow: goalFlow,
                 kind: kind,
               ),
           createCompanionCallback:
@@ -9470,6 +9542,7 @@ class $$JarsTableTableManager
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String> goalFlow = const Value.absent(),
                 Value<String> kind = const Value.absent(),
               }) => JarsCompanion.insert(
                 id: id,
@@ -9482,6 +9555,7 @@ class $$JarsTableTableManager
                 sortOrder: sortOrder,
                 isArchived: isArchived,
                 createdAt: createdAt,
+                goalFlow: goalFlow,
                 kind: kind,
               ),
           withReferenceMapper: (p0) => p0

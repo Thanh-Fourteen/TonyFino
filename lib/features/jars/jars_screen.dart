@@ -326,10 +326,12 @@ class _JarCard extends ConsumerWidget {
 
     final String subtitle;
     if (saving) {
+      final flowLabel = progress.spendsFromGoals ? 'Tiêu từ quỹ' : 'Tiết kiệm';
       subtitle = switch (progress.goals.length) {
-        0 => '${jar.percent}% · Tiết kiệm · chưa gắn quỹ',
-        1 => '${jar.percent}% · Tiết kiệm → ${progress.goals.single.goal.name}',
-        final n => '${jar.percent}% · Tiết kiệm · $n quỹ',
+        0 => '${jar.percent}% · $flowLabel · chưa gắn quỹ',
+        1 =>
+          '${jar.percent}% · $flowLabel → ${progress.goals.single.goal.name}',
+        final n => '${jar.percent}% · $flowLabel · $n quỹ',
       };
     } else {
       subtitle =
@@ -386,15 +388,18 @@ class _JarCard extends ConsumerWidget {
                         size: MoneySize.medium,
                         signed: false,
                       ),
-                      Text(
-                        AmountVisibility.mask(
-                          context,
-                          ' / ${progress.allotted.format()}',
+                      // Hũ không đặt mức nào cho kỳ (0%) thì "/ 0 ₫" là
+                      // nhiễu — con số duy nhất có nghĩa là số đã dùng.
+                      if (progress.allotted.minorUnits > 0)
+                        Text(
+                          AmountVisibility.mask(
+                            context,
+                            ' / ${progress.allotted.format()}',
+                          ),
+                          style: context.text.labelMedium?.copyWith(
+                            color: context.colors.onSurfaceVariant,
+                          ),
                         ),
-                        style: context.text.labelMedium?.copyWith(
-                          color: context.colors.onSurfaceVariant,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -408,7 +413,7 @@ class _JarCard extends ConsumerWidget {
             children: [
               if (saving && progress.goals.isNotEmpty) ...[
                 Text(
-                  'Tổng quỹ ',
+                  progress.spendsFromGoals ? 'Còn trong quỹ ' : 'Tổng quỹ ',
                   style: context.text.labelMedium?.copyWith(
                     color: context.colors.onSurfaceVariant,
                   ),
@@ -418,7 +423,10 @@ class _JarCard extends ConsumerWidget {
                   size: MoneySize.small,
                   signed: false,
                 ),
-                if (progress.goalTarget.minorUnits > 0)
+                // Đích chỉ có nghĩa với hũ ĐANG GOM tiền; hũ tiêu từ quỹ thì
+                // con số đáng nhìn là phần còn lại, không phải cái đích.
+                if (!progress.spendsFromGoals &&
+                    progress.goalTarget.minorUnits > 0)
                   Text(
                     AmountVisibility.mask(
                       context,
@@ -458,6 +466,39 @@ class _JarCard extends ConsumerWidget {
     final String label;
     final Color color;
     final Money amount;
+    if (p.tracksGoalDrawdown) {
+      // Hũ tiêu từ quỹ, không đặt trần: phần đáng nói là quỹ còn bao nhiêu
+      // — đã hiện ở bên trái, nên bên phải chỉ nói "còn dùng được".
+      return [
+        Text(
+          p.savedTotal.minorUnits > 0 ? 'còn dùng được' : 'quỹ đã hết',
+          style: context.text.labelMedium?.copyWith(
+            color: p.savedTotal.minorUnits > 0
+                ? context.colors.onSurfaceVariant
+                : context.colors.budgetOver,
+          ),
+        ),
+      ];
+    }
+    if (p.spendsFromGoals) {
+      // Có TRẦN: giống hũ tiêu — còn được rút bao nhiêu, hay đã vượt.
+      final over = remaining.minorUnits < 0;
+      return [
+        Text(
+          over ? 'Vượt trần ' : 'Còn được rút ',
+          style: context.text.labelMedium?.copyWith(
+            color: over
+                ? context.colors.budgetOver
+                : context.colors.onSurfaceVariant,
+          ),
+        ),
+        MoneyText(
+          over ? -remaining : remaining,
+          size: MoneySize.small,
+          signed: false,
+        ),
+      ];
+    }
     if (p.tracksGoalTotal) {
       // Hũ 0%: không có mốc của kỳ để nói "còn cần gửi" — thay bằng phần
       // còn thiếu so với ĐÍCH của các quỹ (thanh cũng đang đo cái đó).
@@ -540,12 +581,22 @@ class _SavingAction extends ConsumerWidget {
         context: context,
         goalId: linked.goal.id,
         goalName: linked.goal.name,
-        move: SavingsMove.deposit,
+        // Hũ "tiêu từ quỹ" thì việc hay làm là RÚT ra tiêu, không phải nạp.
+        move: progress.spendsFromGoals
+            ? SavingsMove.withdraw
+            : SavingsMove.deposit,
         // Gợi ý đúng phần còn thiếu của kỳ — lý do chính để mở nút này.
-        prefillMinor: remaining > 0 ? remaining : null,
+        // Hũ tiêu từ quỹ không gợi ý số: rút bao nhiêu là tuỳ hoá đơn.
+        prefillMinor: !progress.spendsFromGoals && remaining > 0
+            ? remaining
+            : null,
       ),
       icon: const Icon(kIconAdd, size: 18),
-      label: Text('Gửi vào "${linked.goal.name}"'),
+      label: Text(
+        progress.spendsFromGoals
+            ? 'Rút từ "${linked.goal.name}"'
+            : 'Gửi vào "${linked.goal.name}"',
+      ),
     );
   }
 }
@@ -563,7 +614,15 @@ class JarProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color color;
-    if (progress.kind == JarKind.saving) {
+    if (progress.isOverspent) {
+      color = context.colors.budgetOver;
+    } else if (progress.spendsFromGoals) {
+      // Tiêu từ quỹ: thanh cho thấy đã rút bao nhiêu phần của quỹ — dùng
+      // màu "đang tiêu" như hũ tiêu, chuyển cam khi quỹ sắp cạn.
+      color = progress.ratio > 0.8
+          ? context.colors.budgetWarn
+          : context.colors.budgetOk;
+    } else if (progress.kind == JarKind.saving) {
       color = context.colors.incomeFill;
     } else if (progress.isOverspent) {
       color = context.colors.budgetOver;

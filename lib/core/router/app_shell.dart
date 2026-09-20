@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/manage/manage_screen.dart';
+import '../../features/notes/notes_screen.dart';
 import '../../features/settings/backup/backup_health_provider.dart';
 import '../../features/settings/settings_controller.dart';
 import '../../theme/context_ext.dart';
@@ -51,6 +52,17 @@ class AppShell extends ConsumerWidget {
               onPressed: () => ref
                   .read(appSettingsProvider.notifier)
                   .setHideAmounts(!hideAmounts),
+            ),
+            // Ghi chú là TRANG RỜI, mở được từ mọi tab — Tony: "trang note
+            // là trang rời". Để nó nằm trong Quản lý thì mỗi lần ghi vội
+            // một dòng phải đi qua hai cửa; mà ghi chú không ghi được ngay
+            // lúc nghĩ ra thì không ai ghi.
+            IconButton(
+              icon: const Icon(kIconStickyNote),
+              tooltip: 'Ghi chú',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const NotesScreen()),
+              ),
             ),
             // "Quản lý" ở ngay thanh trên cùng, KHÔNG chôn trong Cài đặt:
             // tạo/sửa ví, danh mục, hạn mức là việc hằng tuần, còn Cài đặt

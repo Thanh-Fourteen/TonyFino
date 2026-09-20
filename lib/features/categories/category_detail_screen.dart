@@ -513,7 +513,6 @@ List<CategorySourceAmount> _sortedByAbs(List<CategorySourceAmount> sources) {
   return sorted;
 }
 
-
 /// Mục "Từ khoá" — thứ app dùng để đoán danh mục cho câu chữ ở màn chat,
 /// và giờ XEM và GỠ được.
 ///

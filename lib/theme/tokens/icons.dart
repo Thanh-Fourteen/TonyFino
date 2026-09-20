@@ -781,6 +781,15 @@ const kIconCallSplit = IconData(
   fontFamily: _fontFamily,
   fontPackage: _fontPackage,
 );
+
+/// Trang Ghi chú (v16) — codepoint `sticky_note_2`, xác nhận trong
+/// `material_symbols_icons-4.2960.0/lib/symbols.dart`.
+const kIconStickyNote = IconData(
+  0xf1fc,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+
 /// Ghim ghi chú (v16). Codepoint xác nhận trong
 /// `material_symbols_icons-4.2960.0/lib/symbols.dart` (`push_pin`), không
 /// đoán — cùng kỷ luật với mọi icon khác ở file này.

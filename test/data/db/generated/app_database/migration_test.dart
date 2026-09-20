@@ -17,6 +17,7 @@ import 'generated/schema_v10.dart' as v10;
 import 'generated/schema_v13.dart' as v13;
 import 'generated/schema_v14.dart' as v14;
 import 'generated/schema_v15.dart' as v15;
+import 'generated/schema_v16.dart' as v16;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -1022,11 +1023,17 @@ void main() {
       final db = AppDatabase(schema.newConnection());
       await verifier.migrateAndValidate(db, 14);
 
-      final jar = await db.select(db.jars).getSingle();
-      expect(jar.name, 'Thiết yếu');
-      expect(jar.percent, 55);
-      expect(jar.carryOver, isTrue);
-      expect(jar.kind, 'spend');
+      // 🚨 KHÔNG đọc bằng `db.select(db.jars)`: lớp bảng SỐNG luôn mang hình
+      // dạng MỚI NHẤT (từ v17 có thêm `goal_flow`) còn sổ ở đây mới migrate
+      // tới v14 — đọc kiểu đó nổ "Null check operator used on a null value".
+      // Cùng họ bẫy với `alterTable` dùng getter bảng sống (Phase 16).
+      final jar = await db
+          .customSelect('SELECT name, percent, carry_over, kind FROM jars')
+          .getSingle();
+      expect(jar.data['name'], 'Thiết yếu');
+      expect(jar.data['percent'], 55);
+      expect(jar.data['carry_over'], 1);
+      expect(jar.data['kind'], 'spend');
 
       await db.close();
     },
@@ -1099,12 +1106,15 @@ void main() {
       final db = AppDatabase(schema.newConnection());
       await verifier.migrateAndValidate(db, 15);
 
-      final links = await db.select(db.jarGoals).get();
+      // Đọc bằng SQL thô, cùng lý do với test v13→v14 ở trên.
+      final links = await db
+          .customSelect('SELECT jar_id, goal_id, percent FROM jar_goals')
+          .get();
       expect(links, hasLength(1), reason: 'chỉ hũ tiết kiệm có dây nối');
-      expect(links.single.jarId, 3);
-      expect(links.single.goalId, 9);
-      expect(links.single.percent, 100, reason: 'cả quỹ thuộc hũ như trước');
-      expect(await db.select(db.jars).get(), hasLength(2));
+      expect(links.single.data['jar_id'], 3);
+      expect(links.single.data['goal_id'], 9);
+      expect(links.single.data['percent'], 100, reason: 'cả quỹ thuộc hũ');
+      expect(await db.customSelect('SELECT id FROM jars').get(), hasLength(2));
 
       await db.close();
     },
@@ -1138,6 +1148,55 @@ void main() {
       await verifier.migrateAndValidate(db, 16);
       expect(await db.select(db.notes).get(), isEmpty);
       expect(await db.select(db.wallets).get(), hasLength(1));
+      await db.close();
+    },
+  );
+
+  // v16→v17: hũ quỹ có hai chiều. Hũ quỹ đã có phải thành chiều "nạp vào".
+  test(
+    'migration from v16 to v17 — hũ quỹ cũ giữ nguyên, thành chiều nạp vào',
+    () async {
+      final schema = await verifier.schemaAt(16);
+      final oldDb = v16.DatabaseAtV16(schema.newConnection());
+      await oldDb.batch((batch) {
+        batch.insert(
+          oldDb.wallets,
+          const v16.WalletsData(
+            id: 1,
+            name: 'Ví mặc định',
+            categoryColorId: 0,
+            iconCode: 'account_balance_wallet',
+            openingBalanceMinor: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+          ),
+        );
+        batch.insert(
+          oldDb.jars,
+          const v16.JarsData(
+            id: 2,
+            walletId: 1,
+            name: 'Tiết kiệm',
+            percent: 10,
+            categoryColorId: 4,
+            iconCode: 'savings',
+            carryOver: 1,
+            sortOrder: 0,
+            isArchived: 0,
+            createdAt: 1755734400,
+            kind: 'saving',
+          ),
+        );
+      });
+      await oldDb.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 17);
+
+      final jar = await db.select(db.jars).getSingle();
+      expect(jar.kind, 'saving');
+      expect(jar.goalFlow, 'in');
+      expect(jar.percent, 10);
       await db.close();
     },
   );

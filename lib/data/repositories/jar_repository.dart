@@ -78,6 +78,30 @@ enum JarKind {
       raw == saving.dbValue ? JarKind.saving : JarKind.spend;
 }
 
+/// Chiều của một hũ QUỸ (v17) — Tony: *"hũ liên quan tới quỹ có 2 dạng:
+/// nạp tiền vào quỹ, sài tiền từ quỹ"*.
+enum JarGoalFlow {
+  /// Đo tiền NẠP VÀO quỹ trong kỳ. Mốc: phần trăm thu nhập của kỳ (hoặc
+  /// đích của các quỹ khi hũ lấy 0%). Gửi nhiều là tốt.
+  deposit('in'),
+
+  /// Đo tiền RÚT TỪ quỹ ra tiêu trong kỳ. Mốc tự nhiên là tiền CÒN trong
+  /// quỹ — "quỹ khám bệnh còn bao nhiêu" mới là câu hỏi, không phải "tháng
+  /// này phải rút bao nhiêu phần trăm thu nhập". Đặt phần trăm > 0 thì đó
+  /// là TRẦN rút của kỳ.
+  spend('out');
+
+  const JarGoalFlow(this.dbValue);
+  final String dbValue;
+
+  static JarGoalFlow parse(String raw) =>
+      raw == spend.dbValue ? JarGoalFlow.spend : JarGoalFlow.deposit;
+}
+
+extension JarGoalFlowX on Jar {
+  JarGoalFlow get flow => JarGoalFlow.parse(goalFlow);
+}
+
 /// Một dây nối hũ ↔ quỹ đang được soạn ở UI (chưa ghi xuống DB).
 class JarGoalLink {
   const JarGoalLink({required this.goalId, this.percent = 100});
@@ -125,6 +149,14 @@ class JarProgress {
 
   String? get goalName => goals.length == 1 ? goals.single.goal.name : null;
 
+  JarGoalFlow get flow => jar.flow;
+
+  /// Hũ QUỸ chiều "tiêu từ quỹ": [used] là tiền đã rút ra tiêu, và mốc so
+  /// sánh là tiền CÒN trong quỹ chứ không phải phần trăm thu nhập (trừ khi
+  /// Tony đặt một trần > 0).
+  bool get spendsFromGoals =>
+      kind == JarKind.saving && flow == JarGoalFlow.spend;
+
   /// Tổng tiền ĐANG CÓ trong các quỹ của hũ (mọi thời gian, đã nhân tỉ lệ
   /// từng quỹ) — khác [used] là tiền gửi vào TRONG KỲ. Tony muốn thấy cả
   /// hai: "tháng này bỏ vào bao nhiêu" và "đang để dành được bao nhiêu".
@@ -139,11 +171,15 @@ class JarProgress {
   /// Chỉ hũ TIÊU mới "vượt" theo nghĩa xấu. Hũ tiết kiệm gửi quá mức là
   /// đạt mục tiêu, không phải lỗi — đừng tô đỏ nó.
   bool get isOverspent =>
-      kind == JarKind.spend && used.minorUnits > allotted.minorUnits;
+      (kind == JarKind.spend ||
+          // Hũ "tiêu từ quỹ" CÓ đặt trần thì vượt trần cũng là vượt.
+          (spendsFromGoals && allotted.minorUnits > 0)) &&
+      used.minorUnits > allotted.minorUnits;
 
   /// Hũ tiết kiệm đã gửi đủ phần của kỳ.
   bool get isSavingReached =>
       kind == JarKind.saving &&
+      flow == JarGoalFlow.deposit &&
       allotted.minorUnits > 0 &&
       used.minorUnits >= allotted.minorUnits;
 
@@ -152,12 +188,28 @@ class JarProgress {
   /// được trong các quỹ so với tổng đích của chúng. Tony chốt: hũ 0% vẫn
   /// phải có thanh, đo theo tiền tiết kiệm được.
   bool get tracksGoalTotal =>
-      kind == JarKind.saving && allotted.minorUnits == 0 && goals.isNotEmpty;
+      kind == JarKind.saving &&
+      flow == JarGoalFlow.deposit &&
+      allotted.minorUnits == 0 &&
+      goals.isNotEmpty;
+
+  /// Hũ "tiêu từ quỹ" KHÔNG đặt trần: thanh đo phần quỹ đã tiêu trong kỳ so
+  /// với chính quỹ đó lúc đầu kỳ (= còn lại + đã tiêu).
+  bool get tracksGoalDrawdown =>
+      spendsFromGoals && allotted.minorUnits == 0 && goals.isNotEmpty;
+
+  /// Tiền còn trong các quỹ sau khi đã tiêu — chính là [savedTotal], đặt
+  /// tên riêng cho chỗ gọi đọc ra nghĩa.
+  Money get goalBalance => savedTotal;
 
   double get ratio {
     if (tracksGoalTotal) {
       final target = goalTarget.minorUnits;
       return target == 0 ? 0 : savedTotal.minorUnits / target;
+    }
+    if (tracksGoalDrawdown) {
+      final atStart = savedTotal.minorUnits + used.minorUnits;
+      return atStart <= 0 ? 0 : used.minorUnits / atStart;
     }
     return allotted.minorUnits == 0 ? 0 : used.minorUnits / allotted.minorUnits;
   }
@@ -168,7 +220,8 @@ class JarGoalProgress {
   const JarGoalProgress({
     required this.goal,
     required this.percent,
-    required this.depositedMinor,
+    required this.inMinor,
+    required this.outMinor,
     required this.savedMinor,
   });
 
@@ -177,8 +230,23 @@ class JarGoalProgress {
   /// Phần của quỹ này thuộc hũ, 0–100 (mặc định 100 = cả quỹ).
   final int percent;
 
-  /// Gửi RÒNG vào quỹ TRONG KỲ (nạp trừ rút), đã nhân [percent].
-  final int depositedMinor;
+  /// Tiền NẠP VÀO quỹ trong kỳ (số dương), đã nhân [percent].
+  final int inMinor;
+
+  /// Tiền RÚT RA khỏi quỹ trong kỳ (số dương), đã nhân [percent].
+  final int outMinor;
+
+  /// Gửi RÒNG trong kỳ = nạp − rút. Âm nghĩa là kỳ này rút nhiều hơn nạp.
+  int get depositedMinor => inMinor - outMinor;
+
+  /// Tiền đã rút ra tiêu trong kỳ — TỔNG, không trừ phần nạp vào.
+  ///
+  /// 🚨 Không dùng số ròng: quỹ khám bệnh tháng này nạp thêm 1tr rồi lấy
+  /// 300k đi khám thì câu trả lời cho "tháng này tiêu từ quỹ bao nhiêu" là
+  /// 300k, không phải 0 — bắt được lỗi này khi bấm thật trên máy. Nạp và
+  /// rút là hai dòng tiền khác nhau; chỉ hũ chiều "nạp vào" mới hỏi phần
+  /// ròng (bỏ vào được bao nhiêu).
+  int get withdrawnMinor => outMinor;
 
   /// Tiền đang có trong quỹ (mọi thời gian), đã nhân [percent].
   final int savedMinor;
@@ -304,9 +372,17 @@ class JarRepository {
     // Gửi RÒNG vào từng quỹ trong kỳ: nạp là dòng ÂM gắn quỹ, rút là dòng
     // DƯƠNG — `-SUM` ra số tiền quỹ thực sự tăng thêm (cùng quy ước với
     // `SavingsGoalRepository`).
-    final savedExpr = effAmount.sum(filter: inWindow);
+    // TÁCH hai chiều thay vì chỉ lấy số ròng: hũ "nạp vào quỹ" đọc phần
+    // ròng, hũ "tiêu từ quỹ" (v17) đọc phần RÚT RA — số ròng một mình không
+    // tách được hai câu hỏi đó.
+    final inExpr = effAmount.sum(
+      filter: inWindow & effAmount.isSmallerThanValue(0),
+    );
+    final outExpr = effAmount.sum(
+      filter: inWindow & effAmount.isBiggerThanValue(0),
+    );
     final savedQuery = eff.selectOnly()
-      ..addColumns([effGoalId, savedExpr])
+      ..addColumns([effGoalId, inExpr, outExpr])
       ..where(effGoalId.isNotNull())
       ..groupBy([effGoalId]);
 
@@ -361,9 +437,14 @@ class JarRepository {
         for (final row in await spentQuery.get())
           row.read(effectiveJarId)!: row.read(spentExpr) ?? 0,
       };
-      final savedByGoal = {
+      // Nạp là dòng ÂM (ví trừ tiền) nên đảo dấu để ra số dương "đã nạp";
+      // rút là dòng DƯƠNG, giữ nguyên.
+      final inByGoal = {
         for (final row in await savedQuery.get())
-          row.read(effGoalId)!: -(row.read(savedExpr) ?? 0),
+          row.read(effGoalId)!: (
+            inMinor: -(row.read(inExpr) ?? 0),
+            outMinor: row.read(outExpr) ?? 0,
+          ),
       };
       final balanceByGoal = {
         for (final row in await balanceQuery.get())
@@ -398,8 +479,10 @@ class JarRepository {
             goal: goal,
             percent: link.percent,
             // Làm tròn XUỐNG như hạn mức hũ, cùng lý do.
-            depositedMinor:
-                (savedByGoal[link.goalId] ?? 0) * link.percent ~/ 100,
+            inMinor:
+                (inByGoal[link.goalId]?.inMinor ?? 0) * link.percent ~/ 100,
+            outMinor:
+                (inByGoal[link.goalId]?.outMinor ?? 0) * link.percent ~/ 100,
             savedMinor: (balanceByGoal[link.goalId] ?? 0) * link.percent ~/ 100,
           ),
         );
@@ -417,12 +500,17 @@ class JarRepository {
               used: switch (jar.jarKind) {
                 JarKind.spend => Money.vnd(-(spentByJar[jar.id] ?? 0)),
                 // Hũ tiết kiệm gom NHIỀU quỹ: cộng phần thuộc hũ của từng
-                // quỹ (v15).
+                // quỹ (v15), theo ĐÚNG chiều của hũ (v17).
                 JarKind.saving => Money.vnd(
-                  (goalsByJar[jar.id] ?? const <JarGoalProgress>[]).fold(
-                    0,
-                    (sum, g) => sum + g.depositedMinor,
-                  ),
+                  (goalsByJar[jar.id] ?? const <JarGoalProgress>[]).fold(0, (
+                    sum,
+                    g,
+                  ) {
+                    return switch (jar.flow) {
+                      JarGoalFlow.deposit => sum + g.depositedMinor,
+                      JarGoalFlow.spend => sum + g.withdrawnMinor,
+                    };
+                  }),
                 ),
               },
               categoryCount: jar.jarKind == JarKind.spend
@@ -473,6 +561,7 @@ class JarRepository {
     required String iconCode,
     bool carryOver = false,
     JarKind kind = JarKind.spend,
+    JarGoalFlow flow = JarGoalFlow.deposit,
     List<JarGoalLink> goals = const [],
   }) async {
     try {
@@ -494,6 +583,7 @@ class JarRepository {
               carryOver: Value(carryOver),
               sortOrder: Value((maxOrder ?? -1) + 1),
               kind: Value(kind.dbValue),
+              goalFlow: Value(flow.dbValue),
             ),
           );
       // Quỹ chỉ có nghĩa với hũ tiết kiệm — hũ tiêu mà mang theo quỹ "ma"
@@ -513,6 +603,7 @@ class JarRepository {
     required String iconCode,
     required bool carryOver,
     JarKind kind = JarKind.spend,
+    JarGoalFlow flow = JarGoalFlow.deposit,
     List<JarGoalLink> goals = const [],
   }) async {
     try {
@@ -525,6 +616,7 @@ class JarRepository {
             iconCode: Value(iconCode),
             carryOver: Value(carryOver),
             kind: Value(kind.dbValue),
+            goalFlow: Value(flow.dbValue),
           ),
         );
         await _writeGoalLinks(id, kind == JarKind.saving ? goals : const []);

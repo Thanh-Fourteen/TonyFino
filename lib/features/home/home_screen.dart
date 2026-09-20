@@ -370,6 +370,11 @@ class _JarsOverviewCard extends ConsumerWidget {
 
 /// Một hũ trên Trang chủ: tên + phần còn lại, thanh tiến độ, "đã dùng / hạn
 /// mức". Hũ tiết kiệm nói bằng chữ của nó ("đã gửi", "còn cần gửi").
+String _usedLabel(JarProgress p) {
+  if (p.kind == JarKind.spend) return 'Đã tiêu';
+  return p.spendsFromGoals ? 'Đã rút' : 'Đã gửi';
+}
+
 class _HomeJarRow extends StatelessWidget {
   const _HomeJarRow({required this.progress});
 
@@ -383,9 +388,18 @@ class _HomeJarRow extends StatelessWidget {
       color: context.colors.onSurfaceVariant,
     );
 
-    final String remainingLabel;
-    final Color remainingColor;
-    if (saving) {
+    String remainingLabel;
+    Color remainingColor;
+    // Số hiện ở góc phải: mặc định là phần CÒN LẠI của kỳ; hũ tiêu-từ-quỹ
+    // không trần thì là tiền CÒN TRONG QUỸ.
+    var remainingAmount = remaining;
+    if (progress.tracksGoalDrawdown) {
+      remainingAmount = progress.goalBalance;
+      remainingLabel = 'Còn trong quỹ';
+      remainingColor = remainingAmount.minorUnits > 0
+          ? context.colors.onSurfaceVariant
+          : context.colors.budgetOver;
+    } else if (saving) {
       remainingLabel = remaining.minorUnits <= 0 ? 'Đã đủ' : 'Còn cần gửi';
       remainingColor = remaining.minorUnits <= 0
           ? context.colors.budgetOk
@@ -397,7 +411,8 @@ class _HomeJarRow extends StatelessWidget {
       remainingLabel = 'Còn';
       remainingColor = context.colors.onSurfaceVariant;
     }
-    final showAmount = !(saving && remaining.minorUnits <= 0);
+    final showAmount =
+        progress.tracksGoalDrawdown || !(saving && remaining.minorUnits <= 0);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,7 +445,9 @@ class _HomeJarRow extends StatelessWidget {
                   ),
                   if (showAmount)
                     MoneyText(
-                      remaining.minorUnits < 0 ? -remaining : remaining,
+                      remainingAmount.minorUnits < 0
+                          ? -remainingAmount
+                          : remainingAmount,
                       size: MoneySize.small,
                       signed: false,
                     ),
@@ -442,8 +459,9 @@ class _HomeJarRow extends StatelessWidget {
               Text(
                 AmountVisibility.mask(
                   context,
-                  '${saving ? 'Đã gửi' : 'Đã tiêu'} '
-                  '${progress.used.format()} / ${progress.allotted.format()}',
+                  '${_usedLabel(progress)} ${progress.used.format()}'
+                  // Hũ 0% không có mức của kỳ — "/ 0 ₫" chỉ làm nhiễu.
+                  '${progress.allotted.minorUnits > 0 ? ' / ${progress.allotted.format()}' : ''}',
                 ),
                 style: muted,
               ),
