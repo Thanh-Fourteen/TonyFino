@@ -2461,3 +2461,14 @@ phục** (tiện kiểm luôn round-trip sao lưu trên schema v18) — dữ li�
 **Ghi chú SAF (mới):** trên Android 16, thư mục `Download` **không chọn được** cho
 `ACTION_OPEN_DOCUMENT_TREE` ("Can't use this folder" và nút "USE THIS FOLDER" bị vô hiệu). Phải
 **CREATE NEW FOLDER** một thư mục con rồi chọn nó. Không phải lỗi app.
+
+### Phát hành 1.0.11+52
+
+- git `033c413` · schema **v18**
+- `dist/tonyfino-1.0.11+52.apk` — SHA-256
+  `f7eedba434d0503a81a79f3396aaccf26743469ddc56a5061a79001ec5f16830`
+- File tải về qua tailnet (`https://tony.tailfcdcfc.ts.net/tonyfino/tonyfino-latest.apk`) đã đối
+  chiếu **khớp từng byte** với file build.
+- Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md` — nâng cấp đè được, không phải gỡ
+  cài (tức không mất dữ liệu).
+- `tailscale serve status` sau khi set: đủ 9 mount, 7 mount của dự án khác còn nguyên.
