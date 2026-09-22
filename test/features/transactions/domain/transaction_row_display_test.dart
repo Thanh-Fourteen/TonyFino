@@ -30,6 +30,7 @@ void main() {
     currencyScale: 0,
     isArchived: false,
     createdAt: DateTime(2026, 9, 7),
+    sortOrder: 0,
   );
 
   Category category({

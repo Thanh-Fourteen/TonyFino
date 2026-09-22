@@ -322,11 +322,19 @@ class _SavingsContributionSheetState
                   SizedBox(height: context.space.md),
                   Row(
                     children: [
-                      Text(
-                        'Ngày: ${formatDayLabel(_date, now)}',
-                        style: context.text.bodyMedium,
+                      // 🚨 `Expanded`, KHÔNG phải `Text` + `Spacer`: nhãn
+                      // ngày dài nhất là "Ngày: Hôm nay · Thứ Bảy" và trên
+                      // bề ngang máy thật (393dp) nó cộng với nút "Đổi
+                      // ngày" đã tràn 84px — sheet kêu overflow ngay lần mở
+                      // đầu tiên. Cỡ chữ hệ thống lớn còn tràn nữa.
+                      Expanded(
+                        child: Text(
+                          'Ngày: ${formatDayLabel(_date, now)}',
+                          style: context.text.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const Spacer(),
                       TextButton(
                         onPressed: _pickDate,
                         child: const Text('Đổi ngày'),

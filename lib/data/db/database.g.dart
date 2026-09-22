@@ -2265,6 +2265,18 @@ class $SavingsGoalsTable extends SavingsGoals
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _sourceIdMeta = const VerificationMeta(
     'sourceId',
   );
@@ -2286,6 +2298,7 @@ class $SavingsGoalsTable extends SavingsGoals
     targetDate,
     isArchived,
     createdAt,
+    sortOrder,
     sourceId,
   ];
   @override
@@ -2359,6 +2372,12 @@ class $SavingsGoalsTable extends SavingsGoals
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     if (data.containsKey('source_id')) {
       context.handle(
         _sourceIdMeta,
@@ -2406,6 +2425,10 @@ class $SavingsGoalsTable extends SavingsGoals
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
       sourceId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source_id'],
@@ -2429,6 +2452,14 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
   final bool isArchived;
   final DateTime createdAt;
 
+  /// Thứ tự Tony tự xếp bằng kéo thả ở tab "Quỹ" (v18) — cùng quy ước với
+  /// `Jars.sortOrder`/`Categories.sortOrder`.
+  ///
+  /// Mặc định 0 cho mọi quỹ đang có: thứ tự phụ `id` tăng dần giữ nguyên
+  /// đúng thứ tự cũ (tạo trước đứng trước) cho tới lần kéo thả đầu tiên,
+  /// nên bản nâng cấp không hoán vị danh sách của ai cả.
+  final int sortOrder;
+
   /// ID của mục tiêu Rolly gốc (Phase 19, vd `'rolly-savings:49755'`) — dùng
   /// để import idempotent, cùng quy ước `Transactions.sourceId` (Phase 9).
   /// Nullable vì mục tiêu tạo tay trong app không có nguồn Rolly nào.
@@ -2442,6 +2473,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     this.targetDate,
     required this.isArchived,
     required this.createdAt,
+    required this.sortOrder,
     this.sourceId,
   });
   @override
@@ -2457,6 +2489,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     }
     map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['sort_order'] = Variable<int>(sortOrder);
     if (!nullToAbsent || sourceId != null) {
       map['source_id'] = Variable<String>(sourceId);
     }
@@ -2475,6 +2508,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           : Value(targetDate),
       isArchived: Value(isArchived),
       createdAt: Value(createdAt),
+      sortOrder: Value(sortOrder),
       sourceId: sourceId == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceId),
@@ -2495,6 +2529,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
       targetDate: serializer.fromJson<DateTime?>(json['targetDate']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       sourceId: serializer.fromJson<String?>(json['sourceId']),
     );
   }
@@ -2510,6 +2545,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
       'targetDate': serializer.toJson<DateTime?>(targetDate),
       'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'sourceId': serializer.toJson<String?>(sourceId),
     };
   }
@@ -2523,6 +2559,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     Value<DateTime?> targetDate = const Value.absent(),
     bool? isArchived,
     DateTime? createdAt,
+    int? sortOrder,
     Value<String?> sourceId = const Value.absent(),
   }) => SavingsGoal(
     id: id ?? this.id,
@@ -2533,6 +2570,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     targetDate: targetDate.present ? targetDate.value : this.targetDate,
     isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
+    sortOrder: sortOrder ?? this.sortOrder,
     sourceId: sourceId.present ? sourceId.value : this.sourceId,
   );
   SavingsGoal copyWithCompanion(SavingsGoalsCompanion data) {
@@ -2553,6 +2591,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           ? data.isArchived.value
           : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
     );
   }
@@ -2568,6 +2607,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           ..write('targetDate: $targetDate, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('sourceId: $sourceId')
           ..write(')'))
         .toString();
@@ -2583,6 +2623,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     targetDate,
     isArchived,
     createdAt,
+    sortOrder,
     sourceId,
   );
   @override
@@ -2597,6 +2638,7 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           other.targetDate == this.targetDate &&
           other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
+          other.sortOrder == this.sortOrder &&
           other.sourceId == this.sourceId);
 }
 
@@ -2609,6 +2651,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
   final Value<DateTime?> targetDate;
   final Value<bool> isArchived;
   final Value<DateTime> createdAt;
+  final Value<int> sortOrder;
   final Value<String?> sourceId;
   const SavingsGoalsCompanion({
     this.id = const Value.absent(),
@@ -2619,6 +2662,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     this.targetDate = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.sourceId = const Value.absent(),
   });
   SavingsGoalsCompanion.insert({
@@ -2630,6 +2674,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     this.targetDate = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.sourceId = const Value.absent(),
   }) : name = Value(name),
        targetAmountMinor = Value(targetAmountMinor),
@@ -2644,6 +2689,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     Expression<DateTime>? targetDate,
     Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
+    Expression<int>? sortOrder,
     Expression<String>? sourceId,
   }) {
     return RawValuesInsertable({
@@ -2655,6 +2701,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
       if (targetDate != null) 'target_date': targetDate,
       if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (sourceId != null) 'source_id': sourceId,
     });
   }
@@ -2668,6 +2715,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     Value<DateTime?>? targetDate,
     Value<bool>? isArchived,
     Value<DateTime>? createdAt,
+    Value<int>? sortOrder,
     Value<String?>? sourceId,
   }) {
     return SavingsGoalsCompanion(
@@ -2679,6 +2727,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
       targetDate: targetDate ?? this.targetDate,
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
+      sortOrder: sortOrder ?? this.sortOrder,
       sourceId: sourceId ?? this.sourceId,
     );
   }
@@ -2710,6 +2759,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (sourceId.present) {
       map['source_id'] = Variable<String>(sourceId.value);
     }
@@ -2727,6 +2779,7 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
           ..write('targetDate: $targetDate, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('sourceId: $sourceId')
           ..write(')'))
         .toString();
@@ -10894,6 +10947,7 @@ typedef $$SavingsGoalsTableCreateCompanionBuilder =
       Value<DateTime?> targetDate,
       Value<bool> isArchived,
       Value<DateTime> createdAt,
+      Value<int> sortOrder,
       Value<String?> sourceId,
     });
 typedef $$SavingsGoalsTableUpdateCompanionBuilder =
@@ -10906,6 +10960,7 @@ typedef $$SavingsGoalsTableUpdateCompanionBuilder =
       Value<DateTime?> targetDate,
       Value<bool> isArchived,
       Value<DateTime> createdAt,
+      Value<int> sortOrder,
       Value<String?> sourceId,
     });
 
@@ -10997,6 +11052,11 @@ class $$SavingsGoalsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11105,6 +11165,11 @@ class $$SavingsGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get sourceId => $composableBuilder(
     column: $table.sourceId,
     builder: (column) => ColumnOrderings(column),
@@ -11151,6 +11216,9 @@ class $$SavingsGoalsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   GeneratedColumn<String> get sourceId =>
       $composableBuilder(column: $table.sourceId, builder: (column) => column);
@@ -11242,6 +11310,7 @@ class $$SavingsGoalsTableTableManager
                 Value<DateTime?> targetDate = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<String?> sourceId = const Value.absent(),
               }) => SavingsGoalsCompanion(
                 id: id,
@@ -11252,6 +11321,7 @@ class $$SavingsGoalsTableTableManager
                 targetDate: targetDate,
                 isArchived: isArchived,
                 createdAt: createdAt,
+                sortOrder: sortOrder,
                 sourceId: sourceId,
               ),
           createCompanionCallback:
@@ -11264,6 +11334,7 @@ class $$SavingsGoalsTableTableManager
                 Value<DateTime?> targetDate = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<String?> sourceId = const Value.absent(),
               }) => SavingsGoalsCompanion.insert(
                 id: id,
@@ -11274,6 +11345,7 @@ class $$SavingsGoalsTableTableManager
                 targetDate: targetDate,
                 isArchived: isArchived,
                 createdAt: createdAt,
+                sortOrder: sortOrder,
                 sourceId: sourceId,
               ),
           withReferenceMapper: (p0) => p0

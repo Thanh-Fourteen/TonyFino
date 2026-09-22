@@ -183,15 +183,37 @@ class JarProgress {
       allotted.minorUnits > 0 &&
       used.minorUnits >= allotted.minorUnits;
 
-  /// Hũ tiết kiệm KHÔNG lấy phần trăm nào của kỳ (0%) thì không có mốc
-  /// "kỳ này phải gửi bao nhiêu" — thanh chuyển sang đo tiền đã để dành
-  /// được trong các quỹ so với tổng đích của chúng. Tony chốt: hũ 0% vẫn
-  /// phải có thanh, đo theo tiền tiết kiệm được.
+  /// Hũ tiết kiệm chiều "nạp vào quỹ" đo TIỀN ĐANG CÓ trong các quỹ so với
+  /// tổng đích của chúng — con số CỘNG DỒN, chỉ tăng.
+  ///
+  /// 🚨 Đây là chiều đo CHÍNH của hũ tiết kiệm, không phải trường hợp ngoại
+  /// lệ của hũ 0% như bản trước. Lý do (Tony 2026-09-22: *"hũ tiết kiệm
+  /// đang trừ tiền đi, nhưng bản chất nó liên thông tới quỹ nên nó được
+  /// cộng vào chứ"*): trong phương pháp hũ gốc của T. Harv Eker, mỗi hũ là
+  /// một CHỖ CHỨA tiền — tiền vào hũ tiết kiệm thì hũ ĐẦY LÊN, không phải
+  /// mất đi. Đo bằng dòng tiền RÒNG của một kỳ thì kỳ nào rút nhiều hơn nạp
+  /// là hũ hiện số ÂM ("−300.000 / 2.000.000"), đúng thứ Tony bắt được.
+  /// Tiền gửi trong kỳ vẫn hiện, nhưng lùi xuống dòng phụ.
+  ///
+  /// Quỹ không đặt đích thì không có mẫu số để đo — khi đó thanh rơi về mốc
+  /// của kỳ (`used / allotted`), còn con số to vẫn là tiền đang có.
   bool get tracksGoalTotal =>
       kind == JarKind.saving &&
       flow == JarGoalFlow.deposit &&
-      allotted.minorUnits == 0 &&
+      goals.isNotEmpty &&
+      goalTarget.minorUnits > 0;
+
+  /// Hũ tiết kiệm chiều "nạp vào quỹ": con số TO trên thẻ là tiền ĐANG CÓ
+  /// trong các quỹ (cộng dồn), không phải dòng tiền của kỳ.
+  bool get accumulatesInGoals =>
+      kind == JarKind.saving &&
+      flow == JarGoalFlow.deposit &&
       goals.isNotEmpty;
+
+  /// Gửi RÒNG trong kỳ, CÓ DẤU — âm nghĩa là kỳ này rút ra nhiều hơn bỏ
+  /// vào. Chỗ hiện phải đọc dấu và đổi CHỮ ("kỳ này rút ròng …"), tuyệt đối
+  /// không in thẳng số âm dưới nhãn "đã gửi".
+  Money get periodNet => used;
 
   /// Hũ "tiêu từ quỹ" KHÔNG đặt trần: thanh đo phần quỹ đã tiêu trong kỳ so
   /// với chính quỹ đó lúc đầu kỳ (= còn lại + đã tiêu).
@@ -211,7 +233,11 @@ class JarProgress {
       final atStart = savedTotal.minorUnits + used.minorUnits;
       return atStart <= 0 ? 0 : used.minorUnits / atStart;
     }
-    return allotted.minorUnits == 0 ? 0 : used.minorUnits / allotted.minorUnits;
+    if (allotted.minorUnits == 0) return 0;
+    // Kỳ rút ròng (`used` âm) không kéo thanh về phía sau mốc 0 — thanh đo
+    // tiến độ, không đo nợ.
+    final r = used.minorUnits / allotted.minorUnits;
+    return r < 0 ? 0 : r;
   }
 }
 
@@ -276,15 +302,42 @@ class JarsOverview {
   Money get totalAllotted =>
       Money.vnd(jars.fold(0, (s, p) => s + p.allotted.minorUnits));
 
-  /// Đã dùng = đã chi (hũ tiêu) + đã gửi (hũ tiết kiệm) — cả hai đều là
-  /// tiền đã rời khỏi phần "còn tiêu được".
-  Money get totalUsed =>
-      Money.vnd(jars.fold(0, (s, p) => s + p.used.minorUnits));
+  /// Đã TIÊU trong kỳ — CHỈ hũ tiêu.
+  ///
+  /// 🚨 Không gộp tiền gửi quỹ vào đây nữa. Một ô "Đã dùng" cộng chung tiền
+  /// tiêu với tiền để dành khiến tiết kiệm đọc ra như mất tiền (Tony
+  /// 2026-09-22) — hai thứ ngược nghĩa nhau thì phải là hai con số.
+  Money get totalSpent => Money.vnd(
+    jars.fold(0, (s, p) => p.kind == JarKind.spend ? s + p.used.minorUnits : s),
+  );
 
-  Money get totalRemaining => totalAllotted - totalUsed;
+  /// Đã ĐỂ DÀNH trong kỳ — tiền bỏ RÒNG vào quỹ của các hũ tiết kiệm chiều
+  /// "nạp vào quỹ". Kẹp ở 0: kỳ rút ròng thì "đã để dành" là 0, không phải
+  /// một con số âm.
+  Money get totalSaved => Money.vnd(
+    jars.fold(0, (s, p) {
+      if (!p.accumulatesInGoals) return s;
+      final net = p.periodNet.minorUnits;
+      return net > 0 ? s + net : s;
+    }),
+  );
 
-  /// Tổng tiền đang có trong mọi quỹ được các hũ tiết kiệm gom.
-  Money get totalSaved =>
+  /// Đã RÚT TỪ QUỸ ra tiêu trong kỳ (hũ chiều "tiêu từ quỹ").
+  ///
+  /// Đứng RIÊNG, không trừ vào [totalRemaining]: tiền này đến từ quỹ đã
+  /// dành dụm những kỳ TRƯỚC, không phải từ thu nhập kỳ này — trừ nó vào
+  /// phần còn lại của kỳ là tính một đồng hai lần.
+  Money get totalDrawnFromGoals => Money.vnd(
+    jars.fold(0, (s, p) => p.spendsFromGoals ? s + p.used.minorUnits : s),
+  );
+
+  /// Phần thu nhập của kỳ đã chia vào hũ mà CHƯA đi đâu cả — chưa tiêu,
+  /// cũng chưa chuyển vào quỹ.
+  Money get totalRemaining => totalAllotted - totalSpent - totalSaved;
+
+  /// Tổng tiền ĐANG CÓ trong mọi quỹ được các hũ tiết kiệm gom (mọi thời
+  /// gian) — khác [totalSaved] là phần bỏ vào TRONG KỲ.
+  Money get totalInGoals =>
       Money.vnd(jars.fold(0, (s, p) => s + p.savedTotal.minorUnits));
 }
 

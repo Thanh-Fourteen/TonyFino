@@ -123,7 +123,14 @@ void main() {
     expect(find.text('Các lần nạp/rút quỹ'), findsOneWidget);
     expect(find.text('Theo danh mục'), findsNothing);
     expect(find.text('gửi đợt 1'), findsOneWidget);
-    expect(find.text('Đã gửi kỳ này'), findsOneWidget);
+    // Ô đầu là TIỀN ĐANG CÓ trong quỹ (con số cộng dồn), ô hai là dòng tiền
+    // của kỳ — đổi 2026-09-22, xem `JarProgress.accumulatesInGoals`.
+    expect(find.text('Đang có trong quỹ'), findsOneWidget);
+    expect(find.text('Kỳ này gửi'), findsOneWidget);
+    expect(find.textContaining('Nên gửi mỗi kỳ'), findsOneWidget);
+    // Dòng giao dịch đọc theo chiều QUỸ: nạp 100k hiện "+100.000", không
+    // phải "−100.000" như chiều ví.
+    expect(find.textContaining('+100.000'), findsWidgets);
   });
 
   testWidgets('hũ tiết kiệm 0%: ô thứ ba nói về ĐÍCH các quỹ, không phải mốc '
@@ -169,7 +176,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Hạn mức 0%'), findsOneWidget);
+    expect(find.text('Đang có trong quỹ'), findsOneWidget);
     expect(find.text('Còn thiếu'), findsOneWidget);
     expect(find.text('Đã đủ, dư'), findsNothing);
     // 20tr đích − 5tr đã có = 15tr.

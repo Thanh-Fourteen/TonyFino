@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/money.dart';
+import '../../core/router/app_bottom_nav.dart';
 import '../../core/providers/database_providers.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
@@ -88,16 +89,71 @@ class _SavingsScreenState extends State<SavingsScreen>
 /// đã có thanh tab riêng (Ví/Quỹ/Hũ) nên không lồng thêm thanh tab
 /// Mục tiêu/Nợ vay vào trong nữa. Màn `SavingsScreen` đầy đủ (kèm Nợ vay)
 /// vẫn giữ nguyên, vào từ Cài đặt.
-class SavingsGoalsTab extends ConsumerWidget {
-  const SavingsGoalsTab({super.key});
+class SavingsGoalsTab extends ConsumerStatefulWidget {
+  const SavingsGoalsTab({super.key, this.embedded = false});
+
+  /// `true` khi danh sách nằm TRONG tab "Quỹ" của `MoneyHubScreen` — phải
+  /// chừa chỗ cho thanh điều hướng NỔI (`extendBody: true` vẽ đè lên
+  /// `body`). Thiếu chỗ đó thì quỹ cuối cùng nằm khuất dưới thanh nav và
+  /// cuộn tới đáy cũng không thấy — đúng lỗi Tony báo.
+  final bool embedded;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SavingsGoalsTab> createState() => _SavingsGoalsTabState();
+}
+
+class _SavingsGoalsTabState extends ConsumerState<SavingsGoalsTab> {
+  /// Thứ tự vừa kéo thả, giữ tạm cho tới khi stream từ DB phát đúng thứ tự
+  /// đó — cùng lý do và cùng cách làm với `JarsScreen._pendingOrder`: không
+  /// có nó thì thả tay ra là thẻ nhảy về chỗ cũ một nhịp rồi mới sang chỗ
+  /// mới, trông như kéo thả không ăn.
+  List<int>? _pendingOrder;
+
+  List<SavingsGoalProgress> _ordered(List<SavingsGoalProgress> fromDb) {
+    final pending = _pendingOrder;
+    if (pending == null) return fromDb;
+    final dbOrder = [for (final p in fromDb) p.goal.id];
+    if (_sameList(dbOrder, pending) ||
+        dbOrder.length != pending.length ||
+        !dbOrder.toSet().containsAll(pending)) {
+      _pendingOrder = null;
+      return fromDb;
+    }
+    final byId = {for (final p in fromDb) p.goal.id: p};
+    return [for (final id in pending) byId[id]!];
+  }
+
+  static bool _sameList(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  /// `onReorderItem` (KHÔNG phải `onReorder`, đã deprecated sau Flutter
+  /// 3.41): bản mới tự trừ chỗ trống của thẻ đang kéo nên [newIndex] đã là
+  /// vị trí cuối cùng — tự `-1` là lệch một ô khi kéo xuống.
+  void _onReorder(
+    List<SavingsGoalProgress> goals,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final ids = [for (final p in goals) p.goal.id];
+    ids.insert(newIndex, ids.removeAt(oldIndex));
+    setState(() => _pendingOrder = ids);
+    ref.read(savingsGoalRepositoryProvider).reorder(ids);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final progressAsync = ref.watch(activeSavingsGoalsWithProgressProvider);
     final archivedAsync = ref.watch(archivedSavingsGoalsProvider);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return progressAsync.when(
-      data: (goals) {
+      data: (all) {
+        final goals = _ordered(all);
         final archived = archivedAsync.value ?? const <SavingsGoal>[];
         if (goals.isEmpty && archived.isEmpty) {
           return const Center(
@@ -109,22 +165,57 @@ class SavingsGoalsTab extends ConsumerWidget {
             ),
           );
         }
-        return ListView(
-          padding: EdgeInsets.all(context.space.screenHorizontal),
-          children: [
-            for (final progress in goals) _SavingsGoalTile(progress: progress),
-            if (archived.isNotEmpty) ...[
-              SizedBox(height: context.space.lg),
-              Text('Đã lưu trữ', style: context.text.titleMedium),
-              SizedBox(height: context.space.sm),
-              for (final goal in archived)
-                _ArchivedTile(
-                  title: goal.name,
-                  onRestore: () => ref
-                      .read(savingsGoalRepositoryProvider)
-                      .setArchived(goal.id, false),
+        // 🚨 Phần tĩnh ("Đã lưu trữ", gợi ý kéo thả) đi vào `footer`, KHÔNG
+        // làm con của danh sách: trộn thẻ kéo được với thẻ tĩnh làm lệch
+        // chỉ số `onReorder` — bẫy đã dính ở màn Danh mục, xem
+        // project_tonyfino_gotchas.
+        return ReorderableListView(
+          padding: EdgeInsets.fromLTRB(
+            context.space.screenHorizontal,
+            context.space.screenHorizontal,
+            context.space.screenHorizontal,
+            context.space.screenHorizontal +
+                (widget.embedded ? kBottomNavReservedHeight + bottomInset : 0),
+          ),
+          onReorderItem: (from, to) => _onReorder(goals, from, to),
+          footer: Column(
+            children: [
+              if (goals.length > 1) ...[
+                SizedBox(height: context.space.xs),
+                Text(
+                  'Nhấn giữ một quỹ rồi kéo để đổi thứ tự.',
+                  textAlign: TextAlign.center,
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
                 ),
+              ],
+              if (archived.isNotEmpty) ...[
+                SizedBox(height: context.space.lg),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Đã lưu trữ',
+                    style: context.text.titleMedium,
+                  ),
+                ),
+                SizedBox(height: context.space.sm),
+                for (final goal in archived)
+                  _ArchivedTile(
+                    title: goal.name,
+                    onRestore: () => ref
+                        .read(savingsGoalRepositoryProvider)
+                        .setArchived(goal.id, false),
+                  ),
+              ],
             ],
+          ),
+          children: [
+            for (final progress in goals)
+              KeyedSubtree(
+                key: ValueKey(progress.goal.id),
+                child: _SavingsGoalTile(progress: progress),
+              ),
           ],
         );
       },

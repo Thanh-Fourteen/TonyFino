@@ -113,7 +113,10 @@ class _MoneyHubScreenState extends ConsumerState<MoneyHubScreen>
               controller: _tab,
               children: const [
                 WalletsScreen(embedded: true),
-                SavingsGoalsTab(),
+                // `embedded: true` để danh sách chừa chỗ cho thanh điều
+                // hướng NỔI — thiếu nó thì quỹ cuối cùng nằm khuất dưới
+                // thanh nav, cuộn hết cỡ vẫn không thấy.
+                SavingsGoalsTab(embedded: true),
                 JarsScreen(embedded: true),
               ],
             ),

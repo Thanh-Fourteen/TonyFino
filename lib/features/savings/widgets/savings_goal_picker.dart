@@ -28,7 +28,6 @@ Future<void> openSavingsDepositFlow(BuildContext context, WidgetRef ref) async {
   if (goals.length > 1) {
     final chosen = await showAppBottomSheet<SavingsGoalProgress>(
       context: context,
-      isScrollControlled: false,
       builder: (sheetContext) => _GoalPickerSheet(goals: goals),
     );
     if (chosen == null || !context.mounted) return;
@@ -68,23 +67,43 @@ class _GoalPickerSheet extends StatelessWidget {
             ),
             child: Text('Nạp vào quỹ nào?', style: context.text.titleLarge),
           ),
-          for (final progress in goals)
-            ListTile(
-              leading: const CategoryAvatar(
-                categoryColorId: 11,
-                iconCode: 'savings',
-                size: 36,
-              ),
-              title: Text(progress.goal.name),
-              subtitle: Text(
-                AmountVisibility.mask(
-                  context,
-                  '${_money(progress.goal, progress.savedMinor).format()} / '
-                  '${_money(progress.goal, progress.goal.targetAmountMinor).format()}',
-                ),
-              ),
-              onTap: () => Navigator.of(context).pop(progress),
+          // 🚨 Danh sách quỹ PHẢI cuộn được, và sheet phải được phép cao
+          // quá 9/16 màn hình.
+          //
+          // Trước đây đây là một `Column` thẳng đuột trong một sheet mở với
+          // `isScrollControlled: false`: Material kẹp chiều cao ở 9/16 màn
+          // hình, nên từ hũ thứ bảy trở đi danh sách tràn ra ngoài và
+          // KHÔNG vuốt được — đúng lỗi Tony báo ("nhiều hơn 6 quỹ không
+          // vuốt chọn được"). `Flexible` + `ListView` để sheet vừa cao hết
+          // mức `showAppBottomSheet` cho phép (92% màn hình), vừa cuộn khi
+          // còn thiếu chỗ; `shrinkWrap` giữ sheet ÔM SÁT danh sách khi chỉ
+          // có vài quỹ, không kéo dài ra chiếm cả màn hình.
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.only(bottom: context.space.sm),
+              itemCount: goals.length,
+              itemBuilder: (context, i) {
+                final progress = goals[i];
+                return ListTile(
+                  leading: const CategoryAvatar(
+                    categoryColorId: 11,
+                    iconCode: 'savings',
+                    size: 36,
+                  ),
+                  title: Text(progress.goal.name),
+                  subtitle: Text(
+                    AmountVisibility.mask(
+                      context,
+                      '${_money(progress.goal, progress.savedMinor).format()} / '
+                      '${_money(progress.goal, progress.goal.targetAmountMinor).format()}',
+                    ),
+                  ),
+                  onTap: () => Navigator.of(context).pop(progress),
+                );
+              },
             ),
+          ),
         ],
       ),
     );

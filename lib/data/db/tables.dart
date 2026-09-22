@@ -345,6 +345,14 @@ class SavingsGoals extends Table {
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
+  /// Thứ tự Tony tự xếp bằng kéo thả ở tab "Quỹ" (v18) — cùng quy ước với
+  /// `Jars.sortOrder`/`Categories.sortOrder`.
+  ///
+  /// Mặc định 0 cho mọi quỹ đang có: thứ tự phụ `id` tăng dần giữ nguyên
+  /// đúng thứ tự cũ (tạo trước đứng trước) cho tới lần kéo thả đầu tiên,
+  /// nên bản nâng cấp không hoán vị danh sách của ai cả.
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
   /// ID của mục tiêu Rolly gốc (Phase 19, vd `'rolly-savings:49755'`) — dùng
   /// để import idempotent, cùng quy ước `Transactions.sourceId` (Phase 9).
   /// Nullable vì mục tiêu tạo tay trong app không có nguồn Rolly nào.

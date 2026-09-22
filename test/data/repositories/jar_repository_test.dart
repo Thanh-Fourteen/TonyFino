@@ -339,7 +339,10 @@ void main() {
     expect(p.used.minorUnits, 400000, reason: 'nạp 100k + 500k, rút 200k');
     expect(p.remaining.minorUnits, 600000);
     expect(p.isOverspent, isFalse);
-    expect(overview.totalUsed.minorUnits, 400000);
+    // Tiền gửi quỹ KHÔNG còn nằm trong "đã tiêu" — nó là tiền để dành, có
+    // ô riêng (đổi 2026-09-22, xem `JarsOverview.totalSpent`).
+    expect(overview.totalSpent.minorUnits, 0);
+    expect(overview.totalSaved.minorUnits, 400000);
   });
 
   test('hũ tiết kiệm gửi VƯỢT mức là đạt, không phải vượt chi', () async {
@@ -461,7 +464,14 @@ void main() {
     expect(p.used.minorUnits, 500000, reason: '300k + 200k trong kỳ');
     expect(p.savedTotal.minorUnits, 2500000, reason: '2tr kỳ trước + 500k');
     expect(p.allotted.minorUnits, 1000000);
-    expect(p.tracksGoalTotal, isFalse);
+    // Từ 2026-09-22: hũ tiết kiệm chiều "nạp vào quỹ" LUÔN đo theo tiền
+    // đang có so với đích các quỹ, kể cả khi vẫn lấy phần trăm thu nhập —
+    // hũ là chỗ CHỨA tiền, con số của nó cộng dồn. Mốc của kỳ lùi xuống
+    // dòng phụ.
+    expect(p.tracksGoalTotal, isTrue);
+    expect(p.accumulatesInGoals, isTrue);
+    expect(p.goalTarget.minorUnits, 100000000, reason: '2 quỹ × 50tr');
+    expect(p.periodNet.minorUnits, 500000);
   });
 
   test('tỉ lệ từng quỹ: 50% thì chỉ nửa số tiền của quỹ đó thuộc hũ', () async {
@@ -625,5 +635,43 @@ void main() {
       reason: 'chiều NẠP đọc phần RÒNG: nạp 1tr trừ rút 400k',
     );
     expect(p.goals.single.outMinor, 400000);
+  });
+
+  test('hũ tiết kiệm: kỳ RÚT RÒNG không kéo hũ xuống số âm — con số của hũ '
+      'là tiền ĐANG CÓ trong quỹ', () async {
+    final quy = await goal('CCTG');
+    await repo.insert(
+      walletId: walletId,
+      name: 'Tiết kiệm dài hạn',
+      percent: 10,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      goals: [JarGoalLink(goalId: quy)],
+    );
+
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    // Kỳ TRƯỚC nạp 3tr.
+    await tx(amountMinor: -3000000, at: DateTime(2026, 7, 5), goalId: quy);
+    // Kỳ NÀY nạp 200k rồi rút 500k → ròng −300k.
+    await tx(amountMinor: -200000, at: DateTime(2026, 8, 4), goalId: quy);
+    await tx(amountMinor: 500000, at: DateTime(2026, 8, 20), goalId: quy);
+
+    final overview = await august();
+    final p = overview.jars.single;
+
+    expect(p.periodNet.minorUnits, -300000, reason: 'nạp 200k, rút 500k');
+    expect(p.savedTotal.minorUnits, 2700000, reason: '3tr − 300k vẫn DƯƠNG');
+    expect(p.accumulatesInGoals, isTrue);
+    expect(p.tracksGoalTotal, isTrue);
+    // Thanh đo tiền đang có / đích — không bao giờ âm.
+    expect(p.ratio, closeTo(2700000 / 50000000, 1e-9));
+    expect(p.isOverspent, isFalse);
+
+    // Tổng của bộ hũ: kỳ rút ròng thì "đã để dành" là 0, KHÔNG phải số âm,
+    // và tiền quỹ không lẫn vào "đã tiêu".
+    expect(overview.totalSaved.minorUnits, 0);
+    expect(overview.totalSpent.minorUnits, 0);
+    expect(overview.totalInGoals.minorUnits, 2700000);
   });
 }

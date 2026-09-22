@@ -2366,3 +2366,98 @@ Test migration dừng ở phiên bản TRUNG GIAN (v13→v14, v14→v15) đọc 
 — lớp bảng SỐNG luôn mang hình dạng mới nhất, nên thêm `goal_flow` ở v17 làm hai bài test cũ nổ "Null
 check operator used on a null value". Đọc bằng `customSelect('SELECT … FROM jars')` ở những bài dừng
 giữa chừng; cùng họ bẫy với `alterTable` dùng getter bảng sống (Phase 16).
+
+---
+
+## 2026-09-22 · Hũ tiết kiệm đo SAI CHIỀU · thứ tự quỹ · sheet tạo hũ
+
+Bốn lỗi Tony báo cùng một lượt. Ba cái đầu là lỗi thật, cái thứ tư là yêu cầu thiết kế.
+
+### 1. Bộ chọn quỹ của chip "Nạp quỹ" không vuốt được khi có > 6 quỹ
+
+`openSavingsDepositFlow` mở sheet bằng `showAppBottomSheet(isScrollControlled: false)` và đổ danh
+sách quỹ vào một `Column` thẳng đuột. `isScrollControlled: false` là mặc định của Material: chiều
+cao sheet bị **kẹp ở 9/16 màn hình**. Với 6 quỹ thì vừa khít nên không ai thấy gì; quỹ thứ bảy trở
+đi tràn ra ngoài `Column` — mà `Column` tràn thì **không cuộn**, nó chỉ kêu overflow và cắt cụt.
+
+Chữa: bỏ `isScrollControlled: false` (về mặc định `true`, `showAppBottomSheet` vốn đã kẹp trần ở 92%
+màn hình) và đổi danh sách sang `Flexible` + `ListView.builder(shrinkWrap: true)` — vừa cuộn được
+khi thiếu chỗ, vừa ôm sát danh sách khi chỉ có vài quỹ. Test: `savings_goal_picker_test.dart` dựng
+đúng 9 quỹ trên khung 393×873 (cỡ máy Tony).
+
+**Bắt được thêm một lỗi khác nhờ test này:** sheet nạp tiền (`savings_contribution_sheet`) có hàng
+`Text('Ngày: …') + Spacer + TextButton('Đổi ngày')` — trên bề ngang máy thật hàng đó **tràn 84px**.
+`Text` không bọc `Expanded` thì `Spacer` không cứu được gì. Đã bọc `Expanded` + `ellipsis`.
+
+### 2. Không kéo thả được thứ tự quỹ; quỹ cuối bị thanh nav che
+
+Hai lỗi độc lập trong cùng một màn:
+
+- `savings_goals` **chưa từng có cột `sort_order`** — không có gì để kéo thả. Thêm cột (**schema
+  v18**, `addColumn` thuần, `DEFAULT 0`), `SavingsGoalRepository.reorder()` ghi cả danh sách trong
+  MỘT transaction (giống `JarRepository.reorder`, tránh hai quỹ trùng `sort_order` giữa chừng), và
+  `watchActive`/`watchActiveWithProgress` sắp `sort_order, id`. Thứ tự phụ `id` giữ nguyên trật tự
+  cũ cho mọi quỹ có trước v18 — nâng cấp không hoán vị danh sách của ai.
+- `SavingsGoalsTab` dùng `ListView` với `EdgeInsets.all(screenHorizontal)`, **không chừa
+  `kBottomNavReservedHeight`**. `MoneyHubScreen` là `extendBody: true` và thanh nav nổi vẽ ĐÈ lên
+  `body`, nên quỹ cuối nằm khuất và cuộn hết cỡ cũng không thấy. Thêm cờ `embedded` như
+  `JarsScreen`/`WalletsScreen` đã làm.
+
+Phần tĩnh ("Đã lưu trữ", gợi ý kéo thả) đi vào `footer` của `ReorderableListView`, KHÔNG làm con —
+trộn thẻ kéo được với thẻ tĩnh làm lệch chỉ số `onReorder`, đúng bẫy đã dính ở màn Danh mục.
+
+### 3. Hũ tiết kiệm "trừ tiền đi" — đo sai chiều ở BA chỗ
+
+Tony: *"Ở hũ tiết kiệm đang trừ tiền đi, nhưng bản chất nó liên thông tới quỹ nên nó được cộng vào
+chứ."* Nghiên cứu lại trước khi sửa, hai nguồn:
+
+- **Phương pháp 6 hũ gốc (T. Harv Eker)**: mỗi hũ là một **chỗ CHỨA tiền** (tài khoản phụ/phong bì
+  thật). Tiền vào hũ tiết kiệm thì hũ **đầy lên**; số của nó **cộng dồn** qua các kỳ. Không có khái
+  niệm "hũ tiết kiệm tiêu hết bao nhiêu phần trăm của tháng".
+- **YNAB**: luật cốt lõi là *tách "tiền đang NẰM ở đâu" khỏi "tiền đó DÙNG cho việc gì"*. Chuyển
+  tiền giữa hai tài khoản tiền mặt (ví → quỹ) **không đổi số dư của phong bì nào cả** và thậm chí
+  không cần danh mục — nó là đổi CHỖ, không phải tiêu.
+
+Ba chỗ vi phạm, sửa cả ba:
+
+**(a) Dòng giao dịch đọc theo chiều VÍ trong màn của HŨ/QUỸ.** Một lần nạp quỹ ghi sổ là dòng ÂM
+(tiền rời ví), nên màn Chi tiết hũ hiện `−2.000.000` ngay dưới một dòng tổng ngày ghi `+2.000.000` —
+hai dấu ngược nhau cho CÙNG một việc, trong CÙNG một màn. Đảo dấu cho dòng giao dịch ở
+`jar_detail_screen` (hũ tiết kiệm) và `savings_goal_detail_screen`, khớp dòng tổng ngày vốn đã đảo.
+
+**(b) Con số TO của thẻ hũ là dòng tiền RÒNG của kỳ.** `used = nạp − rút`, nên kỳ nào rút nhiều hơn
+nạp là thẻ hiện `−300.000 / 2.000.000` dưới nhãn "đã gửi". Đổi: hũ tiết kiệm chiều "nạp vào quỹ"
+(`accumulatesInGoals`) lấy **tiền ĐANG CÓ trong quỹ** làm con số chính, mẫu số là tổng đích các quỹ;
+dòng tiền của kỳ lùi xuống dòng phụ và **đổi CHỮ theo dấu** ("kỳ này rút ròng 300.000"), không bao
+giờ in số âm cạnh chữ "gửi". `tracksGoalTotal` do đó không còn là ngoại lệ của hũ 0% mà là chiều đo
+mặc định. `ratio` kẹp ở 0 khi kỳ rút ròng.
+
+**(c) Thẻ tổng cộng chung tiền TIÊU với tiền ĐỂ DÀNH.** `JarsOverview.totalUsed` gộp cả hai, nên
+trên máy Tony: hũ "Tiêu từ quỹ" rút 1.250.000 từ quỹ → "Đã dùng 1.300.000" trên "Đã chia 900.000" →
+**"Vượt 400.000"**, dù tiền đó đến từ quỹ đã dành dụm những kỳ TRƯỚC chứ không phải thu nhập kỳ này.
+Tách thành: `totalSpent` (chỉ hũ tiêu) · `totalSaved` (bỏ ròng vào quỹ, kẹp ≥ 0) · `totalDrawnFromGoals`
+(rút từ quỹ ra tiêu, **đứng riêng, không trừ vào `totalRemaining`**). Sau khi sửa, cùng bộ dữ liệu
+đó đọc ra "Đã tiêu 50.000 · Còn lại 850.000" + dòng riêng "Đã rút từ quỹ ra tiêu 1.250.000".
+
+### 4. Sheet tạo/sửa hũ
+
+Bản cũ là một cột phẳng bảy khối liền nhau, không nhóm, không tiêu đề, mỗi lựa chọn kèm một đoạn
+giải thích dài bằng chính nó. Làm lại: **thẻ xem trước dính trên đầu** (avatar đúng màu/icon đang
+chọn + tên + một dòng đọc ra cấu hình — màu và icon nằm tận cuối sheet, trước đây không có chỗ nào
+thấy chúng ghép lại trông thế nào), **chia mục có tiêu đề**, **chip tỉ lệ nhanh** (đúng bộ
+55/20/15/10/5 của phương pháp 6 hũ + "Không lấy %"), và **lỗi hiện ở băng riêng ngay trên nút Lưu**
+thay vì treo vào `errorText` của ô Tên (lỗi "Tỉ lệ phải từ 1 đến 100" hiện dưới ô tên là chỉ sai chỗ
+duy nhất Tony nhìn).
+
+### Chạy tay trên `tonyfino36`
+
+Sao lưu TRƯỚC (`/sdcard/Download/TonyFinoBackup/tonyfino_backup.json`, kéo về máy) rồi mới
+`adb install -r` đè 1.0.9 → 1.0.11. Migration v17→v18 giữ nguyên dữ liệu (tổng ví −9.550.000 khớp
+tuyệt đối trước/sau). Đã bấm thật: 9 quỹ trong bộ chọn "Nạp quỹ" hiện đủ, không tràn · kéo quỹ cuối
+lên giữa, thứ tự sống qua force-stop · quỹ cuối không bị thanh nav che · thẻ tổng hũ đọc đúng · dòng
+giao dịch trong hũ đọc theo chiều quỹ · sheet tạo hũ mới. Dọn 7 quỹ test bằng chính đường **Khôi
+phục** (tiện kiểm luôn round-trip sao lưu trên schema v18) — dữ liệu về đúng trạng thái ban đầu.
+
+**Ghi chú SAF (mới):** trên Android 16, thư mục `Download` **không chọn được** cho
+`ACTION_OPEN_DOCUMENT_TREE` ("Can't use this folder" và nút "USE THIS FOLDER" bị vô hiệu). Phải
+**CREATE NEW FOLDER** một thư mục con rồi chọn nó. Không phải lỗi app.

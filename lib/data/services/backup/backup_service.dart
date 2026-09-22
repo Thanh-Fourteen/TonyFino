@@ -673,6 +673,7 @@ class BackupService {
     'targetDate': g.targetDate?.toIso8601String(),
     'isArchived': g.isArchived,
     'createdAt': g.createdAt.toIso8601String(),
+    'sortOrder': g.sortOrder,
     'sourceId': g.sourceId,
   };
 
@@ -690,6 +691,9 @@ class BackupService {
         ),
         isArchived: Value(j['isArchived'] as bool? ?? false),
         createdAt: Value(DateTime.parse(j['createdAt'] as String)),
+        // Bản sao lưu cũ (trước v18) không có trường này — 0 cho tất cả,
+        // đúng trạng thái "chưa kéo thả lần nào".
+        sortOrder: Value(j['sortOrder'] as int? ?? 0),
         sourceId: Value(j['sourceId'] as String?),
       );
 

@@ -215,6 +215,11 @@ class _JarSummaryCard extends StatelessWidget {
       remainingLabel = 'Còn lại';
     }
 
+    // Hũ tiết kiệm "nạp vào quỹ": ô đầu là TIỀN ĐANG CÓ trong quỹ, không
+    // phải hạn mức của kỳ — con số cộng dồn mới là thứ hũ này nói về mình.
+    // Hạn mức lùi xuống một dòng phụ dưới thanh.
+    final net = progress.periodNet.minorUnits;
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,18 +229,24 @@ class _JarSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: JarStat(
-                  label: 'Hạn mức ${progress.jar.percent}%',
-                  amount: progress.allotted,
+                  label: progress.accumulatesInGoals
+                      ? 'Đang có trong quỹ'
+                      : 'Hạn mức ${progress.jar.percent}%',
+                  amount: progress.accumulatesInGoals
+                      ? progress.savedTotal
+                      : progress.allotted,
                 ),
               ),
               Expanded(
                 child: JarStat(
-                  label: saving
-                      ? (progress.spendsFromGoals
-                            ? 'Đã rút kỳ này'
-                            : 'Đã gửi kỳ này')
+                  label: progress.accumulatesInGoals
+                      ? (net < 0 ? 'Kỳ này rút ròng' : 'Kỳ này gửi')
+                      : saving
+                      ? 'Đã rút kỳ này'
                       : 'Đã tiêu',
-                  amount: progress.used,
+                  amount: progress.accumulatesInGoals
+                      ? Money.vnd(net < 0 ? -net : net)
+                      : progress.used,
                 ),
               ),
               Expanded(
@@ -249,16 +260,31 @@ class _JarSummaryCard extends StatelessWidget {
           ),
           SizedBox(height: context.space.md),
           JarProgressBar(progress: progress, height: 8),
-          if (saving && progress.goals.isNotEmpty) ...[
+          if (progress.accumulatesInGoals) ...[
             SizedBox(height: context.space.xs),
-            // Hai con số khác nhau, Tony muốn thấy cả hai: ô trên là tiền
-            // BỎ VÀO trong kỳ, dòng này là tiền ĐANG CÓ trong các quỹ.
+            // Hạn mức của kỳ lùi xuống đây: nó là KẾ HOẠCH ("10% thu nhập
+            // nên gửi"), còn ba ô trên nói về tiền THẬT trong quỹ.
             Row(
               children: [
                 Text(
-                  progress.spendsFromGoals
-                      ? 'Còn trong quỹ '
-                      : 'Tổng quỹ đang có ',
+                  'Nên gửi mỗi kỳ (${progress.jar.percent}% thu) ',
+                  style: context.text.labelMedium?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+                MoneyText(
+                  progress.allotted,
+                  size: MoneySize.small,
+                  signed: false,
+                ),
+              ],
+            ),
+          ] else if (saving && progress.goals.isNotEmpty) ...[
+            SizedBox(height: context.space.xs),
+            Row(
+              children: [
+                Text(
+                  'Còn trong quỹ ',
                   style: context.text.labelMedium?.copyWith(
                     color: context.colors.onSurfaceVariant,
                   ),
@@ -268,17 +294,6 @@ class _JarSummaryCard extends StatelessWidget {
                   size: MoneySize.small,
                   signed: false,
                 ),
-                if (!progress.spendsFromGoals &&
-                    progress.goalTarget.minorUnits > 0)
-                  Text(
-                    AmountVisibility.mask(
-                      context,
-                      ' / ${progress.goalTarget.format()}',
-                    ),
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
               ],
             ),
           ],
@@ -526,8 +541,18 @@ class _JarTransactionList extends ConsumerWidget {
                   subcategoryLabel: row.subcategoryLabel,
                   title: row.title,
                   subtitle: twc.transaction.note,
+                  // 🚨 Hũ TIẾT KIỆM đọc theo chiều QUỸ, không theo chiều VÍ.
+                  //
+                  // Một lần nạp quỹ được ghi sổ là dòng ÂM (tiền rời ví),
+                  // nên trước đây mỗi dòng hiện "−2.000.000" ngay dưới một
+                  // dòng tổng ngày ghi "+2.000.000" — hai dấu ngược nhau
+                  // cho CÙNG một việc, trong cùng một màn. Trong màn của
+                  // một cái HŨ gắn quỹ thì câu hỏi là "quỹ tăng hay giảm",
+                  // nên đảo dấu cho khớp dòng tổng ngày.
                   amount: Money(
-                    minorUnits: twc.transaction.amountMinor,
+                    minorUnits: saving
+                        ? -twc.transaction.amountMinor
+                        : twc.transaction.amountMinor,
                     currency: twc.transaction.currency,
                     currencyScale: twc.transaction.currencyScale,
                   ),
@@ -589,18 +614,26 @@ class _JarGoalCard extends StatelessWidget {
           Row(
             spacing: context.space.sm,
             children: [
-              Expanded(
-                child: JarStat(
-                  label: spendsFromGoal ? 'Rút kỳ này' : 'Gửi kỳ này',
-                  amount: Money.vnd(
-                    spendsFromGoal ? goal.withdrawnMinor : goal.depositedMinor,
-                  ),
-                ),
-              ),
+              // Tiền ĐANG CÓ đứng ĐẦU: đó là con số của quỹ. Dòng tiền của
+              // kỳ đứng sau, và đổi CHỮ theo dấu thay vì in số âm.
               Expanded(
                 child: JarStat(
                   label: spendsFromGoal ? 'Còn lại' : 'Đang có',
                   amount: Money.vnd(goal.savedMinor),
+                ),
+              ),
+              Expanded(
+                child: JarStat(
+                  label: spendsFromGoal
+                      ? 'Rút kỳ này'
+                      : goal.depositedMinor < 0
+                      ? 'Kỳ này rút ròng'
+                      : 'Gửi kỳ này',
+                  amount: Money.vnd(
+                    spendsFromGoal
+                        ? goal.withdrawnMinor
+                        : goal.depositedMinor.abs(),
+                  ),
                 ),
               ),
               Expanded(

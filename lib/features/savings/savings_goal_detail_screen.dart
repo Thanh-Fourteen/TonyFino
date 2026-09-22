@@ -236,8 +236,13 @@ class _HistoryRow extends StatelessWidget {
       // ghi chú của lần nạp đó mới là thứ phân biệt các dòng với nhau.
       title: row.title,
       subtitle: twc.transaction.note,
+      // 🚨 Đảo dấu: đọc theo chiều QUỸ, không theo chiều VÍ — cùng quy ước
+      // với dòng tổng ngày ngay trên. Một lần nạp được ghi sổ là dòng ÂM
+      // (tiền rời ví), nên không đảo thì màn LỊCH SỬ QUỸ hiện "−2.000.000"
+      // dưới một dòng tổng "+2.000.000": hai dấu ngược nhau cho cùng một
+      // việc, trong cùng một màn.
       amount: Money(
-        minorUnits: twc.transaction.amountMinor,
+        minorUnits: -twc.transaction.amountMinor,
         currency: twc.transaction.currency,
         currencyScale: twc.transaction.currencyScale,
       ),

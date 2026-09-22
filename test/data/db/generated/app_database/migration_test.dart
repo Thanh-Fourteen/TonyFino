@@ -3,6 +3,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:tonyfino/data/db/database.dart';
+import 'package:tonyfino/data/repositories/savings_goal_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'generated/schema.dart';
 
@@ -18,6 +19,7 @@ import 'generated/schema_v13.dart' as v13;
 import 'generated/schema_v14.dart' as v14;
 import 'generated/schema_v15.dart' as v15;
 import 'generated/schema_v16.dart' as v16;
+import 'generated/schema_v17.dart' as v17;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -1197,6 +1199,41 @@ void main() {
       expect(jar.kind, 'saving');
       expect(jar.goalFlow, 'in');
       expect(jar.percent, 10);
+      await db.close();
+    },
+  );
+
+  test(
+    'migration from v17 to v18 — quỹ cũ giữ nguyên và giữ ĐÚNG thứ tự cũ',
+    () async {
+      final schema = await verifier.schemaAt(17);
+      final oldDb = v17.DatabaseAtV17(schema.newConnection());
+      await oldDb.batch((batch) {
+        for (final (id, name) in [(3, 'CCTG'), (1, 'Mua xe'), (2, 'Du lịch')]) {
+          batch.insert(
+            oldDb.savingsGoals,
+            v17.SavingsGoalsData(
+              id: id,
+              name: name,
+              targetAmountMinor: 50000000,
+              currency: 'VND',
+              currencyScale: 0,
+              isArchived: 0,
+              createdAt: 1755734400,
+            ),
+          );
+        }
+      });
+      await oldDb.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 18);
+
+      final goals = await SavingsGoalRepository(db).watchActive().first;
+      expect([for (final g in goals) g.name], ['Mua xe', 'Du lịch', 'CCTG']);
+      // Mọi quỹ cũ về 0 — thứ tự phụ `id` giữ nguyên trật tự trước nâng cấp,
+      // không hoán vị danh sách của ai cả.
+      expect(goals.every((g) => g.sortOrder == 0), isTrue);
       await db.close();
     },
   );

@@ -8,6 +8,7 @@ import '../../../theme/context_ext.dart';
 import '../../../theme/tokens/icons.dart';
 import '../../../ui/app_bottom_sheet.dart';
 import '../../../data/repositories/jar_repository.dart';
+import '../../../ui/category_avatar.dart';
 import '../../../ui/color_icon_picker.dart';
 import '../../savings/savings_providers.dart';
 import '../../wallets/selected_wallet_provider.dart';
@@ -20,6 +21,27 @@ Future<void> showJarEditSheet({required BuildContext context, Jar? existing}) {
   );
 }
 
+/// Sheet tạo/sửa hũ.
+///
+/// 🎨 Bố cục làm lại 2026-09-22 theo lệnh Tony ("thiết kế lại layout tạo hũ,
+/// sửa hũ đẹp hơn"). Bản cũ là một cột phẳng bảy khối xếp liền nhau — tên,
+/// tỉ lệ, loại, chiều, quỹ, màu, icon — không nhóm, không tiêu đề, và mỗi
+/// lựa chọn kéo theo một đoạn chữ giải thích dài bằng chính nó, nên cuộn
+/// tới cuối là quên mất đang tạo hũ tên gì, màu gì.
+///
+/// Ba thay đổi, mỗi cái chữa một thứ cụ thể:
+///
+/// 1. **Thẻ XEM TRƯỚC dính trên đầu** — avatar đúng màu/icon đang chọn, tên
+///    hũ, và một dòng phụ đọc ra đúng cấu hình ("10% · Hũ tiết kiệm · nạp
+///    vào 2 quỹ"). Màu và icon nằm tận cuối sheet, cách ô tên cả màn hình;
+///    không có chỗ nào cho thấy chúng ghép lại trông thế nào cho tới khi đã
+///    bấm Lưu.
+/// 2. **Chia thành mục có tiêu đề** (Nhận diện · Cách hũ hoạt động · Chia
+///    bao nhiêu · Quỹ/Cộng dồn · Màu & icon), mỗi mục cách nhau bằng khoảng
+///    trắng thật chứ không phải một dòng chữ xám.
+/// 3. **Lỗi hiện ở một băng riêng ngay trên nút Lưu**, không còn treo vào
+///    `errorText` của ô Tên: lỗi "Tỉ lệ phải từ 1 đến 100" hiện dưới ô tên
+///    là chỉ sai chỗ duy nhất Tony nhìn.
 class _JarEditSheet extends ConsumerStatefulWidget {
   const _JarEditSheet({this.existing});
 
@@ -57,7 +79,15 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     _carryOver = j?.carryOver ?? false;
     _kind = j?.jarKind ?? JarKind.spend;
     _flow = j?.flow ?? JarGoalFlow.deposit;
+    // Thẻ xem trước phải đổi theo từng phím gõ — không có listener thì tên
+    // trong thẻ đứng im cho tới khi chạm vào một control khác.
+    _name.addListener(_onPreviewInputChanged);
+    _percent.addListener(_onPreviewInputChanged);
     if (j != null) _loadGoalLinks(j.id);
+  }
+
+  void _onPreviewInputChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Đọc dây nối hũ ↔ quỹ bằng FUTURE, không phải `Stream.first` — stream
@@ -77,6 +107,8 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
 
   @override
   void dispose() {
+    _name.removeListener(_onPreviewInputChanged);
+    _percent.removeListener(_onPreviewInputChanged);
     _name.dispose();
     _percent.dispose();
     super.dispose();
@@ -150,12 +182,31 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     );
   }
 
+  /// Dòng phụ của thẻ xem trước — đọc ra đúng cấu hình đang soạn, bằng
+  /// chính những chữ mà thẻ hũ ngoài màn Hũ sẽ dùng.
+  String get _previewSubtitle {
+    final percent = int.tryParse(_percent.text.trim());
+    final percentLabel = percent == null
+        ? 'chưa đặt tỉ lệ'
+        : percent == 0
+        ? 'không lấy % thu nhập'
+        : '$percent% thu nhập';
+    if (_kind == JarKind.spend) {
+      return '$percentLabel · Hũ tiêu'
+          '${_carryOver ? ' · cộng dồn' : ''}';
+    }
+    final flowLabel = _flow == JarGoalFlow.deposit
+        ? 'nạp vào quỹ'
+        : 'tiêu từ quỹ';
+    final n = _goalPercents.length;
+    return '$percentLabel · Hũ tiết kiệm · '
+        '${n == 0 ? 'chưa chọn quỹ' : '$flowLabel ($n quỹ)'}';
+  }
+
   @override
   Widget build(BuildContext context) {
     // `showAppBottomSheet` CHỈ chừa phần bàn phím che — lề trái/phải/trên là
-    // việc của từng sheet. Sheet này quên, nên chữ "Sửa hũ", ô "Tên hũ" và
-    // hàng màu dính sát mép màn hình, phần bo góc còn cắt vào chữ: đúng chỗ
-    // Tony báo "nhấn vào 1 hũ bị lỗi". Dùng ĐÚNG lề của các sheet khác
+    // việc của từng sheet. Dùng ĐÚNG lề của các sheet khác
     // (`category_edit_sheet`, `wallet_edit_sheet`…) chứ không tự chế số mới.
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -166,9 +217,13 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _isEditing ? 'Sửa hũ' : 'Thêm hũ',
-            style: context.text.titleLarge,
+          _PreviewHeader(
+            title: _isEditing ? 'Sửa hũ' : 'Thêm hũ',
+            name: _name.text.trim().isEmpty ? 'Hũ chưa đặt tên' : _name.text,
+            unnamed: _name.text.trim().isEmpty,
+            subtitle: _previewSubtitle,
+            colorId: _colorId,
+            iconCode: _iconCode,
           ),
           SizedBox(height: context.space.lg),
           Flexible(
@@ -179,38 +234,30 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                   TextField(
                     controller: _name,
                     autofocus: !_isEditing,
-                    decoration: InputDecoration(
-                      labelText: 'Tên hũ',
-                      errorText: _error,
-                    ),
-                  ),
-                  SizedBox(height: context.space.md),
-                  TextField(
-                    controller: _percent,
-                    keyboardType: TextInputType.number,
-                    // CỐ Ý là `digitsOnly`, KHÔNG phải bộ tách nhóm nghìn:
-                    // đây là PHẦN TRĂM (1–100), không phải số tiền. "100"
-                    // mà thành "100" thì không sao, nhưng dùng chung
-                    // formatter tiền là mời một lần sửa tương lai vô tình
-                    // biến ô này thành ô tiền.
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
-                      labelText: 'Tỉ lệ thu nhập',
-                      helperText: 'Phần trăm TỔNG THU của kỳ dồn vào hũ này',
-                      suffixText: '%',
+                      labelText: 'Tên hũ',
+                      hintText: 'Thiết yếu, Hưởng thụ, Khám bệnh…',
                     ),
                   ),
-                  SizedBox(height: context.space.md),
-                  Text('Loại hũ', style: context.text.labelMedium),
-                  SizedBox(height: context.space.xs),
+
+                  _SectionTitle(
+                    'Cách hũ hoạt động',
+                    hint: _kind == JarKind.spend
+                        ? 'Đo tiền CHI ra từ các danh mục bạn xếp vào hũ.'
+                        : 'Gắn hũ với một hoặc nhiều quỹ — mỗi lần nạp/rút '
+                              'quỹ đó tự tính vào hũ, không cần danh mục.',
+                  ),
                   SegmentedButton<JarKind>(
                     segments: const [
                       ButtonSegment(
                         value: JarKind.spend,
+                        icon: Icon(kIconCategory, size: 18),
                         label: Text('Hũ tiêu'),
                       ),
                       ButtonSegment(
                         value: JarKind.saving,
+                        icon: Icon(kIconSavings, size: 18),
                         label: Text('Hũ tiết kiệm'),
                       ),
                     ],
@@ -218,20 +265,8 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                     showSelectedIcon: false,
                     onSelectionChanged: (v) => setState(() => _kind = v.first),
                   ),
-                  SizedBox(height: context.space.xs),
-                  Text(
-                    _kind == JarKind.spend
-                        ? 'Đo tiền CHI ra từ các danh mục bạn xếp vào hũ.'
-                        : 'Gắn hũ với một hoặc nhiều quỹ — mỗi lần nạp/rút '
-                              'quỹ đó tự tính vào hũ, không cần danh mục.',
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
                   if (_kind == JarKind.saving) ...[
                     SizedBox(height: context.space.md),
-                    Text('Chiều của hũ quỹ', style: context.text.labelMedium),
-                    SizedBox(height: context.space.xs),
                     SegmentedButton<JarGoalFlow>(
                       segments: const [
                         ButtonSegment(
@@ -249,18 +284,58 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                           setState(() => _flow = v.first),
                     ),
                     SizedBox(height: context.space.xs),
-                    Text(
+                    _Hint(
                       _flow == JarGoalFlow.deposit
-                          ? 'Đo tiền BỎ VÀO quỹ trong kỳ. Tỉ lệ thu nhập ở '
-                                'trên là mức nên gửi mỗi kỳ.'
-                          : 'Đo tiền RÚT TỪ quỹ ra tiêu trong kỳ, so với tiền '
-                                'còn trong quỹ. Tỉ lệ > 0 là TRẦN được rút '
-                                'mỗi kỳ; để 0 nếu không đặt trần.',
-                      style: context.text.labelSmall?.copyWith(
-                        color: context.colors.onSurfaceVariant,
-                      ),
+                          ? 'Con số của hũ là TIỀN ĐANG CÓ trong quỹ — cộng '
+                                'dồn qua từng kỳ. Tỉ lệ dưới đây là mức nên '
+                                'gửi mỗi kỳ.'
+                          : 'Đo tiền RÚT TỪ quỹ ra tiêu trong kỳ, so với '
+                                'tiền còn trong quỹ. Tỉ lệ > 0 là TRẦN được '
+                                'rút mỗi kỳ; để 0 nếu không đặt trần.',
                     ),
-                    SizedBox(height: context.space.md),
+                  ],
+
+                  _SectionTitle(
+                    'Chia bao nhiêu thu nhập',
+                    hint: _kind == JarKind.saving
+                        ? 'Phần trăm TỔNG THU của kỳ. Để 0 nếu hũ này không '
+                              'lấy phần nào của thu nhập.'
+                        : 'Phần trăm TỔNG THU của kỳ dồn vào hũ này.',
+                  ),
+                  TextField(
+                    controller: _percent,
+                    keyboardType: TextInputType.number,
+                    // CỐ Ý là `digitsOnly`, KHÔNG phải bộ tách nhóm nghìn:
+                    // đây là PHẦN TRĂM (1–100), không phải số tiền. Dùng
+                    // chung formatter tiền là mời một lần sửa tương lai vô
+                    // tình biến ô này thành ô tiền.
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Tỉ lệ thu nhập',
+                      suffixText: '%',
+                    ),
+                  ),
+                  SizedBox(height: context.space.sm),
+                  // Phím tắt cho những tỉ lệ THẬT SỰ hay dùng — đúng bộ 6 hũ
+                  // kinh điển (55/10/10/10/10/5) cộng mốc 0 của hũ quỹ. Gõ
+                  // tay vẫn được; đây chỉ là đường tắt.
+                  _PercentChips(
+                    current: int.tryParse(_percent.text.trim()),
+                    allowZero: _kind == JarKind.saving,
+                    onPick: (p) => setState(() {
+                      _percent.text = '$p';
+                      _percent.selection = TextSelection.collapsed(
+                        offset: _percent.text.length,
+                      );
+                    }),
+                  ),
+
+                  if (_kind == JarKind.saving) ...[
+                    _SectionTitle(
+                      'Quỹ trong hũ',
+                      hint: 'Tiền vào/ra các quỹ này được tính là tiền của '
+                          'hũ.',
+                    ),
                     if (_loadingGoals)
                       const Center(child: CircularProgressIndicator())
                     else
@@ -277,7 +352,7 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                             setState(() => _goalPercents[goalId] = percent),
                       ),
                   ] else ...[
-                    SizedBox(height: context.space.md),
+                    _SectionTitle('Cuối kỳ thì sao'),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Cộng dồn sang kỳ sau'),
@@ -289,16 +364,13 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                       onChanged: (v) => setState(() => _carryOver = v),
                     ),
                   ],
-                  SizedBox(height: context.space.md),
-                  Text('Màu', style: context.text.labelMedium),
-                  SizedBox(height: context.space.xs),
+
+                  _SectionTitle('Màu & icon'),
                   ColorSwatchPicker(
                     selectedColorId: _colorId,
                     onSelected: (id) => setState(() => _colorId = id),
                   ),
-                  SizedBox(height: context.space.md),
-                  Text('Icon', style: context.text.labelMedium),
-                  SizedBox(height: context.space.xs),
+                  SizedBox(height: context.space.sm),
                   AppIconPicker(
                     icons: categoryIconByCode,
                     groups: categoryIconGroups,
@@ -309,6 +381,13 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
               ),
             ),
           ),
+          // Lỗi đứng NGAY TRÊN nút Lưu — chỗ mắt đang nhìn khi vừa bấm Lưu
+          // và không có gì xảy ra. Trước đây nó là `errorText` của ô Tên,
+          // nên "Tỉ lệ phải từ 1 đến 100" hiện dưới ô tên.
+          if (_error case final error?) ...[
+            SizedBox(height: context.space.md),
+            _ErrorBanner(message: error),
+          ],
           SizedBox(height: context.space.lg),
           Row(
             children: [
@@ -350,6 +429,201 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
   }
 }
 
+/// Đầu sheet: tiêu đề + thẻ XEM TRƯỚC hũ đang soạn.
+///
+/// Thẻ này cố ý dựng bằng chính `CategoryAvatar` mà thẻ hũ ngoài màn Hũ
+/// dùng — xem trước bằng một widget KHÁC là cách chắc chắn để "xem trước"
+/// và "thật" trôi khỏi nhau.
+class _PreviewHeader extends StatelessWidget {
+  const _PreviewHeader({
+    required this.title,
+    required this.name,
+    required this.unnamed,
+    required this.subtitle,
+    required this.colorId,
+    required this.iconCode,
+  });
+
+  final String title;
+  final String name;
+  final bool unnamed;
+  final String subtitle;
+  final int colorId;
+  final String iconCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: context.text.titleLarge),
+        SizedBox(height: context.space.md),
+        Container(
+          padding: EdgeInsets.all(context.space.sm),
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(context.radii.lg),
+          ),
+          child: Row(
+            children: [
+              CategoryAvatar(
+                categoryColorId: colorId,
+                iconCode: iconCode,
+                size: 44,
+              ),
+              SizedBox(width: context.space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: context.text.bodyLarge?.copyWith(
+                        color: unnamed
+                            ? context.colors.onSurfaceVariant
+                            : null,
+                        fontStyle: unnamed ? FontStyle.italic : null,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: context.space.xxs),
+                    Text(
+                      subtitle,
+                      style: context.text.labelSmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tiêu đề một mục trong sheet + (tuỳ chọn) một dòng giải thích.
+///
+/// Tự chừa khoảng cách phía TRÊN: mỗi mục tự biết mình bắt đầu ở đâu, chỗ
+/// gọi không phải rải `SizedBox` thủ công giữa từng khối — đúng lớp lỗi
+/// "thẻ ẩn vẫn chừa khoảng trắng" đã sửa ở Trang chủ.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.label, {this.hint});
+
+  final String label;
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: context.space.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: context.text.labelSmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
+              letterSpacing: 0.8,
+            ),
+          ),
+          if (hint case final hint?) ...[
+            SizedBox(height: context.space.xxs),
+            _Hint(hint),
+          ],
+          SizedBox(height: context.space.sm),
+        ],
+      ),
+    );
+  }
+}
+
+class _Hint extends StatelessWidget {
+  const _Hint(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: context.text.labelSmall?.copyWith(
+        color: context.colors.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(context.space.sm),
+      decoration: BoxDecoration(
+        color: context.colors.budgetOver.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(context.radii.md),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            kIconWarning,
+            size: 18,
+            color: context.colors.budgetOver,
+          ),
+          SizedBox(width: context.space.xs),
+          Expanded(
+            child: Text(
+              message,
+              style: context.text.labelMedium?.copyWith(
+                color: context.colors.budgetOver,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Phím tắt tỉ lệ — bộ 6 hũ kinh điển dùng đúng những con số này.
+class _PercentChips extends StatelessWidget {
+  const _PercentChips({
+    required this.current,
+    required this.allowZero,
+    required this.onPick,
+  });
+
+  final int? current;
+  final bool allowZero;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = [if (allowZero) 0, 5, 10, 15, 20, 55];
+    return Wrap(
+      spacing: context.space.xs,
+      runSpacing: context.space.xs,
+      children: [
+        for (final v in values)
+          ChoiceChip(
+            label: Text(v == 0 ? 'Không lấy %' : '$v%'),
+            selected: current == v,
+            onSelected: (_) => onPick(v),
+          ),
+      ],
+    );
+  }
+}
+
 /// Chọn CÁC quỹ mà hũ tiết kiệm này gom, mỗi quỹ một tỉ lệ (v15).
 ///
 /// Vì sao nhiều quỹ + tỉ lệ: Tony có hũ gom mấy quỹ liên quan ("khám bệnh",
@@ -386,13 +660,6 @@ class _GoalPicker extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quỹ trong hũ', style: context.text.labelMedium),
-        Text(
-          'Tiền vào/ra các quỹ này được tính là tiền của hũ.',
-          style: context.text.labelSmall?.copyWith(
-            color: context.colors.onSurfaceVariant,
-          ),
-        ),
         for (final g in goals)
           _GoalRow(
             goal: g,

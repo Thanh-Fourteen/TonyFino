@@ -30,10 +30,18 @@ class SavingsGoalRepository {
 
   final AppDatabase _db;
 
+  /// Quỹ đang hoạt động, theo thứ tự Tony tự xếp (v18).
+  ///
+  /// Sắp `sort_order` rồi mới tới `id`: mọi quỹ có trước bản v18 mang
+  /// `sort_order = 0`, nên tới khi Tony kéo thả lần đầu thì danh sách vẫn
+  /// đúng thứ tự cũ (tạo trước đứng trước).
   Stream<List<SavingsGoal>> watchActive() {
     final query = _db.select(_db.savingsGoals)
       ..where((g) => g.isArchived.equals(false))
-      ..orderBy([(g) => OrderingTerm.asc(g.id)]);
+      ..orderBy([
+        (g) => OrderingTerm.asc(g.sortOrder),
+        (g) => OrderingTerm.asc(g.id),
+      ]);
     return query.watch();
   }
 
@@ -57,7 +65,10 @@ class SavingsGoalRepository {
           ..addColumns([sumExpr])
           ..where(g.isArchived.equals(false))
           ..groupBy([g.id])
-          ..orderBy([OrderingTerm.asc(g.id)]);
+          ..orderBy([
+            OrderingTerm.asc(g.sortOrder),
+            OrderingTerm.asc(g.id),
+          ]);
 
     return query.watch().map(
       (rows) => rows.map((row) {
@@ -75,6 +86,13 @@ class SavingsGoalRepository {
     DateTime? targetDate,
   }) async {
     try {
+      // Quỹ mới xuống CUỐI danh sách, không chen vào giữa: `sort_order`
+      // mặc định 0 sẽ đẩy nó lên đầu ngay sau lần kéo thả đầu tiên.
+      final maxOrder =
+          await (_db.selectOnly(_db.savingsGoals)
+                ..addColumns([_db.savingsGoals.sortOrder.max()]))
+              .map((r) => r.read(_db.savingsGoals.sortOrder.max()))
+              .getSingle();
       final id = await _db
           .into(_db.savingsGoals)
           .insert(
@@ -84,6 +102,7 @@ class SavingsGoalRepository {
               currency: targetAmount.currency,
               currencyScale: targetAmount.currencyScale,
               targetDate: Value(targetDate),
+              sortOrder: Value((maxOrder ?? -1) + 1),
             ),
           );
       return Ok(id);
@@ -113,6 +132,28 @@ class SavingsGoalRepository {
       return const Ok(null);
     } catch (e) {
       final error = AppError('Không sửa được mục tiêu tiết kiệm.', cause: e);
+      await _logError(error);
+      return Err(error);
+    }
+  }
+
+  /// Ghi thứ tự mới sau khi Tony kéo thả: [goalIdsInOrder] là TOÀN BỘ quỹ
+  /// đang hiện, đúng thứ tự mới. Ghi `sort_order = vị trí` cho mọi quỹ
+  /// trong MỘT transaction — đổi chỗ từng cặp thì giữa chừng có hai quỹ
+  /// trùng `sort_order` và stream phát ra một thứ tự nửa vời. Cùng cách
+  /// `JarRepository.reorder` đã làm cho hũ.
+  Future<Result<void, AppError>> reorder(List<int> goalIdsInOrder) async {
+    try {
+      await _db.transaction(() async {
+        for (var i = 0; i < goalIdsInOrder.length; i++) {
+          await (_db.update(_db.savingsGoals)
+                ..where((g) => g.id.equals(goalIdsInOrder[i])))
+              .write(SavingsGoalsCompanion(sortOrder: Value(i)));
+        }
+      });
+      return const Ok(null);
+    } catch (e) {
+      final error = AppError('Không đổi được thứ tự quỹ.', cause: e);
       await _logError(error);
       return Err(error);
     }

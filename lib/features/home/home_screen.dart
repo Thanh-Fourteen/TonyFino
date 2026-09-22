@@ -348,8 +348,10 @@ class _JarsOverviewCard extends ConsumerWidget {
                   amount: overview.totalAllotted,
                 ),
               ),
+              // "Đã tiêu" chỉ còn là tiền TIÊU; tiền để dành có dòng riêng
+              // bên dưới — xem `JarsTotalsCard`, cùng lý do.
               Expanded(
-                child: JarStat(label: 'Đã dùng', amount: overview.totalUsed),
+                child: JarStat(label: 'Đã tiêu', amount: overview.totalSpent),
               ),
               Expanded(
                 child: JarStat(
@@ -362,6 +364,52 @@ class _JarsOverviewCard extends ConsumerWidget {
               ),
             ],
           ),
+          // Hai dòng phụ, cùng nội dung với `JarsTotalsCard` ở màn Hũ —
+          // tiền để dành và tiền rút từ quỹ đứng RIÊNG, không lẫn vào "đã
+          // tiêu" và không trừ vào "còn lại" của kỳ.
+          if (overview.totalSaved.minorUnits > 0)
+            _JarsTotalsNote(
+              label: 'Đã để dành vào quỹ',
+              amount: overview.totalSaved,
+              color: context.colors.incomeText,
+            ),
+          if (overview.totalDrawnFromGoals.minorUnits > 0)
+            _JarsTotalsNote(
+              label: 'Đã rút từ quỹ ra tiêu',
+              amount: overview.totalDrawnFromGoals,
+              color: context.colors.onSurfaceVariant,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dòng phụ của thẻ tổng hũ ở Trang chủ — nhãn trái, số tiền phải.
+class _JarsTotalsNote extends StatelessWidget {
+  const _JarsTotalsNote({
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
+
+  final String label;
+  final Money amount;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: context.space.sm),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: context.text.labelMedium?.copyWith(color: color),
+            ),
+          ),
+          MoneyText(amount, size: MoneySize.small, signed: false),
         ],
       ),
     );
@@ -373,6 +421,16 @@ class _JarsOverviewCard extends ConsumerWidget {
 String _usedLabel(JarProgress p) {
   if (p.kind == JarKind.spend) return 'Đã tiêu';
   return p.spendsFromGoals ? 'Đã rút' : 'Đã gửi';
+}
+
+/// Dòng tiền của kỳ, dạng CHUỖI để ghép vào một dòng ở Trang chủ — cùng
+/// cách nói với `periodFlowLabel` của màn Hũ (bản widget).
+String _periodFlowText(BuildContext context, JarProgress p) {
+  final net = p.periodNet.minorUnits;
+  if (net == 0) return 'kỳ này chưa gửi thêm';
+  final withdrew = net < 0;
+  final amount = Money.vnd(withdrew ? -net : net).format();
+  return withdrew ? 'kỳ này rút ròng $amount' : 'kỳ này gửi $amount';
 }
 
 class _HomeJarRow extends StatelessWidget {
@@ -399,6 +457,15 @@ class _HomeJarRow extends StatelessWidget {
       remainingColor = remainingAmount.minorUnits > 0
           ? context.colors.onSurfaceVariant
           : context.colors.budgetOver;
+    } else if (progress.tracksGoalTotal) {
+      // Hũ tiết kiệm "nạp vào quỹ" đo theo ĐÍCH của quỹ, không theo mốc của
+      // kỳ — cùng con số thanh tiến độ ngay dưới đang vẽ.
+      final left = progress.goalTarget - progress.savedTotal;
+      remainingAmount = left;
+      remainingLabel = left.minorUnits <= 0 ? 'Đã đạt đích' : 'Còn thiếu';
+      remainingColor = left.minorUnits <= 0
+          ? context.colors.budgetOk
+          : context.colors.onSurfaceVariant;
     } else if (saving) {
       remainingLabel = remaining.minorUnits <= 0 ? 'Đã đủ' : 'Còn cần gửi';
       remainingColor = remaining.minorUnits <= 0
@@ -411,8 +478,11 @@ class _HomeJarRow extends StatelessWidget {
       remainingLabel = 'Còn';
       remainingColor = context.colors.onSurfaceVariant;
     }
-    final showAmount =
-        progress.tracksGoalDrawdown || !(saving && remaining.minorUnits <= 0);
+    final showAmount = progress.tracksGoalDrawdown
+        ? true
+        : progress.tracksGoalTotal
+        ? remainingAmount.minorUnits > 0
+        : !(saving && remaining.minorUnits <= 0);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,13 +526,26 @@ class _HomeJarRow extends StatelessWidget {
               SizedBox(height: context.space.xxs),
               JarProgressBar(progress: progress),
               SizedBox(height: context.space.xxs),
+              // Dòng số dưới thanh.
+              //
+              // Hũ tiết kiệm "nạp vào quỹ" nói TIỀN ĐANG CÓ trong quỹ trước
+              // (con số cộng dồn), rồi mới tới dòng tiền của kỳ — đảo đúng
+              // thứ tự ưu tiên mà Tony chốt 2026-09-22. Hũ khác giữ nguyên
+              // "đã tiêu / hạn mức".
               Text(
-                AmountVisibility.mask(
-                  context,
-                  '${_usedLabel(progress)} ${progress.used.format()}'
-                  // Hũ 0% không có mức của kỳ — "/ 0 ₫" chỉ làm nhiễu.
-                  '${progress.allotted.minorUnits > 0 ? ' / ${progress.allotted.format()}' : ''}',
-                ),
+                progress.accumulatesInGoals
+                    ? AmountVisibility.mask(
+                        context,
+                        'Đang có ${progress.savedTotal.format()}'
+                        '${progress.goalTarget.minorUnits > 0 ? ' / ${progress.goalTarget.format()}' : ''}'
+                        ' · ${_periodFlowText(context, progress)}',
+                      )
+                    : AmountVisibility.mask(
+                        context,
+                        '${_usedLabel(progress)} ${progress.used.format()}'
+                        // Hũ 0% không có mức của kỳ — "/ 0 ₫" chỉ làm nhiễu.
+                        '${progress.allotted.minorUnits > 0 ? ' / ${progress.allotted.format()}' : ''}',
+                      ),
                 style: muted,
               ),
             ],

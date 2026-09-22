@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -380,6 +380,13 @@ class AppDatabase extends _$AppDatabase {
       // này chỉ có chiều nạp vào.
       from16To17: (m, schema) async {
         await m.addColumn(schema.jars, schema.jars.goalFlow);
+      },
+      // v17→v18: `savings_goals.sort_order` — kéo thả thứ tự quỹ ở tab
+      // "Quỹ". Cột thêm thuần tuý, `DEFAULT 0` cho mọi quỹ đang có; danh
+      // sách sắp `sort_order, id` nên thứ tự cũ giữ nguyên cho tới lần kéo
+      // thả đầu tiên.
+      from17To18: (m, schema) async {
+        await m.addColumn(schema.savingsGoals, schema.savingsGoals.sortOrder);
       },
     ),
     beforeOpen: (details) async {
