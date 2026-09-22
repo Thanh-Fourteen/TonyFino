@@ -119,6 +119,22 @@ extension JarKindX on Jar {
   JarKind get jarKind => JarKind.parse(kind);
 }
 
+/// Vai trò của một hũ đối với một quỹ — "hũ nào, chiều nào".
+class JarGoalRole {
+  const JarGoalRole({
+    required this.jarId,
+    required this.jarName,
+    required this.flow,
+  });
+
+  final int jarId;
+  final String jarName;
+  final JarGoalFlow flow;
+
+  String get flowLabel =>
+      flow == JarGoalFlow.deposit ? 'nạp vào' : 'tiêu từ';
+}
+
 /// Một hũ kèm số liệu của kỳ đang xem.
 class JarProgress {
   const JarProgress({
@@ -137,8 +153,20 @@ class JarProgress {
   /// đó chính là điểm khác giữa hũ và ngân sách.
   final Money allotted;
 
-  /// Số DƯƠNG. Hũ tiêu: đã CHI trong các danh mục của hũ. Hũ tiết kiệm: đã
-  /// GỬI RÒNG vào quỹ gắn kèm trong kỳ (nạp trừ rút).
+  /// Số DƯƠNG, LUÔN theo đúng CHIỀU của hũ, và luôn là số TỔNG (gross),
+  /// không bao giờ là số ròng.
+  ///
+  /// - Hũ tiêu: đã CHI trong các danh mục của hũ.
+  /// - Hũ quỹ chiều "nạp vào": TỔNG tiền đã NẠP vào các quỹ của hũ trong kỳ.
+  /// - Hũ quỹ chiều "tiêu từ": TỔNG tiền đã RÚT khỏi các quỹ của hũ trong kỳ.
+  ///
+  /// 🚨 Vì sao GROSS chứ không phải RÒNG (Tony 2026-09-22, lần 2): cùng MỘT
+  /// quỹ được phép nằm trong CẢ HAI hũ ngược chiều — "Tiết kiệm" lo nạp vào,
+  /// "Phát sinh trong quỹ dự phòng" lo rút ra. Nếu hũ nạp đo phần ròng thì
+  /// mỗi lần hũ kia làm đúng việc của nó (rút tiền đi khám bệnh), con số của
+  /// hũ nạp tụt xuống — hai hũ giẫm chân nhau, đúng cảnh "trừ tiền và cộng
+  /// tiền lộn xộn lên". Mỗi hũ chỉ đếm dòng tiền THEO CHIỀU CỦA MÌNH thì
+  /// chúng độc lập hoàn toàn.
   final Money used;
 
   final int categoryCount;
@@ -158,8 +186,12 @@ class JarProgress {
       kind == JarKind.saving && flow == JarGoalFlow.spend;
 
   /// Tổng tiền ĐANG CÓ trong các quỹ của hũ (mọi thời gian, đã nhân tỉ lệ
-  /// từng quỹ) — khác [used] là tiền gửi vào TRONG KỲ. Tony muốn thấy cả
-  /// hai: "tháng này bỏ vào bao nhiêu" và "đang để dành được bao nhiêu".
+  /// từng quỹ) — khác [used] là dòng tiền TRONG KỲ.
+  ///
+  /// 🚨 Đây là số của QUỸ, không phải của hũ, nên nó KHÔNG BAO GIỜ được làm
+  /// con số chính của thẻ hũ: một quỹ nằm trong hai hũ thì cả hai hũ cùng
+  /// khoe một túi tiền, và hũ "nạp vào" sẽ tụt xuống mỗi lần hũ "tiêu từ"
+  /// rút tiền — dù hũ nạp đã làm xong việc của nó. Chỉ hiện làm BỐI CẢNH.
   Money get savedTotal => Money.vnd(goals.fold(0, (s, g) => s + g.savedMinor));
 
   /// Tổng đích của các quỹ (đã nhân tỉ lệ) — mốc cho thanh tiến độ khi hũ
@@ -183,37 +215,28 @@ class JarProgress {
       allotted.minorUnits > 0 &&
       used.minorUnits >= allotted.minorUnits;
 
-  /// Hũ tiết kiệm chiều "nạp vào quỹ" đo TIỀN ĐANG CÓ trong các quỹ so với
-  /// tổng đích của chúng — con số CỘNG DỒN, chỉ tăng.
+  /// Hũ quỹ chiều "nạp vào quỹ" — nhiệm vụ: BỎ TIỀN VÀO các quỹ của hũ.
+  bool get depositsToGoals =>
+      kind == JarKind.saving && flow == JarGoalFlow.deposit;
+
+  /// Hũ quỹ chiều "nạp vào" mà KHÔNG lấy phần trăm thu nhập nào (0%): kỳ
+  /// này không có mốc "phải nạp bao nhiêu", nên thanh chuyển sang đo tiền
+  /// đã để dành được trong các quỹ so với tổng đích của chúng.
   ///
-  /// 🚨 Đây là chiều đo CHÍNH của hũ tiết kiệm, không phải trường hợp ngoại
-  /// lệ của hũ 0% như bản trước. Lý do (Tony 2026-09-22: *"hũ tiết kiệm
-  /// đang trừ tiền đi, nhưng bản chất nó liên thông tới quỹ nên nó được
-  /// cộng vào chứ"*): trong phương pháp hũ gốc của T. Harv Eker, mỗi hũ là
-  /// một CHỖ CHỨA tiền — tiền vào hũ tiết kiệm thì hũ ĐẦY LÊN, không phải
-  /// mất đi. Đo bằng dòng tiền RÒNG của một kỳ thì kỳ nào rút nhiều hơn nạp
-  /// là hũ hiện số ÂM ("−300.000 / 2.000.000"), đúng thứ Tony bắt được.
-  /// Tiền gửi trong kỳ vẫn hiện, nhưng lùi xuống dòng phụ.
-  ///
-  /// Quỹ không đặt đích thì không có mẫu số để đo — khi đó thanh rơi về mốc
-  /// của kỳ (`used / allotted`), còn con số to vẫn là tiền đang có.
+  /// Hũ CÓ đặt phần trăm thì mốc của kỳ mới là thứ đáng đo — nhiệm vụ của
+  /// nó là "kỳ này nạp đủ X chưa", không phải "bao giờ thì đủ đích".
   bool get tracksGoalTotal =>
-      kind == JarKind.saving &&
-      flow == JarGoalFlow.deposit &&
+      depositsToGoals &&
+      allotted.minorUnits == 0 &&
       goals.isNotEmpty &&
       goalTarget.minorUnits > 0;
 
-  /// Hũ tiết kiệm chiều "nạp vào quỹ": con số TO trên thẻ là tiền ĐANG CÓ
-  /// trong các quỹ (cộng dồn), không phải dòng tiền của kỳ.
-  bool get accumulatesInGoals =>
-      kind == JarKind.saving &&
-      flow == JarGoalFlow.deposit &&
-      goals.isNotEmpty;
-
-  /// Gửi RÒNG trong kỳ, CÓ DẤU — âm nghĩa là kỳ này rút ra nhiều hơn bỏ
-  /// vào. Chỗ hiện phải đọc dấu và đổi CHỮ ("kỳ này rút ròng …"), tuyệt đối
-  /// không in thẳng số âm dưới nhãn "đã gửi".
-  Money get periodNet => used;
+  /// Tiền quỹ TĂNG hay GIẢM ròng trong kỳ (nạp − rút), CÓ DẤU.
+  ///
+  /// Đây là số của QUỸ, chỉ dùng làm bối cảnh — [used] mới là số đo nhiệm
+  /// vụ của hũ. Chỗ nào hiện nó phải đọc DẤU rồi đổi CHỮ, không in số âm.
+  Money get periodNet =>
+      Money.vnd(goals.fold(0, (s, g) => s + g.netMinor));
 
   /// Hũ "tiêu từ quỹ" KHÔNG đặt trần: thanh đo phần quỹ đã tiêu trong kỳ so
   /// với chính quỹ đó lúc đầu kỳ (= còn lại + đã tiêu).
@@ -234,8 +257,8 @@ class JarProgress {
       return atStart <= 0 ? 0 : used.minorUnits / atStart;
     }
     if (allotted.minorUnits == 0) return 0;
-    // Kỳ rút ròng (`used` âm) không kéo thanh về phía sau mốc 0 — thanh đo
-    // tiến độ, không đo nợ.
+    // [used] luôn ≥ 0 (gross theo chiều của hũ) nên thanh không bao giờ
+    // chạy ngược — giữ `clamp` phòng dữ liệu lạ.
     final r = used.minorUnits / allotted.minorUnits;
     return r < 0 ? 0 : r;
   }
@@ -249,6 +272,7 @@ class JarGoalProgress {
     required this.inMinor,
     required this.outMinor,
     required this.savedMinor,
+    required this.fullSavedMinor,
   });
 
   final SavingsGoal goal;
@@ -262,20 +286,28 @@ class JarGoalProgress {
   /// Tiền RÚT RA khỏi quỹ trong kỳ (số dương), đã nhân [percent].
   final int outMinor;
 
-  /// Gửi RÒNG trong kỳ = nạp − rút. Âm nghĩa là kỳ này rút nhiều hơn nạp.
-  int get depositedMinor => inMinor - outMinor;
+  /// Tiền đã NẠP vào quỹ trong kỳ — TỔNG, không trừ phần rút ra.
+  ///
+  /// 🚨 Cả hai chiều đều dùng số TỔNG, đối xứng nhau. Quỹ khám bệnh tháng
+  /// này nạp 1tr rồi lấy 300k đi khám: "tháng này nạp vào bao nhiêu" = 1tr,
+  /// "tháng này tiêu từ quỹ bao nhiêu" = 300k. Không câu nào trả lời bằng
+  /// 700k cả. Số ròng là câu trả lời cho một câu hỏi THỨ BA ("quỹ phình ra
+  /// bao nhiêu") — đó là câu hỏi của QUỸ, xem [netMinor].
+  int get depositedMinor => inMinor;
 
   /// Tiền đã rút ra tiêu trong kỳ — TỔNG, không trừ phần nạp vào.
-  ///
-  /// 🚨 Không dùng số ròng: quỹ khám bệnh tháng này nạp thêm 1tr rồi lấy
-  /// 300k đi khám thì câu trả lời cho "tháng này tiêu từ quỹ bao nhiêu" là
-  /// 300k, không phải 0 — bắt được lỗi này khi bấm thật trên máy. Nạp và
-  /// rút là hai dòng tiền khác nhau; chỉ hũ chiều "nạp vào" mới hỏi phần
-  /// ròng (bỏ vào được bao nhiêu).
   int get withdrawnMinor => outMinor;
+
+  /// Quỹ TĂNG/GIẢM ròng trong kỳ = nạp − rút, CÓ DẤU. Số của QUỸ, không
+  /// phải số đo nhiệm vụ của hũ nào.
+  int get netMinor => inMinor - outMinor;
 
   /// Tiền đang có trong quỹ (mọi thời gian), đã nhân [percent].
   final int savedMinor;
+
+  /// Tiền đang có trong quỹ, KHÔNG nhân tỉ lệ — dùng để cộng tổng theo QUỸ
+  /// mà không đếm hai lần khi một quỹ nằm trong nhiều hũ.
+  final int fullSavedMinor;
 
   /// Đích của quỹ, đã nhân [percent]. 0 = quỹ không đặt đích.
   int get targetMinor => goal.targetAmountMinor * percent ~/ 100;
@@ -311,15 +343,10 @@ class JarsOverview {
     jars.fold(0, (s, p) => p.kind == JarKind.spend ? s + p.used.minorUnits : s),
   );
 
-  /// Đã ĐỂ DÀNH trong kỳ — tiền bỏ RÒNG vào quỹ của các hũ tiết kiệm chiều
-  /// "nạp vào quỹ". Kẹp ở 0: kỳ rút ròng thì "đã để dành" là 0, không phải
-  /// một con số âm.
+  /// Đã NẠP VÀO QUỸ trong kỳ — tổng tiền bỏ vào quỹ của các hũ chiều "nạp
+  /// vào quỹ". Số TỔNG, luôn ≥ 0.
   Money get totalSaved => Money.vnd(
-    jars.fold(0, (s, p) {
-      if (!p.accumulatesInGoals) return s;
-      final net = p.periodNet.minorUnits;
-      return net > 0 ? s + net : s;
-    }),
+    jars.fold(0, (s, p) => p.depositsToGoals ? s + p.used.minorUnits : s),
   );
 
   /// Đã RÚT TỪ QUỸ ra tiêu trong kỳ (hũ chiều "tiêu từ quỹ").
@@ -331,14 +358,56 @@ class JarsOverview {
     jars.fold(0, (s, p) => p.spendsFromGoals ? s + p.used.minorUnits : s),
   );
 
-  /// Phần thu nhập của kỳ đã chia vào hũ mà CHƯA đi đâu cả — chưa tiêu,
-  /// cũng chưa chuyển vào quỹ.
-  Money get totalRemaining => totalAllotted - totalSpent - totalSaved;
+  /// Tổng phần CÒN LẠI của TỪNG hũ, cộng lại — cố ý KHÔNG phải
+  /// `totalAllotted − totalSpent − totalSaved`.
+  ///
+  /// 🚨 Cộng theo từng hũ rồi mới tổng, và kẹp ở 0 cho mỗi hũ. Hai lý do,
+  /// cả hai đều bắt được khi bấm thật trên máy:
+  ///
+  /// 1. Nguyên tắc cốt lõi của phương pháp phong bì: một hũ tiêu quá phần
+  ///    của nó KHÔNG được âm thầm ăn vào phần còn lại của hũ khác.
+  /// 2. Trừ thẳng [totalSaved] làm cả bộ hũ báo "Vượt" chỉ vì Tony chuyển
+  ///    một khoản tiết kiệm CŨ vào quỹ: thu nhập kỳ này 1tr mà nạp 7tr vào
+  ///    quỹ (tiền của những kỳ trước đang nằm trong ví) ra "Vượt
+  ///    6.050.000". Nạp vượt mức là chuyện TỐT, không phải lỗi.
+  Money get totalRemaining => Money.vnd(
+    jars.fold(0, (s, p) {
+      final left = p.allotted.minorUnits - p.used.minorUnits;
+      return left > 0 ? s + left : s;
+    }),
+  );
 
-  /// Tổng tiền ĐANG CÓ trong mọi quỹ được các hũ tiết kiệm gom (mọi thời
+  /// Tổng phần VƯỢT của những hũ mà vượt là XẤU — hũ tiêu, và hũ "tiêu từ
+  /// quỹ" có đặt trần. Hũ nạp quỹ vượt mức là đạt mục tiêu, không vào đây.
+  Money get totalOverspent => Money.vnd(
+    jars.fold(
+      0,
+      (s, p) => p.isOverspent
+          ? s + (p.used.minorUnits - p.allotted.minorUnits)
+          : s,
+    ),
+  );
+
+  /// Tổng tiền ĐANG CÓ trong mọi quỹ mà các hũ đang theo dõi (mọi thời
   /// gian) — khác [totalSaved] là phần bỏ vào TRONG KỲ.
-  Money get totalInGoals =>
-      Money.vnd(jars.fold(0, (s, p) => s + p.savedTotal.minorUnits));
+  ///
+  /// 🚨 Gom theo QUỸ, mỗi quỹ đúng MỘT lần, và lấy số dư ĐẦY ĐỦ. Một quỹ
+  /// nằm trong cả hũ "Tiết kiệm" lẫn hũ "Phát sinh" là chuyện bình thường
+  /// (hai nhiệm vụ ngược chiều trên cùng một túi tiền) — cộng `savedTotal`
+  /// của từng hũ lại là đếm đúng túi tiền đó hai lần.
+  Money get totalInGoals {
+    final byGoal = <int, int>{};
+    for (final jar in jars) {
+      for (final g in jar.goals) {
+        byGoal[g.goal.id] = g.fullSavedMinor;
+      }
+    }
+    return Money.vnd(byGoal.values.fold(0, (s, v) => s + v));
+  }
+
+  /// Số QUỸ khác nhau mà các hũ đang theo dõi — đếm mỗi quỹ một lần.
+  int get distinctGoalCount =>
+      {for (final j in jars) for (final g in j.goals) g.goal.id}.length;
 }
 
 class JarRepository {
@@ -537,6 +606,7 @@ class JarRepository {
             outMinor:
                 (inByGoal[link.goalId]?.outMinor ?? 0) * link.percent ~/ 100,
             savedMinor: (balanceByGoal[link.goalId] ?? 0) * link.percent ~/ 100,
+            fullSavedMinor: balanceByGoal[link.goalId] ?? 0,
           ),
         );
       }
@@ -554,6 +624,9 @@ class JarRepository {
                 JarKind.spend => Money.vnd(-(spentByJar[jar.id] ?? 0)),
                 // Hũ tiết kiệm gom NHIỀU quỹ: cộng phần thuộc hũ của từng
                 // quỹ (v15), theo ĐÚNG chiều của hũ (v17).
+                // Mỗi chiều chỉ đếm dòng tiền CỦA CHÍNH NÓ, và đếm số
+                // TỔNG — xem `JarProgress.used`. Nhờ vậy một quỹ nằm trong
+                // cả hai hũ ngược chiều thì hai hũ không giẫm chân nhau.
                 JarKind.saving => Money.vnd(
                   (goalsByJar[jar.id] ?? const <JarGoalProgress>[]).fold(0, (
                     sum,
@@ -710,6 +783,36 @@ class JarRepository {
             ),
           );
     }
+  }
+
+  /// Quỹ nào đang được hũ nào theo dõi, và theo CHIỀU nào — nguồn cho bảng
+  /// chọn quỹ ở sheet sửa hũ.
+  ///
+  /// Vì sao cần: một quỹ nằm trong hai hũ NGƯỢC chiều là cách dùng đúng
+  /// ("Tiết kiệm" lo nạp vào, "Phát sinh" lo rút ra). Nhưng nằm trong hai
+  /// hũ CÙNG chiều thì dòng tiền của nó bị đếm hai lần, và không có gì trên
+  /// màn hình nói ra điều đó. Sheet sửa hũ hiện luôn vai trò cũ để Tony
+  /// thấy trước khi tick.
+  Future<Map<int, List<JarGoalRole>>> goalJarRoles(int walletId) async {
+    final jars = await (_db.select(_db.jars)
+          ..where((j) => j.walletId.equals(walletId) & j.isArchived.equals(false)))
+        .get();
+    final savingJars = {
+      for (final j in jars)
+        if (j.jarKind == JarKind.saving) j.id: j,
+    };
+    if (savingJars.isEmpty) return const {};
+    final links = await (_db.select(
+      _db.jarGoals,
+    )..where((l) => l.jarId.isIn(savingJars.keys))).get();
+    final out = <int, List<JarGoalRole>>{};
+    for (final link in links) {
+      final jar = savingJars[link.jarId]!;
+      (out[link.goalId] ??= []).add(
+        JarGoalRole(jarId: jar.id, jarName: jar.name, flow: jar.flow),
+      );
+    }
+    return out;
   }
 
   /// Dây nối hiện có của một hũ — nguồn cho sheet sửa hũ.

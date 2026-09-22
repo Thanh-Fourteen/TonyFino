@@ -310,7 +310,7 @@ void main() {
     expect(byId[huongThu.id]!.categoryCount, 1);
   });
 
-  test('hũ TIẾT KIỆM đếm tiền gửi RÒNG vào quỹ gắn kèm trong kỳ', () async {
+  test('hũ TIẾT KIỆM đếm TỔNG tiền nạp vào quỹ gắn kèm trong kỳ', () async {
     final quy = await goal('Quỹ ngắn hạn');
     final quyKhac = await goal('Quỹ khác');
     await repo.insert(
@@ -336,13 +336,18 @@ void main() {
     expect(p.kind, JarKind.saving);
     expect(p.goalName, 'Quỹ ngắn hạn');
     expect(p.allotted.minorUnits, 1000000);
-    expect(p.used.minorUnits, 400000, reason: 'nạp 100k + 500k, rút 200k');
-    expect(p.remaining.minorUnits, 600000);
+    expect(
+      p.used.minorUnits,
+      600000,
+      reason: 'nhiệm vụ của hũ là NẠP: 100k + 500k. Rút 200k là chiều kia.',
+    );
+    expect(p.periodNet.minorUnits, 400000, reason: 'quỹ phình ra 400k');
+    expect(p.remaining.minorUnits, 400000);
     expect(p.isOverspent, isFalse);
     // Tiền gửi quỹ KHÔNG còn nằm trong "đã tiêu" — nó là tiền để dành, có
     // ô riêng (đổi 2026-09-22, xem `JarsOverview.totalSpent`).
     expect(overview.totalSpent.minorUnits, 0);
-    expect(overview.totalSaved.minorUnits, 400000);
+    expect(overview.totalSaved.minorUnits, 600000);
   });
 
   test('hũ tiết kiệm gửi VƯỢT mức là đạt, không phải vượt chi', () async {
@@ -464,12 +469,10 @@ void main() {
     expect(p.used.minorUnits, 500000, reason: '300k + 200k trong kỳ');
     expect(p.savedTotal.minorUnits, 2500000, reason: '2tr kỳ trước + 500k');
     expect(p.allotted.minorUnits, 1000000);
-    // Từ 2026-09-22: hũ tiết kiệm chiều "nạp vào quỹ" LUÔN đo theo tiền
-    // đang có so với đích các quỹ, kể cả khi vẫn lấy phần trăm thu nhập —
-    // hũ là chỗ CHỨA tiền, con số của nó cộng dồn. Mốc của kỳ lùi xuống
-    // dòng phụ.
-    expect(p.tracksGoalTotal, isTrue);
-    expect(p.accumulatesInGoals, isTrue);
+    // Hũ CÓ đặt phần trăm thì nhiệm vụ của nó là mốc của KỲ, không phải
+    // đích của quỹ — thanh đo `used / allotted`.
+    expect(p.tracksGoalTotal, isFalse);
+    expect(p.depositsToGoals, isTrue);
     expect(p.goalTarget.minorUnits, 100000000, reason: '2 quỹ × 50tr');
     expect(p.periodNet.minorUnits, 500000);
   });
@@ -631,10 +634,11 @@ void main() {
     expect(p.spendsFromGoals, isFalse);
     expect(
       p.used.minorUnits,
-      600000,
-      reason: 'chiều NẠP đọc phần RÒNG: nạp 1tr trừ rút 400k',
+      1000000,
+      reason: 'chiều NẠP chỉ đếm tiền nạp, TỔNG — không trừ 400k rút ra',
     );
-    expect(p.goals.single.outMinor, 400000);
+    expect(p.goals.single.outMinor, 400000, reason: 'phần rút vẫn đọc được');
+    expect(p.periodNet.minorUnits, 600000);
   });
 
   test('hũ tiết kiệm: kỳ RÚT RÒNG không kéo hũ xuống số âm — con số của hũ '
@@ -660,18 +664,138 @@ void main() {
     final overview = await august();
     final p = overview.jars.single;
 
-    expect(p.periodNet.minorUnits, -300000, reason: 'nạp 200k, rút 500k');
+    // Nhiệm vụ của hũ này là NẠP — nó chỉ đếm tiền nạp, số TỔNG. Việc hũ
+    // khác (hoặc chính Tony) rút 500k ra là dòng tiền của CHIỀU KIA.
+    expect(p.used.minorUnits, 200000, reason: 'chỉ đếm tiền NẠP trong kỳ');
+    expect(p.periodNet.minorUnits, -300000, reason: 'quỹ hụt đi 300k');
     expect(p.savedTotal.minorUnits, 2700000, reason: '3tr − 300k vẫn DƯƠNG');
-    expect(p.accumulatesInGoals, isTrue);
-    expect(p.tracksGoalTotal, isTrue);
-    // Thanh đo tiền đang có / đích — không bao giờ âm.
-    expect(p.ratio, closeTo(2700000 / 50000000, 1e-9));
+    expect(p.depositsToGoals, isTrue);
+    expect(p.tracksGoalTotal, isFalse, reason: 'hũ có 10% thì đo mốc của kỳ');
+    expect(p.ratio, closeTo(200000 / 1000000, 1e-9));
     expect(p.isOverspent, isFalse);
 
-    // Tổng của bộ hũ: kỳ rút ròng thì "đã để dành" là 0, KHÔNG phải số âm,
-    // và tiền quỹ không lẫn vào "đã tiêu".
-    expect(overview.totalSaved.minorUnits, 0);
+    // Tổng của bộ hũ: "đã nạp vào quỹ" là số tổng, không bao giờ âm; tiền
+    // quỹ không lẫn vào "đã tiêu".
+    expect(overview.totalSaved.minorUnits, 200000);
     expect(overview.totalSpent.minorUnits, 0);
     expect(overview.totalInGoals.minorUnits, 2700000);
+  });
+
+  // 🚨 Ca dùng THẬT của Tony (2026-09-22): tám quỹ, hai hũ — "Tiết kiệm"
+  // chuyên NẠP vào quỹ, "Phát sinh trong quỹ dự phòng" chuyên RÚT từ quỹ —
+  // và CÙNG một quỹ nằm trong CẢ HAI hũ. Trước bản này hũ nạp đọc phần
+  // RÒNG, nên mỗi lần hũ kia làm đúng việc của mình (rút tiền) thì con số
+  // của hũ nạp tụt xuống: "trừ tiền và cộng tiền lộn xộn lên".
+  test('một quỹ nằm trong CẢ HAI hũ ngược chiều: hai hũ không giẫm chân nhau',
+      () async {
+    final khamBenh = await goal('Khám bệnh');
+    final duLich = await goal('Du lịch');
+
+    await repo.insert(
+      walletId: walletId,
+      name: 'Tiết kiệm',
+      percent: 10,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      flow: JarGoalFlow.deposit,
+      goals: [JarGoalLink(goalId: khamBenh), JarGoalLink(goalId: duLich)],
+    );
+    await repo.insert(
+      walletId: walletId,
+      name: 'Phát sinh trong quỹ dự phòng',
+      percent: 0,
+      categoryColorId: 3,
+      iconCode: 'handshake',
+      kind: JarKind.saving,
+      flow: JarGoalFlow.spend,
+      // ĐÚNG hai quỹ đó, cũng 100% — không chia tỉ lệ, vì hai hũ lo hai
+      // NHIỆM VỤ khác nhau chứ không chia nhau quyền sở hữu túi tiền.
+      goals: [JarGoalLink(goalId: khamBenh), JarGoalLink(goalId: duLich)],
+    );
+
+    await tx(amountMinor: 10000000, at: DateTime(2026, 8, 1));
+    // Kỳ này: nạp 800k vào Khám bệnh, rồi rút 300k ra đi khám.
+    await tx(amountMinor: -800000, at: DateTime(2026, 8, 5), goalId: khamBenh);
+    await tx(amountMinor: 300000, at: DateTime(2026, 8, 18), goalId: khamBenh);
+    // Du lịch chỉ nạp.
+    await tx(amountMinor: -500000, at: DateTime(2026, 8, 6), goalId: duLich);
+
+    final overview = await august();
+    final nap = overview.jars.firstWhere((j) => j.jar.name == 'Tiết kiệm');
+    final rut = overview.jars.firstWhere(
+      (j) => j.jar.name == 'Phát sinh trong quỹ dự phòng',
+    );
+
+    // Hũ NẠP chỉ thấy tiền nạp: 800k + 500k. Việc rút 300k không đụng tới.
+    expect(nap.used.minorUnits, 1300000);
+    expect(nap.depositsToGoals, isTrue);
+    expect(
+      nap.remaining.minorUnits,
+      -300000,
+      reason: 'hạn mức 1tr, đã nạp 1,3tr → đã đủ và dư 300k',
+    );
+
+    // Hũ RÚT chỉ thấy tiền rút: 300k. Việc nạp 1,3tr không đụng tới.
+    expect(rut.used.minorUnits, 300000);
+    expect(rut.spendsFromGoals, isTrue);
+
+    // Tổng bộ hũ: hai dòng riêng, và tiền trong quỹ đếm MỘT lần dù hai hũ
+    // cùng trỏ vào đúng hai quỹ đó.
+    expect(overview.totalSaved.minorUnits, 1300000);
+    expect(overview.totalDrawnFromGoals.minorUnits, 300000);
+    expect(overview.distinctGoalCount, 2);
+    expect(
+      overview.totalInGoals.minorUnits,
+      1000000,
+      reason: '800k − 300k + 500k, đếm mỗi quỹ đúng một lần',
+    );
+    // Tiền quỹ không lẫn vào "đã tiêu" của kỳ.
+    expect(overview.totalSpent.minorUnits, 0);
+
+    // 🚨 Nạp VƯỢT hạn mức không được kéo tổng bộ hũ xuống "Vượt". Thu nhập
+    // kỳ này 10tr → hạn mức hũ nạp là 1tr, mà Tony nạp 1,3tr (phần dôi ra
+    // là tiền của kỳ trước đang nằm trong ví). Bắt được lỗi này khi bấm
+    // thật: bộ hũ từng báo "Vượt 6.050.000".
+    expect(nap.remaining.minorUnits, -300000);
+    expect(overview.totalOverspent.minorUnits, 0, reason: 'nạp dư là TỐT');
+    expect(
+      overview.totalRemaining.minorUnits,
+      0,
+      reason: 'hũ nạp đã dùng hết hạn mức, hũ rút không có hạn mức nào',
+    );
+  });
+
+  test('vai trò của từng quỹ đọc được để sheet sửa hũ cảnh báo trùng chiều',
+      () async {
+    final quy = await goal('Khám bệnh');
+    await repo.insert(
+      walletId: walletId,
+      name: 'Tiết kiệm',
+      percent: 10,
+      categoryColorId: 4,
+      iconCode: 'savings',
+      kind: JarKind.saving,
+      flow: JarGoalFlow.deposit,
+      goals: [JarGoalLink(goalId: quy)],
+    );
+    await repo.insert(
+      walletId: walletId,
+      name: 'Phát sinh',
+      percent: 0,
+      categoryColorId: 3,
+      iconCode: 'handshake',
+      kind: JarKind.saving,
+      flow: JarGoalFlow.spend,
+      goals: [JarGoalLink(goalId: quy)],
+    );
+
+    final roles = await repo.goalJarRoles(walletId);
+    final forGoal = roles[quy]!..sort((a, b) => a.jarName.compareTo(b.jarName));
+    expect(forGoal, hasLength(2));
+    expect(forGoal[0].jarName, 'Phát sinh');
+    expect(forGoal[0].flow, JarGoalFlow.spend);
+    expect(forGoal[1].jarName, 'Tiết kiệm');
+    expect(forGoal[1].flow, JarGoalFlow.deposit);
   });
 }

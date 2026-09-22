@@ -353,23 +353,21 @@ class _JarsOverviewCard extends ConsumerWidget {
               Expanded(
                 child: JarStat(label: 'Đã tiêu', amount: overview.totalSpent),
               ),
-              Expanded(
-                child: JarStat(
-                  label: remaining.minorUnits < 0 ? 'Vượt' : 'Còn lại',
-                  amount: remaining.minorUnits < 0 ? -remaining : remaining,
-                  color: remaining.minorUnits < 0
-                      ? context.colors.budgetOver
-                      : null,
-                ),
-              ),
+              Expanded(child: JarStat(label: 'Còn lại', amount: remaining)),
             ],
           ),
+          if (overview.totalOverspent.minorUnits > 0)
+            _JarsTotalsNote(
+              label: 'Vượt hũ',
+              amount: overview.totalOverspent,
+              color: context.colors.budgetOver,
+            ),
           // Hai dòng phụ, cùng nội dung với `JarsTotalsCard` ở màn Hũ —
           // tiền để dành và tiền rút từ quỹ đứng RIÊNG, không lẫn vào "đã
           // tiêu" và không trừ vào "còn lại" của kỳ.
           if (overview.totalSaved.minorUnits > 0)
             _JarsTotalsNote(
-              label: 'Đã để dành vào quỹ',
+              label: 'Đã nạp vào quỹ',
               amount: overview.totalSaved,
               color: context.colors.incomeText,
             ),
@@ -420,17 +418,7 @@ class _JarsTotalsNote extends StatelessWidget {
 /// mức". Hũ tiết kiệm nói bằng chữ của nó ("đã gửi", "còn cần gửi").
 String _usedLabel(JarProgress p) {
   if (p.kind == JarKind.spend) return 'Đã tiêu';
-  return p.spendsFromGoals ? 'Đã rút' : 'Đã gửi';
-}
-
-/// Dòng tiền của kỳ, dạng CHUỖI để ghép vào một dòng ở Trang chủ — cùng
-/// cách nói với `periodFlowLabel` của màn Hũ (bản widget).
-String _periodFlowText(BuildContext context, JarProgress p) {
-  final net = p.periodNet.minorUnits;
-  if (net == 0) return 'kỳ này chưa gửi thêm';
-  final withdrew = net < 0;
-  final amount = Money.vnd(withdrew ? -net : net).format();
-  return withdrew ? 'kỳ này rút ròng $amount' : 'kỳ này gửi $amount';
+  return p.spendsFromGoals ? 'Đã rút' : 'Đã nạp';
 }
 
 class _HomeJarRow extends StatelessWidget {
@@ -467,7 +455,7 @@ class _HomeJarRow extends StatelessWidget {
           ? context.colors.budgetOk
           : context.colors.onSurfaceVariant;
     } else if (saving) {
-      remainingLabel = remaining.minorUnits <= 0 ? 'Đã đủ' : 'Còn cần gửi';
+      remainingLabel = remaining.minorUnits <= 0 ? 'Đã đủ' : 'Còn cần nạp';
       remainingColor = remaining.minorUnits <= 0
           ? context.colors.budgetOk
           : context.colors.onSurfaceVariant;
@@ -526,26 +514,18 @@ class _HomeJarRow extends StatelessWidget {
               SizedBox(height: context.space.xxs),
               JarProgressBar(progress: progress),
               SizedBox(height: context.space.xxs),
-              // Dòng số dưới thanh.
-              //
-              // Hũ tiết kiệm "nạp vào quỹ" nói TIỀN ĐANG CÓ trong quỹ trước
-              // (con số cộng dồn), rồi mới tới dòng tiền của kỳ — đảo đúng
-              // thứ tự ưu tiên mà Tony chốt 2026-09-22. Hũ khác giữ nguyên
-              // "đã tiêu / hạn mức".
+              // Dòng số dưới thanh: con số của KỲ theo đúng chiều của hũ,
+              // rồi mới tới tiền đang có trong quỹ làm bối cảnh. Tiền trong
+              // quỹ là số của QUỸ (một quỹ nằm trong hai hũ thì hai hũ cùng
+              // trỏ vào nó), nên nó không được đứng đầu dòng.
               Text(
-                progress.accumulatesInGoals
-                    ? AmountVisibility.mask(
-                        context,
-                        'Đang có ${progress.savedTotal.format()}'
-                        '${progress.goalTarget.minorUnits > 0 ? ' / ${progress.goalTarget.format()}' : ''}'
-                        ' · ${_periodFlowText(context, progress)}',
-                      )
-                    : AmountVisibility.mask(
-                        context,
-                        '${_usedLabel(progress)} ${progress.used.format()}'
-                        // Hũ 0% không có mức của kỳ — "/ 0 ₫" chỉ làm nhiễu.
-                        '${progress.allotted.minorUnits > 0 ? ' / ${progress.allotted.format()}' : ''}',
-                      ),
+                AmountVisibility.mask(
+                  context,
+                  '${_usedLabel(progress)} ${progress.used.format()}'
+                  // Hũ 0% không có mức của kỳ — "/ 0 ₫" chỉ làm nhiễu.
+                  '${progress.allotted.minorUnits > 0 ? ' / ${progress.allotted.format()}' : ''}'
+                  '${saving && progress.goals.isNotEmpty ? ' · quỹ đang có ${progress.savedTotal.format()}' : ''}',
+                ),
                 style: muted,
               ),
             ],

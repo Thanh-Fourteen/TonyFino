@@ -182,6 +182,8 @@ class JarsTotalsCard extends StatelessWidget {
     final remaining = overview.totalRemaining;
     final saved = overview.totalSaved;
     final drawn = overview.totalDrawnFromGoals;
+    final goalCount = overview.distinctGoalCount;
+    final over = overview.totalOverspent;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,33 +226,44 @@ class JarsTotalsCard extends StatelessWidget {
               Expanded(
                 child: JarStat(label: 'Đã tiêu', amount: overview.totalSpent),
               ),
-              Expanded(
-                child: JarStat(
-                  label: remaining.minorUnits < 0 ? 'Vượt' : 'Còn lại',
-                  amount: remaining.minorUnits < 0 ? -remaining : remaining,
-                  color: remaining.minorUnits < 0
-                      ? context.colors.budgetOver
-                      : null,
-                ),
-              ),
+              Expanded(child: JarStat(label: 'Còn lại', amount: remaining)),
             ],
           ),
-          if (saved.minorUnits > 0 || drawn.minorUnits > 0) ...[
+          // "Vượt" đứng RIÊNG chứ không thay chỗ "Còn lại": một hũ vượt
+          // không làm biến mất phần còn lại của những hũ khác.
+          if (over.minorUnits > 0)
+            _TotalsNote(
+              label: 'Vượt hũ',
+              amount: over,
+              color: context.colors.budgetOver,
+            ),
+          // 🚨 Ba dòng QUỸ đứng riêng, KHÔNG nhập vào hàng "đã tiêu/còn
+          // lại" ở trên. Tiền vào quỹ, tiền ra khỏi quỹ và tiền đang nằm
+          // trong quỹ là ba câu hỏi khác nhau, và cả ba đều không phải
+          // "kỳ này tiêu hết bao nhiêu thu nhập".
+          if (goalCount > 0) ...[
+            SizedBox(height: context.space.md),
+            Divider(height: 1, color: context.colors.hairline),
             SizedBox(height: context.space.sm),
-            if (saved.minorUnits > 0)
-              _TotalsNote(
-                label: 'Đã để dành vào quỹ',
-                amount: saved,
-                // Tiền vào quỹ là tiền ĐƯỢC CỘNG vào chỗ để dành — tô màu
-                // tiền vào (chàm), không phải màu tiêu.
-                color: context.colors.incomeText,
-              ),
-            if (drawn.minorUnits > 0)
-              _TotalsNote(
-                label: 'Đã rút từ quỹ ra tiêu',
-                amount: drawn,
-                color: context.colors.onSurfaceVariant,
-              ),
+            _TotalsNote(
+              label: 'Đã nạp vào quỹ',
+              amount: saved,
+              // Tiền vào quỹ là tiền ĐƯỢC CỘNG vào chỗ để dành — tô màu
+              // tiền vào (chàm), không phải màu tiêu.
+              color: context.colors.incomeText,
+            ),
+            _TotalsNote(
+              label: 'Đã rút từ quỹ ra tiêu',
+              amount: drawn,
+              color: context.colors.onSurfaceVariant,
+            ),
+            _TotalsNote(
+              // Đếm theo QUỸ, mỗi quỹ một lần — một quỹ nằm trong hai hũ
+              // vẫn chỉ là một túi tiền.
+              label: '$goalCount quỹ đang có',
+              amount: overview.totalInGoals,
+              color: context.colors.onSurfaceVariant,
+            ),
           ],
         ],
       ),
@@ -371,6 +384,25 @@ class _EmptyJars extends ConsumerWidget {
   }
 }
 
+/// Một thẻ hũ.
+///
+/// 🎨 Viết lại 2026-09-22 (lần 2) quanh MỘT ý: **hũ là một NHIỆM VỤ của kỳ,
+/// không phải một túi tiền.** Tony mô tả chính xác cách mình dùng: tám quỹ,
+/// hai hũ — "Tiết kiệm" chuyên NẠP vào quỹ, "Phát sinh trong quỹ dự phòng"
+/// chuyên RÚT từ quỹ — và *"1 quỹ hoặc n quỹ hoặc tất cả quỹ đều nằm trong
+/// cả 2 hũ"*.
+///
+/// Hệ quả lên bố cục thẻ:
+///
+/// - **Con số TO = dòng tiền của kỳ theo ĐÚNG chiều của hũ** (`used`, số
+///   tổng). Hũ nạp không bao giờ tụt xuống vì hũ kia rút tiền; hũ rút không
+///   bao giờ tụt xuống vì hũ kia nạp tiền.
+/// - **Tiền ĐANG CÓ trong quỹ xuống dòng bối cảnh**, tách hẳn bằng một
+///   đường kẻ. Nó là số của QUỸ: một quỹ nằm trong hai hũ thì hai hũ cùng
+///   trỏ vào một túi tiền, nên nó không thể là điểm số của hũ nào cả.
+/// - **Dòng phụ nói rõ con số to NGHĨA LÀ GÌ** ("Kỳ này đã nạp vào quỹ" /
+///   "Kỳ này đã rút từ quỹ" / "Đã tiêu"), vì hai hũ quỹ giờ nhìn rất giống
+///   nhau và chỉ khác đúng chiều.
 class _JarCard extends ConsumerWidget {
   const _JarCard({required this.progress});
 
@@ -380,21 +412,6 @@ class _JarCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final jar = progress.jar;
     final saving = progress.kind == JarKind.saving;
-
-    final String subtitle;
-    if (saving) {
-      final flowLabel = progress.spendsFromGoals ? 'Tiêu từ quỹ' : 'Tiết kiệm';
-      subtitle = switch (progress.goals.length) {
-        0 => '${jar.percent}% · $flowLabel · chưa gắn quỹ',
-        1 =>
-          '${jar.percent}% · $flowLabel → ${progress.goals.single.goal.name}',
-        final n => '${jar.percent}% · $flowLabel · $n quỹ',
-      };
-    } else {
-      subtitle =
-          '${jar.percent}% · ${progress.categoryCount} danh mục'
-          '${jar.carryOver ? ' · cộng dồn' : ''}';
-    }
 
     return AppCard(
       // Bấm THẺ = XEM hũ tiêu vào đâu (màn Chi tiết hũ) — câu hỏi hay gặp
@@ -418,7 +435,7 @@ class _JarCard extends ConsumerWidget {
                   children: [
                     Text(jar.name, style: context.text.bodyLarge),
                     Text(
-                      subtitle,
+                      jarDutyLine(progress),
                       style: context.text.labelSmall?.copyWith(
                         color: context.colors.onSurfaceVariant,
                       ),
@@ -428,16 +445,6 @@ class _JarCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Con số TO của thẻ.
-              //
-              // Hũ tiêu / hũ tiêu-từ-quỹ: "đã tiêu / tổng nên tiêu" — một
-              // mình hạn mức không nói được tháng này đang đi tới đâu.
-              //
-              // Hũ TIẾT KIỆM chiều "nạp vào quỹ": là TIỀN ĐANG CÓ trong các
-              // quỹ / tổng đích — con số CỘNG DỒN. Trước đây chỗ này là dòng
-              // tiền RÒNG của kỳ, nên kỳ nào rút nhiều hơn nạp là thẻ hiện
-              // số ÂM dưới nhãn "đã gửi" (Tony bắt được 2026-09-22). Tiền
-              // gửi trong kỳ lùi xuống dòng phụ ngay dưới thanh.
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -447,27 +454,13 @@ class _JarCard extends ConsumerWidget {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       MoneyText(
-                        progress.accumulatesInGoals
-                            ? progress.savedTotal
-                            : progress.used,
+                        progress.used,
                         size: MoneySize.medium,
                         signed: false,
                       ),
-                      if (progress.accumulatesInGoals) ...[
-                        if (progress.goalTarget.minorUnits > 0)
-                          Text(
-                            AmountVisibility.mask(
-                              context,
-                              ' / ${progress.goalTarget.format()}',
-                            ),
-                            style: context.text.labelMedium?.copyWith(
-                              color: context.colors.onSurfaceVariant,
-                            ),
-                          ),
-                      ]
                       // Hũ không đặt mức nào cho kỳ (0%) thì "/ 0 ₫" là
                       // nhiễu — con số duy nhất có nghĩa là số đã dùng.
-                      else if (progress.allotted.minorUnits > 0)
+                      if (progress.allotted.minorUnits > 0)
                         Text(
                           AmountVisibility.mask(
                             context,
@@ -488,28 +481,26 @@ class _JarCard extends ConsumerWidget {
           SizedBox(height: context.space.xs),
           Row(
             children: [
-              if (progress.accumulatesInGoals)
-                // Dòng tiền của KỲ, đã đổi chỗ với tổng quỹ ở trên. Đọc
-                // DẤU rồi đổi CHỮ — không bao giờ in "-300.000" cạnh chữ
-                // "gửi".
-                ...periodFlowLabel(context, progress)
-              else if (saving && progress.goals.isNotEmpty) ...[
-                Text(
-                  'Còn trong quỹ ',
+              Flexible(
+                child: Text(
+                  jarUsedMeaning(progress),
                   style: context.text.labelMedium?.copyWith(
                     color: context.colors.onSurfaceVariant,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                MoneyText(
-                  progress.savedTotal,
-                  size: MoneySize.small,
-                  signed: false,
-                ),
-              ],
+              ),
               const Spacer(),
               ..._remainingLabel(context, progress),
             ],
           ),
+          if (saving && progress.goals.isNotEmpty) ...[
+            SizedBox(height: context.space.sm),
+            Divider(height: 1, color: context.colors.hairline),
+            SizedBox(height: context.space.xs),
+            _GoalContextLine(progress: progress),
+          ],
           SizedBox(height: context.space.xs),
           Align(
             alignment: Alignment.centerLeft,
@@ -536,8 +527,8 @@ class _JarCard extends ConsumerWidget {
     final Color color;
     final Money amount;
     if (p.tracksGoalDrawdown) {
-      // Hũ tiêu từ quỹ, không đặt trần: phần đáng nói là quỹ còn bao nhiêu
-      // — đã hiện ở bên trái, nên bên phải chỉ nói "còn dùng được".
+      // Hũ tiêu từ quỹ, không đặt trần: không có mốc của kỳ để so. Phần
+      // đáng nói (quỹ còn bao nhiêu) nằm ở dòng bối cảnh bên dưới.
       return [
         Text(
           p.savedTotal.minorUnits > 0 ? 'còn dùng được' : 'quỹ đã hết',
@@ -569,8 +560,8 @@ class _JarCard extends ConsumerWidget {
       ];
     }
     if (p.tracksGoalTotal) {
-      // Hũ 0%: không có mốc của kỳ để nói "còn cần gửi" — thay bằng phần
-      // còn thiếu so với ĐÍCH của các quỹ (thanh cũng đang đo cái đó).
+      // Hũ nạp 0%: không có mốc của kỳ để nói "còn cần gửi" — thay bằng
+      // phần còn thiếu so với ĐÍCH của các quỹ (thanh cũng đang đo cái đó).
       final left = p.goalTarget - p.savedTotal;
       if (p.goalTarget.minorUnits == 0 || left.minorUnits <= 0) {
         return [
@@ -598,7 +589,7 @@ class _JarCard extends ConsumerWidget {
         color = context.colors.budgetOk;
         amount = -remaining;
       } else {
-        label = 'Còn cần gửi ';
+        label = 'Còn cần nạp ';
         color = context.colors.onSurfaceVariant;
         amount = remaining;
       }
@@ -618,6 +609,78 @@ class _JarCard extends ConsumerWidget {
     ];
   }
 }
+
+/// Dòng BỐI CẢNH của hũ quỹ: các quỹ của hũ đang có bao nhiêu, và kỳ này
+/// túi tiền đó phình ra hay hụt đi.
+///
+/// Tách hẳn khỏi con số chính bằng một đường kẻ, vì đây là số của QUỸ chứ
+/// không phải điểm số của hũ — xem `JarProgress.savedTotal`.
+class _GoalContextLine extends StatelessWidget {
+  const _GoalContextLine({required this.progress});
+
+  final JarProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = progress.goals.length;
+    final net = progress.periodNet.minorUnits;
+    final muted = context.text.labelSmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
+    // MỘT dòng liền, canh trái, tự co cho vừa — KHÔNG phải hai cụm trái/phải
+    // giành bề ngang. Hai cụm thì cả hai cùng bị cắt thành "2 quỹ đan…" và
+    // "+4.500.000 ₫ kỳ n…" trên máy thật.
+    final net_ = net == 0
+        ? ''
+        : net > 0
+        ? ' · kỳ này +${Money.vnd(net).format()}'
+        : ' · kỳ này −${Money.vnd(-net).format()}';
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        AmountVisibility.mask(
+          context,
+          '$n quỹ đang có ${progress.savedTotal.format()}$net_',
+        ),
+        style: muted,
+        maxLines: 1,
+      ),
+    );
+  }
+}
+
+/// Dòng "nhiệm vụ" dưới tên hũ — dùng chung với Trang chủ và màn Chi tiết
+/// hũ để ba nơi gọi một hũ bằng cùng một câu.
+///
+/// 🚨 Giữ NGẮN. Dòng này chia bề ngang với con số tiền bên phải, và số VND
+/// thì dài ("7.000.000 ₫ / 100.000 ₫"); viết đủ chữ "Nạp 10% thu nhập vào 2
+/// quỹ" là bị cắt thành "Nạp 10% thu nhập vào …" trên máy thật.
+String jarDutyLine(JarProgress p) {
+  final percent = p.jar.percent;
+  if (p.kind == JarKind.spend) {
+    return '$percent% thu · ${p.categoryCount} danh mục'
+        '${p.jar.carryOver ? ' · cộng dồn' : ''}';
+  }
+  final n = p.goals.length;
+  final scope = n == 0 ? 'chưa gắn quỹ' : '$n quỹ';
+  if (p.depositsToGoals) {
+    return percent == 0
+        ? 'Nạp vào quỹ · $scope'
+        : 'Nạp $percent% thu · $scope';
+  }
+  return percent == 0
+      ? 'Tiêu từ quỹ · $scope'
+      : 'Tiêu từ quỹ · trần $percent% · $scope';
+}
+
+/// Con số TO của thẻ hũ nghĩa là gì — nói thẳng CHIỀU, và ngắn (nó chia
+/// bề ngang với nhãn "còn lại/đã đủ" bên phải).
+String jarUsedMeaning(JarProgress p) {
+  if (p.kind == JarKind.spend) return 'Đã tiêu kỳ này';
+  return p.depositsToGoals ? 'Đã nạp kỳ này' : 'Đã rút kỳ này';
+}
+
 
 /// Nút hành động của hũ tiết kiệm: gửi tiền vào quỹ gắn kèm, hoặc — khi
 /// chưa gắn quỹ nào — mời gắn.
@@ -668,41 +731,6 @@ class _SavingAction extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Dòng tiền của KỲ cho hũ tiết kiệm chiều "nạp vào quỹ" — dùng chung cho
-/// thẻ hũ, Trang chủ và màn Chi tiết hũ, để ba nơi nói cùng một chữ.
-///
-/// 🚨 Đọc DẤU của [JarProgress.periodNet] rồi đổi CHỮ, không in số âm dưới
-/// nhãn "đã gửi". Kỳ rút ra nhiều hơn bỏ vào là chuyện thật (tháng nào đó
-/// lấy tiền quỹ ra dùng), và nó phải đọc ra là "kỳ này rút ròng 300.000"
-/// chứ không phải "đã gửi −300.000".
-List<Widget> periodFlowLabel(BuildContext context, JarProgress p) {
-  final net = p.periodNet.minorUnits;
-  if (net == 0) {
-    return [
-      Text(
-        'Kỳ này chưa gửi thêm',
-        style: context.text.labelMedium?.copyWith(
-          color: context.colors.onSurfaceVariant,
-        ),
-      ),
-    ];
-  }
-  final withdrew = net < 0;
-  return [
-    Text(
-      withdrew ? 'Kỳ này rút ròng ' : 'Kỳ này gửi ',
-      style: context.text.labelMedium?.copyWith(
-        color: context.colors.onSurfaceVariant,
-      ),
-    ),
-    MoneyText(
-      Money.vnd(withdrew ? -net : net),
-      size: MoneySize.small,
-      signed: false,
-    ),
-  ];
 }
 
 /// Thanh tiến độ của một hũ — dùng chung cho màn Hũ và Trang chủ.

@@ -2472,3 +2472,75 @@ phục** (tiện kiểm luôn round-trip sao lưu trên schema v18) — dữ li�
 - Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md` — nâng cấp đè được, không phải gỡ
   cài (tức không mất dữ liệu).
 - `tailscale serve status` sau khi set: đủ 9 mount, 7 mount của dự án khác còn nguyên.
+
+---
+
+## 2026-09-22 (2) · Hũ là một NHIỆM VỤ, không phải một túi tiền
+
+Tony mô tả cách mình dùng thật, và nó phá vỡ mô hình đang có:
+
+> Tôi có các quỹ: Quỹ dài hạn, tháng sau, khám bệnh, du lịch, quà tặng, Tee, Lì xì, Sự cố ngoài ý
+> muốn. Tôi có 2 hũ: "Phát sinh trong quỹ dự phòng" (chuyên trừ tiền từ quỹ), "Tiết kiệm" (chuyên
+> nạp tiền vào quỹ). 1 trong các quỹ hoặc n quỹ hoặc tất cả quỹ đều nằm trong cả 2 hũ, trừ tiền và
+> cộng tiền lộn xộn lên. 1 quỹ có thể cộng tiền hoặc trừ tiền trong tháng, **hũ thì quản lý nhiệm
+> vụ của nó**.
+
+Câu cuối là cả lời chẩn đoán lẫn lời giải: **hũ = một NHIỆM VỤ của kỳ, không phải một chỗ chứa
+tiền.** Túi tiền là của QUỸ. Hai hũ ngược chiều hoàn toàn có thể cùng trỏ vào một quỹ.
+
+### Nghiên cứu
+
+- **Envelope budgeting hiện đại** (một tài khoản ngân hàng, nhiều phong bì số): cách tránh đếm hai
+  lần không phải là tách tài khoản mà là tách *phân bổ*, còn số dư tài khoản vẫn là MỘT con số.
+- **Nguyên tắc về phép đo** (tài liệu savings rate): *"phương pháp mình chọn phải khớp với quyết
+  định mình đang cần ra"* — gross và net đều không sai, sai là dùng nhầm chỗ.
+
+Áp vào đây: câu hỏi của hũ "Tiết kiệm" là *"kỳ này tôi bỏ vào quỹ được bao nhiêu"* → số TỔNG tiền
+nạp. Câu hỏi của hũ "Phát sinh" là *"kỳ này tôi lấy ra tiêu bao nhiêu"* → số TỔNG tiền rút. Số RÒNG
+trả lời một câu hỏi THỨ BA (*"túi tiền phình ra hay hụt đi"*) — câu hỏi của QUỸ, không phải của hũ
+nào cả.
+
+### Ba thay đổi
+
+**1. Cả hai chiều đọc số TỔNG (gross), đối xứng nhau.** Trước đây chiều "nạp vào" đọc phần RÒNG
+(quyết định ở 1.0.10), nên mỗi lần hũ "Phát sinh" làm đúng việc của nó là con số hũ "Tiết kiệm" tụt
+xuống — hai hũ giẫm chân nhau, đúng cảnh Tony tả. Giờ `used` LUÔN là tổng dòng tiền theo đúng chiều
+của hũ, và hai hũ độc lập tuyệt đối. Đo trên máy Tony: hũ nạp đọc 7.000.000 (đúng tổng tiền nạp),
+hũ rút đọc 1.250.000 — không cái nào kéo cái nào.
+
+**2. Tiền ĐANG CÓ trong quỹ rời khỏi vị trí con số chính.** Hôm qua tôi đặt nó làm con số to của hũ
+"nạp vào quỹ"; thông tin mới của Tony cho thấy lựa chọn đó chính là một nguồn của sự lộn xộn: một
+quỹ nằm trong hai hũ thì HAI hũ cùng khoe một túi tiền, và hũ nạp vẫn tụt xuống mỗi lần hũ kia rút.
+Giờ nó là dòng BỐI CẢNH dưới một đường kẻ ("2 quỹ đang có 4.500.000 ₫ · kỳ này +4.500.000 ₫"), và
+`JarsOverview.totalInGoals` gom theo QUỸ — mỗi quỹ đúng một lần, số dư đầy đủ, không nhân tỉ lệ.
+
+**3. "Còn lại" cộng theo TỪNG HŨ, "Vượt" đứng riêng.** `totalRemaining` từng là
+`totalAllotted − totalSpent − totalSaved`; bấm thật trên máy thì thu nhập kỳ này 1tr mà nạp 7tr vào
+quỹ (tiền của những kỳ TRƯỚC đang nằm trong ví) ra **"Vượt 6.050.000"** — nạp dư bị báo như lỗi.
+Giờ `totalRemaining = Σ max(0, allotted − used)` từng hũ (một hũ tiêu quá phần của nó không được âm
+thầm ăn vào phần hũ khác — nguyên tắc cốt lõi của phong bì), và `totalOverspent` là một dòng RIÊNG,
+chỉ gồm hũ mà vượt là XẤU (hũ tiêu, hũ tiêu-từ-quỹ có trần). Hũ nạp vượt mức là đạt mục tiêu.
+
+### Trang Hũ viết lại
+
+Thẻ hũ xoay quanh nhiệm vụ: con số to là dòng tiền của kỳ theo đúng chiều, ngay dưới là một dòng
+nói con số đó NGHĨA LÀ GÌ ("Đã nạp kỳ này" / "Đã rút kỳ này" / "Đã tiêu kỳ này") — hai hũ quỹ nhìn
+rất giống nhau và chỉ khác đúng chiều, nên phải nói thẳng ra. Thẻ tổng tách ba dòng quỹ (đã nạp · đã
+rút · đang có) xuống dưới một đường kẻ, không dính gì tới "đã tiêu/còn lại của kỳ".
+
+**Sheet sửa hũ** hiện vai trò sẵn có của từng quỹ ngay tại ô tick: *"Cũng ở hũ 'Tiết kiệm dài hạn'
+(tiêu từ quỹ) — bình thường"*, hoặc cảnh báo đỏ *"⚠ Đã nằm ở hũ X CÙNG chiều — tiền sẽ bị đếm hai
+lần"*. Trùng CHIỀU mới là lỗi; ngược chiều là cách dùng đúng. `jar_goals.percent` giữ nguyên cho ca
+chia SỞ HỮU một quỹ giữa hai hũ, nhưng chia VAI TRÒ thì cả hai đều để 100% — hai hũ lo hai việc
+khác nhau, không chia nhau túi tiền.
+
+### Bắt được khi bấm thật
+
+Ba lỗi không test nào thấy, chỉ ảnh chụp máy thật mới lộ: (a) "Vượt 6.050.000" ở trên; (b) ba nhãn
+bị cắt cụt ("Nạp 10% thu nhập vào …", "Kỳ này đã nạp …", "2 quỹ đan…") vì chúng giành bề ngang với
+số VND — đã rút ngắn chữ và cho dòng bối cảnh thành MỘT dòng `FittedBox` canh trái; (c) dòng giải
+thích chiều hũ trong sheet sửa vẫn là chữ của bản hôm qua ("con số của hũ là TIỀN ĐANG CÓ…"), giờ
+nói đúng việc hũ làm.
+
+Dựng đúng cấu hình Tony trên `tonyfino36` (một hũ nạp + một hũ rút lên CÙNG hai quỹ) để kiểm, sao
+lưu trước, và dọn bằng đường Khôi phục sau khi xong.

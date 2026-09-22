@@ -62,6 +62,10 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
 
   /// Quỹ đã chọn → tỉ lệ phần của quỹ thuộc hũ (mặc định 100).
   final Map<int, int> _goalPercents = {};
+
+  /// Quỹ → các hũ KHÁC đang theo dõi nó, kèm chiều. Để bảng chọn quỹ nói
+  /// được "quỹ này đã nằm ở hũ nào rồi" ngay lúc tick.
+  Map<int, List<JarGoalRole>> _goalRoles = const {};
   bool _loadingGoals = false;
   bool _saving = false;
   String? _error;
@@ -83,7 +87,16 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
     // trong thẻ đứng im cho tới khi chạm vào một control khác.
     _name.addListener(_onPreviewInputChanged);
     _percent.addListener(_onPreviewInputChanged);
+    _loadGoalRoles();
     if (j != null) _loadGoalLinks(j.id);
+  }
+
+  Future<void> _loadGoalRoles() async {
+    final walletId = ref.read(selectedWalletIdProvider);
+    if (walletId == null) return;
+    final roles = await ref.read(jarRepositoryProvider).goalJarRoles(walletId);
+    if (!mounted) return;
+    setState(() => _goalRoles = roles);
   }
 
   void _onPreviewInputChanged() {
@@ -286,12 +299,13 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                     SizedBox(height: context.space.xs),
                     _Hint(
                       _flow == JarGoalFlow.deposit
-                          ? 'Con số của hũ là TIỀN ĐANG CÓ trong quỹ — cộng '
-                                'dồn qua từng kỳ. Tỉ lệ dưới đây là mức nên '
-                                'gửi mỗi kỳ.'
-                          : 'Đo tiền RÚT TỪ quỹ ra tiêu trong kỳ, so với '
-                                'tiền còn trong quỹ. Tỉ lệ > 0 là TRẦN được '
-                                'rút mỗi kỳ; để 0 nếu không đặt trần.',
+                          ? 'Chỉ đếm tiền NẠP VÀO quỹ trong kỳ. Tiền rút ra '
+                                'không đụng tới hũ này — cùng một quỹ có thể '
+                                'nằm ở cả hũ chiều ngược lại. Tỉ lệ dưới đây '
+                                'là mức nên nạp mỗi kỳ.'
+                          : 'Chỉ đếm tiền RÚT TỪ quỹ trong kỳ. Tiền nạp vào '
+                                'không đụng tới hũ này. Tỉ lệ > 0 là TRẦN '
+                                'được rút mỗi kỳ; để 0 nếu không đặt trần.',
                     ),
                   ],
 
@@ -333,14 +347,20 @@ class _JarEditSheetState extends ConsumerState<_JarEditSheet> {
                   if (_kind == JarKind.saving) ...[
                     _SectionTitle(
                       'Quỹ trong hũ',
-                      hint: 'Tiền vào/ra các quỹ này được tính là tiền của '
-                          'hũ.',
+                      hint: _flow == JarGoalFlow.deposit
+                          ? 'Hũ này chỉ đếm tiền NẠP VÀO các quỹ dưới đây. '
+                                'Tiền rút ra là việc của hũ chiều ngược lại.'
+                          : 'Hũ này chỉ đếm tiền RÚT TỪ các quỹ dưới đây. '
+                                'Tiền nạp vào là việc của hũ chiều ngược lại.',
                     ),
                     if (_loadingGoals)
                       const Center(child: CircularProgressIndicator())
                     else
                       _GoalPicker(
                         selected: _goalPercents,
+                        roles: _goalRoles,
+                        currentJarId: widget.existing?.id,
+                        flow: _flow,
                         onToggle: (goalId, checked) => setState(() {
                           if (checked) {
                             _goalPercents[goalId] = 100;
@@ -636,11 +656,19 @@ class _PercentChips extends StatelessWidget {
 class _GoalPicker extends ConsumerWidget {
   const _GoalPicker({
     required this.selected,
+    required this.roles,
+    required this.currentJarId,
+    required this.flow,
     required this.onToggle,
     required this.onPercent,
   });
 
   final Map<int, int> selected;
+
+  /// Quỹ → các hũ đang theo dõi nó (gồm cả hũ đang sửa).
+  final Map<int, List<JarGoalRole>> roles;
+  final int? currentJarId;
+  final JarGoalFlow flow;
   final void Function(int goalId, bool checked) onToggle;
   final void Function(int goalId, int percent) onPercent;
 
@@ -664,6 +692,11 @@ class _GoalPicker extends ConsumerWidget {
           _GoalRow(
             goal: g,
             percent: selected[g.id],
+            others: [
+              for (final r in roles[g.id] ?? const <JarGoalRole>[])
+                if (r.jarId != currentJarId) r,
+            ],
+            flow: flow,
             onToggle: (checked) => onToggle(g.id, checked),
             onPercent: (p) => onPercent(g.id, p),
           ),
@@ -676,6 +709,8 @@ class _GoalRow extends StatelessWidget {
   const _GoalRow({
     required this.goal,
     required this.percent,
+    required this.others,
+    required this.flow,
     required this.onToggle,
     required this.onPercent,
   });
@@ -684,12 +719,24 @@ class _GoalRow extends StatelessWidget {
 
   /// `null` = quỹ chưa được chọn.
   final int? percent;
+
+  /// Các hũ KHÁC đang theo dõi quỹ này.
+  final List<JarGoalRole> others;
+
+  /// Chiều của hũ đang soạn — để biết hũ khác là bổ sung hay trùng vai.
+  final JarGoalFlow flow;
+
   final ValueChanged<bool> onToggle;
   final ValueChanged<int> onPercent;
 
   @override
   Widget build(BuildContext context) {
     final checked = percent != null;
+    // Trùng CHIỀU với một hũ khác = dòng tiền của quỹ bị đếm hai lần.
+    // Ngược chiều thì hoàn toàn bình thường, thậm chí là cách dùng đúng
+    // ("Tiết kiệm" lo nạp, "Phát sinh" lo rút trên cùng một quỹ).
+    final clash = others.where((r) => r.flow == flow).toList();
+    final complement = others.where((r) => r.flow != flow).toList();
     return Row(
       children: [
         Expanded(
@@ -699,6 +746,20 @@ class _GoalRow extends StatelessWidget {
             dense: true,
             value: checked,
             title: Text(goal.name, overflow: TextOverflow.ellipsis),
+            subtitle: others.isEmpty
+                ? null
+                : Text(
+                    clash.isNotEmpty
+                        ? '⚠ Đã nằm ở hũ "${clash.first.jarName}" CÙNG chiều '
+                              '— tiền sẽ bị đếm hai lần'
+                        : 'Cũng ở hũ "${complement.first.jarName}" '
+                              '(${complement.first.flowLabel} quỹ) — bình thường',
+                    style: context.text.labelSmall?.copyWith(
+                      color: clash.isNotEmpty
+                          ? context.colors.budgetOver
+                          : context.colors.onSurfaceVariant,
+                    ),
+                  ),
             onChanged: (v) => onToggle(v ?? false),
           ),
         ),

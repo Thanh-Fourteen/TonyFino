@@ -93,16 +93,14 @@ void main() {
       );
       expect(find.textContaining('$name ·'), findsOneWidget, reason: name);
     }
-    // Hũ tiết kiệm chiều "nạp vào quỹ": con số là TIỀN ĐANG CÓ trong quỹ
-    // (100k) so với ĐÍCH của quỹ (50tr) — cộng dồn, không phải dòng tiền
-    // của kỳ. Dòng tiền của kỳ đi sau, sau dấu "·". Đổi 2026-09-22, xem
-    // `JarProgress.accumulatesInGoals`.
+    // Hũ chiều "nạp vào quỹ": con số của KỲ đứng trước (đã nạp 100k trên
+    // hạn mức 2tr), tiền đang có trong quỹ theo sau làm bối cảnh.
     // Định dạng tiền dùng khoảng trắng KHÔNG NGẮT trước "₫" — so từng phần.
     final savingLine = find.textContaining(
-      RegExp(r'Đang có 100\.000.*/ 50\.000\.000.*kỳ này gửi 100\.000'),
+      RegExp(r'Đã nạp 100\.000.*/ 2\.000\.000.*quỹ đang có 100\.000'),
     );
     expect(savingLine, findsOneWidget);
-    expect(find.text('Còn thiếu '), findsOneWidget);
+    expect(find.text('Còn cần nạp '), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Tổng hũ 110%'),
       80,
