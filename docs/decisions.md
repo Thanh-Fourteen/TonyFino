@@ -2544,3 +2544,12 @@ nói đúng việc hũ làm.
 
 Dựng đúng cấu hình Tony trên `tonyfino36` (một hũ nạp + một hũ rút lên CÙNG hai quỹ) để kiểm, sao
 lưu trước, và dọn bằng đường Khôi phục sau khi xong.
+
+### Phát hành 1.0.12+53
+
+- git `543ac33` · schema **v18** (không đổi schema so với 1.0.11)
+- `dist/tonyfino-1.0.12+53.apk` — SHA-256
+  `f69ffd253ef95052c7c9812613e9be38120cc5f4a13b97ab31366bd76bc628c8`
+- File tải về qua tailnet đã đối chiếu **khớp từng byte** với file build.
+- Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md` — nâng cấp đè được.
+- `tailscale serve status` sau khi set: đủ 9 mount, 7 mount của dự án khác còn nguyên.
