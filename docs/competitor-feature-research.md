@@ -140,6 +140,34 @@ nhất) đã được thêm vào Backlog chính — xem TODOS.md. Các mục cò
 khảo, chưa đưa vào Backlog vì giá trị thấp hơn hoặc mâu thuẫn kiến trúc (#19, #20, #26) hoặc niche
 (#10, #22, #25).
 
+## Bổ sung 2026-09-23 — tính năng "thú vị", ngoài phạm vi 12 app đã khảo sát
+
+Tony hỏi thêm "tính năng nào thú vị" sau khi 12 app cùng chủ đề đã cạn ý (phần lớn giá trị cao đã
+lên lịch/đã build, xem § Đã gộp). Mở rộng sang nhóm liền kề: app tiết kiệm game hoá (Qapital, Zogo,
+Fortune City), xu hướng "Wrapped" cuối năm, và soát lại chính code hiện có để tìm khoảng trống thật
+(không lặp cơ chế mascot streak/celebrate đã có ở `lib/ui/mascot/mascot_mood.dart`).
+
+**Đã loại có chủ đích** (xem TODOS.md § Backlog, mục "Cân nhắc nhưng KHÔNG đề xuất"): thi đua bạn bè
+kiểu "Challenge", điểm "sức khoẻ tài chính" tổng hợp — cả hai mâu thuẫn tông giọng "không phán xét"
+(Phase 8/25) và/hoặc cần backend.
+
+27. 🔥 **Hũ vẽ thành hũ thật, có mực nước dâng** — `JarProgressBar` hiện chỉ là thanh 8px
+    (`lib/features/jars/jars_screen.dart:480`), trong khi "hũ" vốn là ẩn dụ vật lý xuyên suốt app.
+    `CustomPaint` vẽ hình hũ, mực "nước" dâng theo % tiến độ, sóng sánh nhẹ khi vừa nạp tiền (đổi
+    trạng thái, giống cơ chế `MascotMood.celebrate` đã có). *Chưa thấy ở 12 app đã khảo sát — hầu
+    hết dùng thanh ngang/vòng tròn chuẩn.* Giá trị cao (đúng bản sắc riêng, tận dụng đúng cái tên
+    app đã chọn) · công sức trung bình (CustomPaint + animation, không đụng schema/domain logic).
+28. **"TonyFino Wrapped" cuối năm** — thẻ tổng kết trượt xem (danh mục chi nhiều nhất, xu hướng thu,
+    tổng số giao dịch, streak dài nhất trong năm) dựng từ dữ liệu `reports_repository.dart` đã có
+    sẵn, KHÔNG chia sẻ mạng xã hội (khác Spotify Wrapped) — chỉ tự xem, hợp tông "không phán xét".
+    *Actual Budget (một trong 12 app đã khảo sát) làm đúng tính năng này cuối 2025
+    (actualbudget.org/blog/actual-budget-wrapped-2025).* Giá trị trung bình-cao · công sức thấp
+    (không cần hạ tầng mới, chỉ 1 màn tổng hợp + vài query đã có).
+29. **Áo Tết cho giao diện** — đổi màu nhấn/icon mascot theo dịp Tết Nguyên Đán (đỏ/vàng, hoa mai/
+    đào, lì xì) trong ~1 tuần quanh Tết rồi tự trở lại theme thường — gắn văn hoá người dùng thật
+    (Việt Nam). Giá trị trung bình (dễ tạo cảm giác "app quan tâm mình") · công sức thấp (theme
+    override có điều kiện ngày qua `Clock`, không đụng kiến trúc).
+
 ## Nguồn đã dùng
 
 Money Lover (moneylover.zendesk.com) · Sổ Thu Chi MISA (sothuchi.misa.vn, Play Store) · Realbyte

@@ -71,4 +71,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Chưa có ghi chú nào'), findsOneWidget);
   });
+
+  testWidgets('thoát ra khi chưa lưu thì hỏi trước khi bỏ', (tester) async {
+    await pumpApp(tester, db: db, child: const NotesScreen());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ghi chú mới'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Đang gõ dở');
+
+    // Locale 'vi': tooltip nút back không phải "Back" tiếng Anh nên không
+    // dùng được `tester.pageBack()` — bấm thẳng widget `BackButton`.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Bỏ thay đổi?'), findsOneWidget);
+
+    // "Tiếp tục sửa": vẫn ở màn soạn, chữ đã gõ còn nguyên.
+    await tester.tap(find.widgetWithText(TextButton, 'Tiếp tục sửa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Đang gõ dở'), findsOneWidget);
+
+    // "Bỏ thay đổi": thoát hẳn, không tạo ghi chú rác.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Bỏ thay đổi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chưa có ghi chú nào'), findsOneWidget);
+  });
 }

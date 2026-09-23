@@ -33,6 +33,10 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen> {
 
   bool get _isEditing => widget.existing != null;
 
+  bool get _isDirty =>
+      _title.text != (widget.existing?.title ?? '') ||
+      _body.text != (widget.existing?.body ?? '');
+
   @override
   void initState() {
     super.initState();
@@ -106,63 +110,98 @@ class _NoteEditScreenState extends ConsumerState<NoteEditScreen> {
     navigator.pop();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Sửa ghi chú' : 'Ghi chú mới'),
+  Future<void> _handlePop(bool didPop, void result) async {
+    if (didPop) return;
+    if (!_isDirty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Bỏ thay đổi?'),
+        content: const Text('Ghi chú chưa lưu sẽ mất.'),
         actions: [
-          if (_isEditing)
-            IconButton(
-              tooltip: 'Xoá ghi chú',
-              icon: Icon(kIconDelete, color: context.colors.budgetOver),
-              onPressed: _saving ? null : _delete,
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Tiếp tục sửa'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.budgetOver,
             ),
-          IconButton(
-            tooltip: 'Lưu',
-            icon: const Icon(kIconCheck),
-            onPressed: _saving ? null : _save,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Bỏ thay đổi'),
           ),
         ],
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(context.space.screenHorizontal),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _title,
-                autofocus: !_isEditing,
-                textCapitalization: TextCapitalization.sentences,
-                style: context.text.titleMedium,
-                decoration: InputDecoration(
-                  hintText: 'Tiêu đề (không bắt buộc)',
-                  border: InputBorder.none,
-                  errorText: _error,
-                ),
+    );
+    if (discard == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _handlePop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Sửa ghi chú' : 'Ghi chú mới'),
+          actions: [
+            if (_isEditing)
+              IconButton(
+                tooltip: 'Xoá ghi chú',
+                icon: Icon(kIconDelete, color: context.colors.budgetOver),
+                onPressed: _saving ? null : _delete,
               ),
-              Divider(height: 1, color: context.colors.hairline),
-              SizedBox(height: context.space.sm),
-              // `expands` + `maxLines: null`: ô nội dung chiếm hết chỗ còn
-              // lại, chạm đâu cũng vào đúng ô — không phải nhắm đúng một
-              // dòng chữ cao 20px.
-              Expanded(
-                child: TextField(
-                  controller: _body,
-                  autofocus: _isEditing,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  keyboardType: TextInputType.multiline,
+            IconButton(
+              tooltip: 'Lưu',
+              icon: const Icon(kIconCheck),
+              onPressed: _saving ? null : _save,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(context.space.screenHorizontal),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _title,
+                  autofocus: !_isEditing,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Gõ gì cũng được…',
+                  style: context.text.titleMedium,
+                  decoration: InputDecoration(
+                    hintText: 'Tiêu đề (không bắt buộc)',
                     border: InputBorder.none,
+                    errorText: _error,
                   ),
                 ),
-              ),
-            ],
+                Divider(height: 1, color: context.colors.hairline),
+                SizedBox(height: context.space.sm),
+                // `expands` + `maxLines: null`: ô nội dung chiếm hết chỗ còn
+                // lại, chạm đâu cũng vào đúng ô — không phải nhắm đúng một
+                // dòng chữ cao 20px.
+                Expanded(
+                  child: TextField(
+                    controller: _body,
+                    autofocus: _isEditing,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Gõ gì cũng được…',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
