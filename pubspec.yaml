@@ -3,7 +3,7 @@ description: "App quản lý chi tiêu cá nhân — bản thay thế Rolly, off
 publish_to: "none"
 
 # versionName theo phase (D4). versionCode = số sau dấu +, tăng tay mỗi lần cài lên máy thật.
-version: 1.0.13+54
+version: 1.0.14+55
 
 environment:
   sdk: ^3.12.0

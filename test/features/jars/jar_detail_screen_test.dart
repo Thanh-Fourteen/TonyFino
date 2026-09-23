@@ -120,15 +120,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Các lần nạp/rút quỹ'), findsOneWidget);
     expect(find.text('Theo danh mục'), findsNothing);
-    expect(find.text('gửi đợt 1'), findsOneWidget);
     // Ba ô đều nói về KỲ NÀY và về nhiệm vụ của hũ; tiền đang có trong quỹ
     // là dòng BỐI CẢNH dưới thanh — xem `JarProgress.used` (gross, đúng
-    // chiều) và `savedTotal`.
+    // chiều) và `savedTotal`. Kiểm phần TRÊN màn hình TRƯỚC khi cuộn xuống
+    // — cuộn xuống để thấy danh sách giao dịch có thể đẩy phần này ra khỏi
+    // viewport (`ListView` non-`.builder` cũng chỉ mount trong viewport +
+    // cache extent, xem project_tonyfino_gotchas.md).
     expect(find.text('Hạn mức 10%'), findsOneWidget);
     expect(find.text('Đã nạp kỳ này'), findsOneWidget);
     expect(find.textContaining('1 quỹ trong hũ đang có'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('gửi đợt 1'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Các lần nạp/rút quỹ'), findsOneWidget);
+    expect(find.text('gửi đợt 1'), findsOneWidget);
     // Dòng giao dịch đọc theo chiều QUỸ: nạp 100k hiện "+100.000", không
     // phải "−100.000" như chiều ví.
     expect(find.textContaining('+100.000'), findsWidgets);

@@ -1,9 +1,12 @@
 // Widget test qua CÂY SẢN XUẤT THẬT, cùng kỷ luật `BudgetsScreen`/
 // `WalletsScreen` (Phase 11/13) — filter tab → provider → SQL → widget.
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tonyfino/core/time/clock_provider.dart';
 import 'package:tonyfino/data/db/database.dart';
 import 'package:tonyfino/features/savings/savings_screen.dart';
+import 'package:tonyfino/ui/mascot/app_mascot.dart';
 
 import '../../support/fake_shared_preferences.dart';
 import '../../support/open_test_database.dart';
@@ -129,6 +132,44 @@ void main() {
       await tester.tap(find.text('Tuyệt vời'));
       await tester.pumpAndSettle();
       expect(find.text('Đã đạt mục tiêu!'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'áo Tết: đạt mục tiêu đúng dịp Tết → dialog ăn mừng có hoa mai',
+    (tester) async {
+      await db
+          .into(db.savingsGoals)
+          .insert(
+            SavingsGoalsCompanion.insert(
+              name: 'Xe máy',
+              targetAmountMinor: 1000000,
+              currency: 'VND',
+              currencyScale: 0,
+            ),
+          );
+
+      await pumpApp(
+        tester,
+        db: db,
+        child: const SavingsScreen(),
+        extraOverrides: [
+          clockProvider.overrideWithValue(Clock.fixed(DateTime(2027, 2, 6))),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Nạp tiền vào quỹ'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '1000000');
+      await tester.tap(find.text('Nạp'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đã đạt mục tiêu!'), findsOneWidget);
+      expect(
+        tester.widget<AppMascot>(find.byType(AppMascot)).festive,
+        isTrue,
+      );
     },
   );
 

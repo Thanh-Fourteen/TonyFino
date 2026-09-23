@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money/money.dart';
 import '../../core/router/app_bottom_nav.dart';
 import '../../core/providers/database_providers.dart';
+import '../../core/time/clock_provider.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
@@ -13,6 +14,7 @@ import '../../ui/empty_state.dart';
 import '../../ui/mascot/app_mascot.dart';
 import '../../ui/mascot/mascot_mood.dart';
 import '../../ui/progress_ring.dart';
+import '../home/domain/tet_season.dart';
 import '../transactions/transaction_form_sheet.dart';
 import 'domain/debt_kind.dart';
 import 'domain/debt_progress.dart';
@@ -269,9 +271,13 @@ class _SavingsGoalTileState extends ConsumerState<_SavingsGoalTile> {
   }
 
   void _showCelebration(String goalName) {
+    final now = ref.read(clockProvider).now();
     showDialog<void>(
       context: context,
-      builder: (context) => _GoalCelebrationDialog(goalName: goalName),
+      builder: (context) => _GoalCelebrationDialog(
+        goalName: goalName,
+        festive: isTetSeason(now),
+      ),
     );
   }
 
@@ -372,9 +378,10 @@ class _SavingsGoalTileState extends ConsumerState<_SavingsGoalTile> {
 /// MỘT LẦN đúng lúc chuyển sang đạt mục tiêu (xem `_SavingsGoalTileState`),
 /// không phải mỗi lần mở màn.
 class _GoalCelebrationDialog extends StatelessWidget {
-  const _GoalCelebrationDialog({required this.goalName});
+  const _GoalCelebrationDialog({required this.goalName, this.festive = false});
 
   final String goalName;
+  final bool festive;
 
   @override
   Widget build(BuildContext context) {
@@ -388,7 +395,7 @@ class _GoalCelebrationDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AppMascot(mood: MascotMood.celebrate, size: 96),
+            AppMascot(mood: MascotMood.celebrate, size: 96, festive: festive),
             SizedBox(height: context.space.lg),
             Text(
               'Đã đạt mục tiêu!',

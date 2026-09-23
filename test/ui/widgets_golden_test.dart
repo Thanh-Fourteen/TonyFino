@@ -266,6 +266,16 @@ void main() {
               name: '${theme == lightTheme ? "light" : "dark"}_${mood.name}',
               child: _themed(theme, AppMascot(mood: mood, size: 96)),
             ),
+        // Áo Tết (nghiên cứu 2026-09-23 mục 29) — chỉ 2 ô riêng, không nhân
+        // với mọi mood: badge độc lập với mood, kiểm 1 light + 1 dark là đủ.
+        for (final theme in [lightTheme, darkTheme])
+          GoldenTestScenario(
+            name: '${theme == lightTheme ? "light" : "dark"}_festive',
+            child: _themed(
+              theme,
+              const AppMascot(mood: MascotMood.idle, size: 96, festive: true),
+            ),
+          ),
       ],
     ),
   );

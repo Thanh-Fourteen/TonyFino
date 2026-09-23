@@ -95,4 +95,56 @@ void main() {
       expect(computeEntryStreakDays(occurredDates: dates, today: today), 1);
     });
   });
+
+  group('computeLongestStreakDays', () {
+    test('không có giao dịch nào → 0', () {
+      expect(computeLongestStreakDays([]), 0);
+    });
+
+    test('một ngày duy nhất → 1', () {
+      expect(computeLongestStreakDays([DateTime(2026, 3, 1)]), 1);
+    });
+
+    test('chuỗi ở GIỮA năm dài hơn chuỗi đang chạy ở cuối → lấy chuỗi giữa', () {
+      final dates = [
+        DateTime(2026, 1, 1),
+        DateTime(2026, 1, 2),
+        DateTime(2026, 1, 3),
+        DateTime(2026, 1, 4),
+        DateTime(2026, 1, 5), // chuỗi 5 ngày, đã đứt từ lâu
+        DateTime(2026, 12, 30),
+        DateTime(2026, 12, 31), // chuỗi đang chạy chỉ 2 ngày
+      ];
+      expect(computeLongestStreakDays(dates), 5);
+    });
+
+    test('nhiều giao dịch cùng ngày chỉ đếm 1 ngày, không nhân đôi', () {
+      final dates = [
+        DateTime(2026, 5, 1, 8),
+        DateTime(2026, 5, 1, 20),
+        DateTime(2026, 5, 2, 9),
+      ];
+      expect(computeLongestStreakDays(dates), 2);
+    });
+
+    test('thứ tự chèn ngẫu nhiên không ảnh hưởng — chỉ NGÀY mới có ý nghĩa', () {
+      final dates = [
+        DateTime(2026, 6, 5),
+        DateTime(2026, 6, 1),
+        DateTime(2026, 6, 3),
+        DateTime(2026, 6, 2),
+        DateTime(2026, 6, 4),
+      ];
+      expect(computeLongestStreakDays(dates), 5);
+    });
+
+    test('vượt ranh giới tháng vẫn đếm đúng', () {
+      final dates = [
+        DateTime(2026, 1, 30),
+        DateTime(2026, 1, 31),
+        DateTime(2026, 2, 1),
+      ];
+      expect(computeLongestStreakDays(dates), 3);
+    });
+  });
 }

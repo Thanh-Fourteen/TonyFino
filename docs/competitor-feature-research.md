@@ -151,6 +151,11 @@ Fortune City), xu hướng "Wrapped" cuối năm, và soát lại chính code hi
 kiểu "Challenge", điểm "sức khoẻ tài chính" tổng hợp — cả hai mâu thuẫn tông giọng "không phán xét"
 (Phase 8/25) và/hoặc cần backend.
 
+**Cả ba mục 27-29 đã code xong (2026-09-23), không còn ở Backlog** — `JarVessel`
+(`lib/features/jars/widgets/jar_vessel.dart`), `WrappedScreen`
+(`lib/features/reports/wrapped_screen.dart`), `isTetSeason`
+(`lib/features/home/domain/tet_season.dart`). Giữ nguyên văn bản nghiên cứu bên dưới làm hồ sơ lý do.
+
 27. 🔥 **Hũ vẽ thành hũ thật, có mực nước dâng** — `JarProgressBar` hiện chỉ là thanh 8px
     (`lib/features/jars/jars_screen.dart:480`), trong khi "hũ" vốn là ẩn dụ vật lý xuyên suốt app.
     `CustomPaint` vẽ hình hũ, mực "nước" dâng theo % tiến độ, sóng sánh nhẹ khi vừa nạp tiền (đổi

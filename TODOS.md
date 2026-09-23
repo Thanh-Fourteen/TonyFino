@@ -2999,15 +2999,12 @@ Phase 12.
 5. **`credit_limit`/`due_date` cho ví kiểu thẻ tín dụng** (từ `docs/rolly-uiux-research.md` § H, Phase
    25 quyết định KHÔNG làm ngay) — dữ liệu thật của Tony hiện chỉ có 1 ví tiền mặt, chưa có nhu cầu
    thật; làm khi Tony thật sự cần theo dõi thẻ tín dụng
-6. **Vẽ "hũ" thành hũ thật (CustomPaint, mực nước dâng khi nạp tiền)** thay `JarProgressBar` hiện tại
-   (thanh 8px, `lib/features/jars/jars_screen.dart:480`) — nghiên cứu thú vị 2026-09-23, xem
-   `docs/competitor-feature-research.md` § Bổ sung 2026-09-23 mục 27
-7. **"[Tên app] Wrapped" cuối năm** — thẻ tổng kết năm (danh mục chi nhiều nhất, xu hướng thu, số
-   giao dịch) từ dữ liệu `reports_repository` đã có sẵn, chỉ tự xem không chia sẻ mạng xã hội —
-   nghiên cứu thú vị 2026-09-23, xem `docs/competitor-feature-research.md` § Bổ sung 2026-09-23 mục 28
-8. **Áo Tết cho giao diện** — đổi màu/icon mascot theo dịp Tết Nguyên Đán (lì xì, hoa mai/đào) ~1
-   tuần quanh Tết rồi tự trở lại — nghiên cứu thú vị 2026-09-23, xem
-   `docs/competitor-feature-research.md` § Bổ sung 2026-09-23 mục 29
+
+**Đã làm (2026-09-23), không còn ở Backlog** — 3 mục "thú vị" ở § Bổ sung 2026-09-23 của
+`docs/competitor-feature-research.md`: mục 27 (`JarVessel`, `lib/features/jars/widgets/jar_vessel.dart`,
+chỉ ở `JarDetailScreen`), mục 28 (`WrappedScreen`, `lib/features/reports/wrapped_screen.dart`, lối vào
+từ băng đầu tab Báo cáo), mục 29 (`isTetSeason`, `lib/features/home/domain/tet_season.dart`, hoa mai
+trên `AppMascot` khi `festive: true`).
 
 ### Cân nhắc nhưng KHÔNG đề xuất *(mâu thuẫn kiến trúc hiện tại)*
 - **Ngân sách/ví chia sẻ hộ gia đình** — đòi hỏi backend đồng bộ nhiều người dùng, ngược chủ trương không tài khoản/không server

@@ -33,6 +33,7 @@ import 'jars_providers.dart';
 import 'jars_screen.dart' show JarProgressBar, JarStat, jarUsedMeaning;
 import 'widgets/jar_categories_sheet.dart';
 import 'widgets/jar_edit_sheet.dart';
+import 'widgets/jar_vessel.dart';
 
 void openJarDetailScreen(BuildContext context, int jarId) {
   Navigator.of(context, rootNavigator: true).push(
@@ -142,6 +143,8 @@ class JarDetailScreen extends ConsumerWidget {
               children: [
                 // Đổi kỳ ngay tại đây — dùng CHUNG kỳ với Trang chủ/màn Hũ.
                 PeriodChip(period: period),
+                SizedBox(height: context.space.md),
+                Center(child: JarVessel(progress: progress)),
                 SizedBox(height: context.space.md),
                 _JarSummaryCard(progress: progress),
                 if (!saving) ...[

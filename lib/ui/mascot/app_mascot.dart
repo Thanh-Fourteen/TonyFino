@@ -14,10 +14,24 @@ import 'mascot_mood.dart';
 /// suốt app) với hai mắt + một miệng, phản ứng theo [MascotMood] — chỉ dùng
 /// màu từ `context.scheme`/`context.colors`, không thêm màu mới nào.
 class AppMascot extends StatefulWidget {
-  const AppMascot({super.key, required this.mood, this.size = 96});
+  const AppMascot({
+    super.key,
+    required this.mood,
+    this.size = 96,
+    this.festive = false,
+  });
 
   final MascotMood mood;
   final double size;
+
+  /// "Áo Tết" (nghiên cứu 2026-09-23 mục 29) — `true` trong khoảng
+  /// `isTetSeason()` (`features/home/domain/tet_season.dart`), gắn thêm một
+  /// hoa mai nhỏ ở góc trên-phải, CHỈ dùng hai màu thương hiệu đã có (cam +
+  /// petrol) — không thêm màu đỏ/vàng mới, giữ đúng nguyên tắc "cam + petrol,
+  /// không nâu không tím" đã chốt nhiều lần. Mặc định `false` — mọi call
+  /// site không truyền tham số này giữ nguyên pixel-identical (cùng khuôn
+  /// mẫu với `CategoryAvatar.emoji`, D10).
+  final bool festive;
 
   @override
   State<AppMascot> createState() => _AppMascotState();
@@ -105,6 +119,7 @@ class _AppMascotState extends State<AppMascot> with TickerProviderStateMixin {
     // ngoài launcher là hai con khác nhau — cùng hình mà khác màu chi tiết.
     final accentColor = context.colors.brandText;
     final faceColor = context.colors.onSurface;
+    final festiveColor = context.scheme.primary; // cam — hoa mai "áo Tết"
     // 🚨 TOÀN BỘ nội dung (kể cả overlay icon streak/celebrate bên dưới)
     // PHẢI nằm trong CÙNG MỘT `AnimatedBuilder` này — từng thử tách
     // `CustomPaint` ra một `AnimatedBuilder` con riêng trong khi overlay đọc
@@ -130,6 +145,8 @@ class _AppMascotState extends State<AppMascot> with TickerProviderStateMixin {
             bodyColor: bodyColor,
             accentColor: accentColor,
             faceColor: faceColor,
+            festive: widget.festive,
+            festiveColor: festiveColor,
           ),
         );
 
@@ -235,6 +252,8 @@ class _MascotPainter extends CustomPainter {
     required this.bodyColor,
     required this.accentColor,
     required this.faceColor,
+    this.festive = false,
+    this.festiveColor,
   });
 
   final MascotMood mood;
@@ -244,6 +263,10 @@ class _MascotPainter extends CustomPainter {
   final Color bodyColor;
   final Color accentColor;
   final Color faceColor;
+
+  /// "Áo Tết" — xem doc comment `AppMascot.festive`.
+  final bool festive;
+  final Color? festiveColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -325,7 +348,42 @@ class _MascotPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
+    if (festive && festiveColor != null) {
+      _paintPlumBlossom(
+        canvas,
+        center: Offset(bodyRect.right - size.width * 0.06, bodyRect.top),
+        petalRadius: size.width * 0.09,
+        petalColor: festiveColor!,
+        centerColor: accentColor,
+      );
+    }
+
     canvas.restore();
+  }
+
+  /// Hoa mai cách điệu: 5 cánh tròn (CAM — thương hiệu, không phải vàng
+  /// thật) quanh một nhuỵ PETROL — chỉ hai màu đã có sẵn của app, không
+  /// thêm sắc mới (xem doc comment `AppMascot.festive`).
+  void _paintPlumBlossom(
+    Canvas canvas, {
+    required Offset center,
+    required double petalRadius,
+    required Color petalColor,
+    required Color centerColor,
+  }) {
+    final petalPaint = Paint()..color = petalColor;
+    const petalCount = 5;
+    for (var i = 0; i < petalCount; i++) {
+      final angle = (i / petalCount) * 2 * math.pi;
+      final petalCenter =
+          center + Offset(math.cos(angle), math.sin(angle)) * petalRadius;
+      canvas.drawCircle(petalCenter, petalRadius * 0.62, petalPaint);
+    }
+    canvas.drawCircle(
+      center,
+      petalRadius * 0.42,
+      Paint()..color = centerColor,
+    );
   }
 
   @override
@@ -336,5 +394,7 @@ class _MascotPainter extends CustomPainter {
       oldDelegate.popT != popT ||
       oldDelegate.bodyColor != bodyColor ||
       oldDelegate.accentColor != accentColor ||
-      oldDelegate.faceColor != faceColor;
+      oldDelegate.faceColor != faceColor ||
+      oldDelegate.festive != festive ||
+      oldDelegate.festiveColor != festiveColor;
 }

@@ -733,10 +733,33 @@ class _SavingAction extends ConsumerWidget {
   }
 }
 
-/// Thanh tiến độ của một hũ — dùng chung cho màn Hũ và Trang chủ.
+/// Màu tiến độ của một hũ — TÁCH RIÊNG khỏi [JarProgressBar] để
+/// `JarVessel` (`widgets/jar_vessel.dart`) dùng lại ĐÚNG một luật màu, không
+/// viết lại nhánh if/else này lần hai ở hai nơi.
 ///
 /// Hũ tiêu: xanh → cam khi quá 80% → đỏ khi vượt. Hũ tiết kiệm đi NGƯỢC:
 /// gửi càng nhiều càng tốt, nên không bao giờ đỏ — đầy thanh là đạt.
+Color jarProgressColor(BuildContext context, JarProgress progress) {
+  if (progress.isOverspent) {
+    return context.colors.budgetOver;
+  } else if (progress.spendsFromGoals) {
+    // Tiêu từ quỹ: thanh cho thấy đã rút bao nhiêu phần của quỹ — dùng
+    // màu "đang tiêu" như hũ tiêu, chuyển cam khi quỹ sắp cạn.
+    return progress.ratio > 0.8
+        ? context.colors.budgetWarn
+        : context.colors.budgetOk;
+  } else if (progress.kind == JarKind.saving) {
+    return context.colors.incomeFill;
+  } else if (progress.isOverspent) {
+    return context.colors.budgetOver;
+  } else if (progress.ratio > 0.8) {
+    return context.colors.budgetWarn;
+  } else {
+    return context.colors.budgetOk;
+  }
+}
+
+/// Thanh tiến độ của một hũ — dùng chung cho màn Hũ và Trang chủ.
 class JarProgressBar extends StatelessWidget {
   const JarProgressBar({super.key, required this.progress, this.height = 6});
 
@@ -745,24 +768,7 @@ class JarProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color;
-    if (progress.isOverspent) {
-      color = context.colors.budgetOver;
-    } else if (progress.spendsFromGoals) {
-      // Tiêu từ quỹ: thanh cho thấy đã rút bao nhiêu phần của quỹ — dùng
-      // màu "đang tiêu" như hũ tiêu, chuyển cam khi quỹ sắp cạn.
-      color = progress.ratio > 0.8
-          ? context.colors.budgetWarn
-          : context.colors.budgetOk;
-    } else if (progress.kind == JarKind.saving) {
-      color = context.colors.incomeFill;
-    } else if (progress.isOverspent) {
-      color = context.colors.budgetOver;
-    } else if (progress.ratio > 0.8) {
-      color = context.colors.budgetWarn;
-    } else {
-      color = context.colors.budgetOk;
-    }
+    final color = jarProgressColor(context, progress);
     return ClipRRect(
       borderRadius: BorderRadius.circular(context.radii.full),
       child: LinearProgressIndicator(

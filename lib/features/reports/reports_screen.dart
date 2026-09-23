@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/money.dart';
 import '../../core/router/app_bottom_nav.dart';
+import '../../core/time/clock_provider.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
@@ -16,6 +17,7 @@ import 'widgets/monthly_trend_card.dart';
 import 'widgets/report_filter_bar.dart';
 import 'widgets/report_stat_tile.dart';
 import 'widgets/spending_heatmap_card.dart';
+import 'widgets/wrapped_banner_card.dart';
 
 /// Bento grid: ô thống kê 2 cột + tròn theo danh mục + đường xu hướng + cột
 /// thu-vs-chi + lịch heatmap, tất cả full-width trừ hàng thống kê đầu. Mỗi
@@ -88,6 +90,8 @@ class ReportsScreen extends ConsumerWidget {
               ),
               sliver: SliverList.list(
                 children: [
+                  WrappedBannerCard(year: ref.watch(clockProvider).now().year),
+                  SizedBox(height: context.space.betweenCards),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

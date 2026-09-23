@@ -39,3 +39,28 @@ int computeEntryStreakDays({
 }
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Chuỗi ngày ghi giao dịch liên tiếp DÀI NHẤT trong [occurredDates] — khác
+/// [computeEntryStreakDays]: hàm đó neo vào [today] và trả về chuỗi ĐANG
+/// CHẠY (0 nếu hôm nay/hôm qua không có gì); hàm này quét TOÀN BỘ tập ngày
+/// đưa vào và tìm khoảng liên tiếp dài nhất, không quan tâm ngày hiện tại —
+/// dùng cho thẻ tổng kết cuối năm ("TonyFino Wrapped"), nơi câu hỏi là "cả
+/// năm chuỗi dài nhất là bao nhiêu ngày", không phải "chuỗi có đang chạy".
+int computeLongestStreakDays(Iterable<DateTime> occurredDates) {
+  final days = occurredDates.map(_dateOnly).toSet().toList()..sort();
+  if (days.isEmpty) return 0;
+
+  var longest = 1;
+  var current = 1;
+  for (var i = 1; i < days.length; i++) {
+    final gap = days[i].difference(days[i - 1]).inDays;
+    if (gap == 1) {
+      current++;
+      if (current > longest) longest = current;
+    } else if (gap > 1) {
+      current = 1;
+    }
+    // gap == 0 không thể xảy ra: `days` đã qua `.toSet()`.
+  }
+  return longest;
+}

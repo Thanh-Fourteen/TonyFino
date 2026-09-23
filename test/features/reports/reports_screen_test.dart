@@ -244,4 +244,18 @@ void main() {
       expect(find.text(categories[0].name), findsOneWidget);
     },
   );
+
+  testWidgets('băng "TonyFino Wrapped" ở đầu tab, bấm vào mở đúng màn', (
+    tester,
+  ) async {
+    await pumpReports(tester);
+
+    expect(find.text('TonyFino Wrapped'), findsOneWidget);
+    expect(find.text('Xem lại năm 2026 của bạn'), findsOneWidget);
+
+    await tester.tap(find.text('TonyFino Wrapped'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Năm 2026'), findsOneWidget);
+  });
 }
