@@ -105,6 +105,10 @@ dependencies:
   # SpeechRecognizer cấp hệ điều hành, có thể cần mạng tuỳ gói ngôn ngữ đã tải
   # trên máy (xem docs/decisions.md § Phase 18 — cần khai INTERNET permission).
   speech_to_text: ^7.4.0
+  google_sign_in: ^7.2.0
+  googleapis: ^17.0.0
+  extension_google_sign_in_as_googleapis_auth: ^3.0.0
+  cryptography: ^2.9.0
 
 dev_dependencies:
   flutter_test:

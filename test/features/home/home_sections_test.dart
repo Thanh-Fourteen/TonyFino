@@ -57,7 +57,7 @@ void main() {
     // Khối đầu trang KHÔNG tắt được — tắt luôn cả số dư thì Trang chủ trống
     // trơn, không còn là trang chủ nữa.
     expect(find.text('Còn lại'), findsOneWidget);
-    expect(find.text('Tiết kiệm'), findsOneWidget);
+    expect(find.text('Quỹ'), findsOneWidget);
   });
 
   testWidgets(

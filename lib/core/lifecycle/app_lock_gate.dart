@@ -46,6 +46,25 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
   /// dùng biết vì sao vẫn còn ở màn khoá.
   bool _lastAttemptFailed = false;
 
+  /// App có đang thật sự ở foreground (`resumed`) không.
+  ///
+  /// Thiếu cờ này là bug Tony báo ("qua app khác rồi vào lại không đăng
+  /// nhập được"): `paused` gọi `lock()` → Riverpod đổi state → `build()`
+  /// dựng lại NGAY LẬP TỨC dù activity vẫn đang ở NỀN (Flutter không tạm
+  /// dừng widget tree khi paused, chỉ Android mới paused) → lên lịch
+  /// `_tryUnlock()` → `BiometricPrompt` cố hiện lên một Activity không
+  /// resumed → Android không bao giờ gọi lại callback → Future của
+  /// `local_auth` treo VĨNH VIỄN, `_authenticating` kẹt `true` mãi (nút
+  /// "Đang xác thực…" không bao giờ hết, không có cách nào thoát ngoài
+  /// force-stop). Tái hiện được 100% trên máy thật qua adb: bấm HOME rồi mở
+  /// lại app là dính ngay — xác nhận bằng logcat: `BiometricService`
+  /// nhận `canAuthenticate` trong lúc app vừa `become background`, TRƯỚC
+  /// khi có lệnh mở lại app.
+  ///
+  /// Sửa: chỉ tự gọi `_tryUnlock()` khi `_resumed == true`; lúc app quay
+  /// lại foreground thật (`resumed`) mới chủ động thử lại.
+  bool _resumed = true;
+
   @override
   void initState() {
     super.initState();
@@ -60,11 +79,21 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _resumed = true;
+      final locked =
+          ref.read(appSettingsProvider).biometricLockEnabled &&
+          !ref.read(appLockSessionProvider);
+      if (locked && !_authenticating && !_autoPrompted) _tryUnlock();
+      return;
+    }
     if (state != AppLifecycleState.paused) return;
+    _resumed = false;
     if (!ref.read(appSettingsProvider).biometricLockEnabled) return;
     ref.read(appLockSessionProvider.notifier).lock();
     setState(() {
-      // Khoá lại = một lần khoá MỚI, được phép tự hỏi lại đúng một lần.
+      // Khoá lại = một lần khoá MỚI, được phép tự hỏi lại đúng một lần
+      // (khi thật sự quay lại foreground — xem `_resumed`).
       _autoPrompted = false;
       _lastAttemptFailed = false;
     });
@@ -94,9 +123,11 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
     final locked = enabled && !ref.watch(appLockSessionProvider);
     if (!locked) return widget.child;
 
-    // CHỈ tự hỏi một lần cho mỗi lần khoá. Sau đó người dùng chủ động bấm
-    // — nếu không, huỷ hộp thoại là nó bật lại ngay và app trông như treo.
-    if (!_authenticating && !_autoPrompted) {
+    // CHỈ tự hỏi một lần cho mỗi lần khoá, và CHỈ khi app thật sự đang ở
+    // foreground (`_resumed`) — nếu không, huỷ hộp thoại là nó bật lại ngay
+    // và app trông như treo, hoặc tệ hơn là treo cứng vì hỏi vân tay lúc
+    // đang ở nền (xem giải thích ở khai báo `_resumed`).
+    if (_resumed && !_authenticating && !_autoPrompted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _tryUnlock();
       });

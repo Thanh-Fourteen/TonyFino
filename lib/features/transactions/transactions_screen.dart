@@ -401,7 +401,10 @@ class _HeroCard extends ConsumerWidget {
                         ),
                         Expanded(
                           child: _SummaryColumn(
-                            label: 'Tiết kiệm',
+                            // 'Quỹ', không phải 'Tiết kiệm' — trùng tên với
+                            // hũ "Tiết kiệm" (khác khái niệm hoàn toàn, xem
+                            // giải thích ở `home_screen.dart`'s `_Stat`).
+                            label: 'Quỹ',
                             amount: summary?.savings,
                           ),
                         ),

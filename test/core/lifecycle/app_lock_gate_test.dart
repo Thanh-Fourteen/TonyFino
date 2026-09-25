@@ -86,6 +86,61 @@ void main() {
     },
   );
 
+  testWidgets(
+    '🚨 quay lại foreground qua bước `inactive` trước → KHÔNG tự hỏi vân '
+    'tay ở đó, chỉ hỏi khi THẬT SỰ `resumed`',
+    (tester) async {
+      // Tái hiện đúng bug Tony báo trên máy thật ("qua app khác rồi vào lại
+      // không đăng nhập được", kẹt ở "Đang xác thực…" vĩnh viễn). Flutter
+      // tắt frame khi `paused` (`SchedulerBinding._setFramesEnabledState`),
+      // nên `build()` không chạy lại được cho tới khi frame BẬT LẠI — mà
+      // điều đó xảy ra ngay từ bước `inactive` (SchedulerBinding coi CẢ
+      // `resumed` LẪN `inactive` là "bật frame"), tức là TRƯỚC khi
+      // Activity/window thật sự có focus. Bản gốc lên lịch `_tryUnlock()`
+      // ngay khi `build()` chạy lại (bất kể `inactive` hay `resumed`) →
+      // hỏi vân tay khi window CHƯA có focus → `BiometricPrompt` thật
+      // không bao giờ gọi lại callback → treo vĩnh viễn. Cờ `_resumed` chỉ
+      // bật ở `resumed` thật, chặn đúng cửa sổ hở này.
+      auth.result = true;
+      await pumpLocked(tester);
+      expect(auth.calls, 1);
+      expect(find.text('NỘI DUNG APP'), findsOneWidget);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+      expect(
+        auth.calls,
+        1,
+        reason: 'không được tự xác thực trong lúc app đang ở NỀN',
+      );
+
+      // `inactive` bật frame trở lại (đúng như engine thật làm TRƯỚC khi
+      // báo `resumed`) — build() chạy lại, màn khoá hiện ra, nhưng KHÔNG
+      // được tự hỏi vân tay ở bước này.
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.inactive,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('TonyFino đã khoá'), findsOneWidget);
+      expect(
+        auth.calls,
+        1,
+        reason: 'window chưa chắc có focus ở `inactive` — chưa được hỏi',
+      );
+
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        auth.calls,
+        2,
+        reason: 'phải tự xác thực lại khi quay về foreground thật',
+      );
+      expect(find.text('NỘI DUNG APP'), findsOneWidget);
+    },
+  );
+
   testWidgets('xác thực thành công ngay lần đầu → vào thẳng app', (
     tester,
   ) async {

@@ -10,8 +10,12 @@ import '../../../core/result/result.dart';
 import '../../../core/time/clock_provider.dart';
 import '../../../data/services/backup/android_saf_destination.dart';
 import '../../../data/services/backup/auto_backup_worker.dart';
+import '../../../data/services/backup/backup_encryption.dart';
 import '../../../data/services/backup/backup_service.dart';
+import '../../../data/services/backup/google_drive_destination.dart';
 import '../../../data/services/backup/share_sheet_destination.dart';
+import '../../../data/services/google/google_account.dart';
+import '../../../data/services/google/google_providers.dart';
 
 /// Kết quả một thao tác sao lưu/khôi phục vừa chạy — hiển thị TẠM THỜI trên
 /// Settings (không phải trạng thái treo mãi mãi như health-check banner).
@@ -36,6 +40,8 @@ class BackupUiState {
     required this.lastBackupAt,
     required this.autoBackupEnabled,
     this.lastResult,
+    this.googleAccount,
+    this.lastDriveBackupAt,
   });
 
   static const initial = BackupUiState(
@@ -49,18 +55,29 @@ class BackupUiState {
   final bool autoBackupEnabled;
   final BackupActionResult? lastResult;
 
+  /// Tài khoản Google đang đăng nhập — `null` nghĩa là chưa đăng nhập.
+  final GoogleAccount? googleAccount;
+  final DateTime? lastDriveBackupAt;
+
   BackupUiState copyWith({
     bool? isWorking,
     DateTime? lastBackupAt,
     bool? autoBackupEnabled,
     BackupActionResult? lastResult,
     bool clearLastResult = false,
+    GoogleAccount? googleAccount,
+    bool clearGoogleAccount = false,
+    DateTime? lastDriveBackupAt,
   }) {
     return BackupUiState(
       isWorking: isWorking ?? this.isWorking,
       lastBackupAt: lastBackupAt ?? this.lastBackupAt,
       autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
       lastResult: clearLastResult ? null : (lastResult ?? this.lastResult),
+      googleAccount: clearGoogleAccount
+          ? null
+          : (googleAccount ?? this.googleAccount),
+      lastDriveBackupAt: lastDriveBackupAt ?? this.lastDriveBackupAt,
     );
   }
 }
@@ -73,22 +90,49 @@ class BackupUiState {
 class BackupController extends Notifier<BackupUiState> {
   static const _lastBackupAtKey = 'tonyfino_last_backup_at';
   static const _autoBackupEnabledKey = 'tonyfino_auto_backup_enabled';
+  static const _lastDriveBackupAtKey = 'tonyfino_last_drive_backup_at';
 
   final _prefs = SharedPreferencesAsync();
 
   @override
   BackupUiState build() {
     unawaited(_load());
+    unawaited(_initGoogle());
     return BackupUiState.initial;
   }
 
   Future<void> _load() async {
     final iso = await _prefs.getString(_lastBackupAtKey);
     final autoEnabled = await _prefs.getBool(_autoBackupEnabledKey) ?? false;
+    final driveIso = await _prefs.getString(_lastDriveBackupAtKey);
     state = state.copyWith(
       lastBackupAt: iso == null ? null : DateTime.tryParse(iso),
       autoBackupEnabled: autoEnabled,
+      lastDriveBackupAt: driveIso == null ? null : DateTime.tryParse(driveIso),
     );
+  }
+
+  /// Khôi phục phiên Google đã đăng nhập trước đó (nếu có) mà không hiện
+  /// UI nào, rồi tiếp tục lắng nghe đăng nhập/đăng xuất suốt vòng đời app.
+  ///
+  /// Nuốt lỗi có chủ đích: máy không có Google Play Services (hoặc trong
+  /// `flutter_test`, không có platform channel thật — `GoogleSignInPlatform`
+  /// ném `UnimplementedError`) thì coi như CHƯA đăng nhập, không phá luôn cả
+  /// màn Cài đặt vì một tính năng phụ. Bấm "Đăng nhập Google" sau đó vẫn thử
+  /// lại được, lỗi thật sự hiện qua `lastResult` như mọi thao tác khác.
+  Future<void> _initGoogle() async {
+    try {
+      final signIn = ref.read(googleSignInServiceProvider);
+      await signIn.initialize();
+      signIn.accountChanges.listen((account) {
+        state = state.copyWith(
+          googleAccount: account,
+          clearGoogleAccount: account == null,
+        );
+      });
+    } catch (_) {
+      // Xem doc comment ở trên — im lặng là đúng ý ở đây.
+    }
   }
 
   BackupService get _backupService =>
@@ -179,6 +223,127 @@ class BackupController extends Notifier<BackupUiState> {
       state = state.copyWith(
         isWorking: false,
         lastResult: BackupActionError('Không đọc được file: $e'),
+      );
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    final result = await ref.read(googleSignInServiceProvider).signIn();
+    state = state.copyWith(
+      googleAccount: result.valueOrNull,
+      lastResult: result.when(
+        ok: (account) => BackupActionSuccess('Đã đăng nhập ${account.email}.'),
+        err: (error) => BackupActionError(error.message),
+      ),
+    );
+  }
+
+  Future<void> signOutGoogle() async {
+    await ref.read(googleSignInServiceProvider).signOut();
+    state = state.copyWith(clearGoogleAccount: true);
+  }
+
+  /// [passphrase] do người dùng tự đặt — KHÔNG lưu ở đâu cả, quên là mất
+  /// vĩnh viễn bản backup này (xem `BackupEncryption`). Mã hoá xong mới gửi
+  /// lên `appDataFolder`, Drive chỉ thấy bytes đã mã hoá.
+  Future<void> backupToDrive(String passphrase) async {
+    state = state.copyWith(isWorking: true, clearLastResult: true);
+    try {
+      final now = ref.read(clockProvider).now();
+      final bytes = await _backupService.exportToJson(exportedAt: now);
+      final encrypted = await const BackupEncryption().encrypt(
+        bytes,
+        passphrase,
+      );
+      final destination = GoogleDriveDestination(
+        ref.read(googleSignInServiceProvider),
+      );
+      final result = await destination.write('tonyfino_backup.enc', encrypted);
+      await result.when(
+        ok: (_) async {
+          await _prefs.setString(
+            _lastDriveBackupAtKey,
+            now.toIso8601String(),
+          );
+          state = state.copyWith(
+            isWorking: false,
+            lastDriveBackupAt: now,
+            lastResult: const BackupActionSuccess(
+              'Đã sao lưu lên Google Drive.',
+            ),
+          );
+        },
+        err: (error) async {
+          state = state.copyWith(
+            isWorking: false,
+            lastResult: BackupActionError(error.message),
+          );
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isWorking: false,
+        lastResult: BackupActionError('Sao lưu lên Drive thất bại: $e'),
+      );
+    }
+  }
+
+  /// [passphrase] phải khớp mật khẩu lúc [backupToDrive] — sai mật khẩu trả
+  /// lỗi rõ ràng (`BackupEncryption.decrypt`), KHÔNG ghi đè dữ liệu hiện có
+  /// bằng rác giải mã sai.
+  Future<void> restoreFromDrive(String passphrase) async {
+    state = state.copyWith(isWorking: true, clearLastResult: true);
+    try {
+      final destination = GoogleDriveDestination(
+        ref.read(googleSignInServiceProvider),
+      );
+      final downloadResult = await destination.downloadLatest();
+      await downloadResult.when(
+        ok: (bytes) async {
+          if (bytes == null) {
+            state = state.copyWith(
+              isWorking: false,
+              lastResult: const BackupActionError(
+                'Chưa có bản sao lưu nào trên Google Drive.',
+              ),
+            );
+            return;
+          }
+          final decryptResult = await const BackupEncryption().decrypt(
+            bytes,
+            passphrase,
+          );
+          await decryptResult.when(
+            ok: (plain) async {
+              final importResult = await _backupService.importFromJson(plain);
+              state = state.copyWith(
+                isWorking: false,
+                lastResult: importResult.when(
+                  ok: (_) =>
+                      const BackupActionSuccess('Đã khôi phục từ Google Drive.'),
+                  err: (error) => BackupActionError(error.message),
+                ),
+              );
+            },
+            err: (error) async {
+              state = state.copyWith(
+                isWorking: false,
+                lastResult: BackupActionError(error.message),
+              );
+            },
+          );
+        },
+        err: (error) async {
+          state = state.copyWith(
+            isWorking: false,
+            lastResult: BackupActionError(error.message),
+          );
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isWorking: false,
+        lastResult: BackupActionError('Khôi phục từ Drive thất bại: $e'),
       );
     }
   }

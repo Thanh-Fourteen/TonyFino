@@ -218,10 +218,21 @@ class _BalanceHeader extends ConsumerWidget {
             children: [
               Expanded(
                 child: _Stat(
-                  // Hiện ngay cả khi bằng 0: thấy dòng "Tiết kiệm 0 đ" thì
-                  // mới biết "Còn lại" đã trừ phần này, chứ ẩn đi thì con số
+                  // Hiện ngay cả khi bằng 0: thấy dòng "Quỹ 0 đ" thì mới
+                  // biết "Còn lại" đã trừ phần này, chứ ẩn đi thì con số
                   // "Còn lại" lại thành khó hiểu theo kiểu khác.
-                  label: 'Tiết kiệm',
+                  //
+                  // 🚨 KHÔNG đặt tên 'Tiết kiệm' — Tony báo nhầm với hũ
+                  // "Tiết kiệm" ngay bên dưới: đây là dòng tiền RÒNG qua
+                  // MỌI quỹ (`savingsMinor` = tổng mọi giao dịch có gắn
+                  // `goalId`, không phân biệt hũ/chiều), còn số của hũ là
+                  // TỔNG một chiều CHỈ tính quỹ hũ đó quản lý (xem
+                  // docs/decisions.md § 2026-09-22 (2)) — hai khái niệm
+                  // khác nhau, trùng tên là artifact của lúc `savingsMinor`
+                  // viết trước khi hũ có mô hình này (Phase 24, 24/8),
+                  // chưa từng đổi tên theo. 'Quỹ' đúng bản chất hơn: đây là
+                  // tiền vào/ra QUỸ, không phải một hũ cụ thể nào.
+                  label: 'Quỹ',
                   amount: summary == null
                       ? null
                       : Money.vnd(summary!.savingsMinor),

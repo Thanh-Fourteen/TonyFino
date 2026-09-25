@@ -185,6 +185,69 @@ class SettingsScreen extends ConsumerWidget {
             value: backup.autoBackupEnabled,
             onChanged: (value) => backupController.setAutoBackupEnabled(value),
           ),
+          Padding(
+            padding: EdgeInsets.only(top: context.space.lg),
+            child: Text('Google Drive', style: context.text.titleMedium),
+          ),
+          Text(
+            'Đăng nhập để giữ dữ liệu khi đổi điện thoại — bản sao lưu được '
+            'mã hoá bằng mật khẩu riêng của bạn trước khi gửi lên khu vực '
+            'ẩn của app trên Drive, TonyFino không lưu mật khẩu này ở đâu '
+            'cả nên quên là mất vĩnh viễn bản sao lưu đó.',
+            style: context.text.labelMedium?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+          SizedBox(height: context.space.sm),
+          if (backup.googleAccount == null)
+            FilledButton.tonal(
+              onPressed: backup.isWorking ? null : backupController.signInWithGoogle,
+              child: const Text('Đăng nhập Google'),
+            )
+          else ...[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(backup.googleAccount!.displayName ?? backup.googleAccount!.email),
+              subtitle: Text(backup.googleAccount!.email),
+              trailing: TextButton(
+                onPressed: backup.isWorking ? null : backupController.signOutGoogle,
+                child: const Text('Đăng xuất'),
+              ),
+            ),
+            Text(
+              backup.lastDriveBackupAt == null
+                  ? 'Chưa sao lưu lên Drive lần nào'
+                  : 'Sao lưu Drive gần nhất: ${backup.lastDriveBackupAt!.day}/'
+                        '${backup.lastDriveBackupAt!.month}/${backup.lastDriveBackupAt!.year} '
+                        '${backup.lastDriveBackupAt!.hour.toString().padLeft(2, '0')}:'
+                        '${backup.lastDriveBackupAt!.minute.toString().padLeft(2, '0')}',
+              style: context.text.bodyMedium?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(height: context.space.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: backup.isWorking
+                        ? null
+                        : () => _backupToDrive(context, backupController),
+                    child: const Text('Sao lưu lên Drive'),
+                  ),
+                ),
+                SizedBox(width: context.space.sm),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: backup.isWorking
+                        ? null
+                        : () => _confirmRestoreFromDrive(context, backupController),
+                    child: const Text('Khôi phục từ Drive'),
+                  ),
+                ),
+              ],
+            ),
+          ],
           // Cài đặt DẠNG GIÁ TRỊ (dropdown + giải thích dài) tách khỏi
           // khối hàng điều hướng phía trên: xen một hàng cao gấp ba giữa
           // các hàng đều nhau làm cả nhóm trông lộn xộn.
@@ -287,6 +350,180 @@ Future<void> _confirmRestore(
   );
   if (confirmed == true) {
     await controller.restoreFromFile();
+  }
+}
+
+Future<void> _backupToDrive(
+  BuildContext context,
+  BackupController controller,
+) async {
+  final passphrase = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => const _SetBackupPassphraseDialog(),
+  );
+  if (passphrase != null && passphrase.isNotEmpty) {
+    await controller.backupToDrive(passphrase);
+  }
+}
+
+Future<void> _confirmRestoreFromDrive(
+  BuildContext context,
+  BackupController controller,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Khôi phục từ Google Drive?'),
+      content: const Text(
+        'Toàn bộ giao dịch, danh mục, ngân sách HIỆN CÓ sẽ bị THAY THẾ bằng '
+        'nội dung bản sao lưu trên Drive. Hành động này không thể hoàn tác.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Khôi phục'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  if (!context.mounted) return;
+  final passphrase = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => const _EnterBackupPassphraseDialog(),
+  );
+  if (passphrase != null && passphrase.isNotEmpty) {
+    await controller.restoreFromDrive(passphrase);
+  }
+}
+
+/// Bắt đặt mật khẩu MỚI cho một lượt sao lưu — bắt gõ lại lần hai để tránh
+/// gõ nhầm rồi không tự biết (quên/gõ sai là MẤT VĨNH VIỄN bản backup đó,
+/// không ai — kể cả nhà phát triển — khôi phục lại được).
+class _SetBackupPassphraseDialog extends StatefulWidget {
+  const _SetBackupPassphraseDialog();
+
+  @override
+  State<_SetBackupPassphraseDialog> createState() =>
+      _SetBackupPassphraseDialogState();
+}
+
+class _SetBackupPassphraseDialogState
+    extends State<_SetBackupPassphraseDialog> {
+  final _passphrase = TextEditingController();
+  final _confirm = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _passphrase.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_passphrase.text.isEmpty) {
+      setState(() => _error = 'Chưa nhập mật khẩu.');
+      return;
+    }
+    if (_passphrase.text != _confirm.text) {
+      setState(() => _error = 'Hai lần nhập không khớp.');
+      return;
+    }
+    Navigator.of(context).pop(_passphrase.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Đặt mật khẩu backup'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Nhớ kỹ mật khẩu này — cần dùng để khôi phục trên máy khác sau '
+            'này, và không ai lấy lại được nếu bạn quên.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          SizedBox(height: Theme.of(context).visualDensity.vertical + 12),
+          TextField(
+            controller: _passphrase,
+            autofocus: true,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Mật khẩu backup'),
+          ),
+          TextField(
+            controller: _confirm,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu'),
+            onSubmitted: (_) => _submit(),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Sao lưu')),
+      ],
+    );
+  }
+}
+
+/// Nhập mật khẩu backup ĐÃ CÓ để khôi phục — sai thì `BackupEncryption` báo
+/// lỗi rõ ràng, không cần bắt gõ lại hai lần như lúc đặt mới.
+class _EnterBackupPassphraseDialog extends StatefulWidget {
+  const _EnterBackupPassphraseDialog();
+
+  @override
+  State<_EnterBackupPassphraseDialog> createState() =>
+      _EnterBackupPassphraseDialogState();
+}
+
+class _EnterBackupPassphraseDialogState
+    extends State<_EnterBackupPassphraseDialog> {
+  final _passphrase = TextEditingController();
+
+  @override
+  void dispose() {
+    _passphrase.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nhập mật khẩu backup'),
+      content: TextField(
+        controller: _passphrase,
+        autofocus: true,
+        obscureText: true,
+        decoration: const InputDecoration(labelText: 'Mật khẩu backup'),
+        onSubmitted: (_) => Navigator.of(context).pop(_passphrase.text),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_passphrase.text),
+          child: const Text('Khôi phục'),
+        ),
+      ],
+    );
   }
 }
 
