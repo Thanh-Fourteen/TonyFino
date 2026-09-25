@@ -74,64 +74,75 @@ class QuickAddScreen extends ConsumerWidget {
       // cục Phase 8 + § Android edge-to-edge) — `Column` + `Expanded` để
       // thanh nhập luôn đứng ngay TRÊN bàn phím theo layout tự nhiên, và
       // transcript tự nhường chỗ mà không cần tính chiều cao tay.
-      body: Column(
-        children: [
-          Expanded(
-            child: rows.isEmpty
-                ? const Center(
-                    child: EmptyState(
-                      icon: kIconChat,
-                      title: 'Chưa có gì ở đây',
-                      message: 'Gõ một câu như "cà phê 35k" rồi gửi thử xem.',
-                    ),
-                  )
-                : CustomScrollView(
-                    reverse: true,
-                    slivers: [
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.space.screenHorizontal,
-                        ).copyWith(top: context.space.sm),
-                        sliver: SliverList.separated(
-                          itemCount: rows.length,
-                          separatorBuilder: (context, index) =>
-                              SizedBox(height: context.space.sm),
-                          itemBuilder: (context, index) {
-                            final row = rows[index];
-                            return switch (row) {
-                              _DividerRow() => Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: context.space.xs,
-                                ),
-                                child: Text(
-                                  formatDayLabel(
-                                    row.day,
-                                    now,
-                                  ).split(' · ').first,
-                                  style: context.text.labelMedium?.copyWith(
-                                    color: context.colors.onSurfaceVariant,
+      //
+      // 🚨 `bottom: false` CỐ Ý — chỉ né thanh trạng thái phía trên. List
+      // đảo ngược (`reverse: true`) cuộn lên thì vạch ngăn ngày trồi lên
+      // đúng mép trên màn hình; không né thì chữ bị đồng hồ/icon hệ thống
+      // đè lên, đọc không nổi (bắt bằng ảnh chụp thật trên máy Tony).
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: rows.isEmpty
+                  ? const Center(
+                      child: EmptyState(
+                        icon: kIconChat,
+                        title: 'Chưa có gì ở đây',
+                        message:
+                            'Gõ một câu như "cà phê 35k" rồi gửi thử xem.',
+                      ),
+                    )
+                  : CustomScrollView(
+                      reverse: true,
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.space.screenHorizontal,
+                          ).copyWith(top: context.space.sm),
+                          sliver: SliverList.separated(
+                            itemCount: rows.length,
+                            separatorBuilder: (context, index) =>
+                                SizedBox(height: context.space.sm),
+                            itemBuilder: (context, index) {
+                              final row = rows[index];
+                              return switch (row) {
+                                _DividerRow() => Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: context.space.xs,
+                                  ),
+                                  child: Text(
+                                    formatDayLabel(
+                                      row.day,
+                                      now,
+                                    ).split(' · ').first,
+                                    style: context.text.labelMedium?.copyWith(
+                                      color: context.colors.onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              _CardRow() => DraftCard(
-                                key: ValueKey(row.card.id),
-                                messageId: row.messageId,
-                                card: row.card,
-                                categories: categories,
-                              ),
-                              _HistoryRow() => SavedTransactionRow(
-                                key: ValueKey('txn-${row.txn.transaction.id}'),
-                                entry: row.txn,
-                              ),
-                            };
-                          },
+                                _CardRow() => DraftCard(
+                                  key: ValueKey(row.card.id),
+                                  messageId: row.messageId,
+                                  card: row.card,
+                                  categories: categories,
+                                ),
+                                _HistoryRow() => SavedTransactionRow(
+                                  key: ValueKey(
+                                    'txn-${row.txn.transaction.id}',
+                                  ),
+                                  entry: row.txn,
+                                ),
+                              };
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-          ),
-          const QuickAddInputBar(),
-        ],
+                      ],
+                    ),
+            ),
+            const QuickAddInputBar(),
+          ],
+        ),
       ),
     );
   }

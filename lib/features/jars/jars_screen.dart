@@ -88,6 +88,7 @@ class _JarsScreenState extends ConsumerState<JarsScreen> {
     final period = ref.watch(homePeriodProvider);
     final walletId = ref.watch(selectedWalletIdProvider);
     final overview = progressAsync.value ?? JarsOverview.empty;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: embedded ? Colors.transparent : null,
@@ -118,7 +119,8 @@ class _JarsScreenState extends ConsumerState<JarsScreen> {
                     context.space.screenHorizontal,
                     context.space.screenHorizontal,
                     context.space.screenHorizontal +
-                        (embedded ? kBottomNavReservedHeight : 0),
+                        kFabClearance +
+                        (embedded ? kBottomNavReservedHeight + bottomInset : 0),
                   ),
                   onReorderItem: (from, to) => _onReorder(jars, from, to),
                   header: Column(

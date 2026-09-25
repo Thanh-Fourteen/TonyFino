@@ -177,6 +177,7 @@ class _SavingsGoalsTabState extends ConsumerState<SavingsGoalsTab> {
             context.space.screenHorizontal,
             context.space.screenHorizontal,
             context.space.screenHorizontal +
+                kFabClearance +
                 (widget.embedded ? kBottomNavReservedHeight + bottomInset : 0),
           ),
           onReorderItem: (from, to) => _onReorder(goals, from, to),

@@ -283,7 +283,9 @@ class _TransactionList extends ConsumerWidget {
             ],
           ),
         SliverToBoxAdapter(
-          child: SizedBox(height: kBottomNavReservedHeight + bottomInset),
+          child: SizedBox(
+            height: kBottomNavReservedHeight + bottomInset + kFabClearance,
+          ),
         ),
       ],
     );
@@ -618,27 +620,50 @@ class _JarSpendStrip extends ConsumerWidget {
           ),
           SizedBox(
             height: 92,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(
-                horizontal: context.space.screenHorizontal,
-              ),
-              itemCount: overview.jars.length,
-              separatorBuilder: (_, _) => SizedBox(width: context.space.xs),
-              itemBuilder: (context, i) {
-                final p = overview.jars[i];
-                return _JarSpendTile(
-                  progress: p,
-                  selected: selected == p.jar.id,
-                  onTap: () => ref
-                      .read(transactionsJarFilterProvider.notifier)
-                      .toggle(p.jar.id),
-                );
-              },
-            ),
+            // Mờ dần mép phải khi còn hũ ngoài màn hình — không thì thẻ bị
+            // cắt nửa ở rìa trông như hết danh sách, trong khi dải này VẪN
+            // vuốt được (bắt bằng thử tay thật: mất một lúc mới nhận ra có
+            // thể vuốt tiếp).
+            child: overview.jars.length > 2
+                ? ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      begin: Alignment.centerRight,
+                      end: Alignment.centerLeft,
+                      colors: const [Colors.transparent, Colors.black],
+                      stops: [0.0, 24 / bounds.width],
+                    ).createShader(bounds),
+                    blendMode: BlendMode.dstIn,
+                    child: _jarSpendList(context, ref, overview, selected),
+                  )
+                : _jarSpendList(context, ref, overview, selected),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _jarSpendList(
+    BuildContext context,
+    WidgetRef ref,
+    JarsOverview overview,
+    int? selected,
+  ) {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(
+        horizontal: context.space.screenHorizontal,
+      ),
+      itemCount: overview.jars.length,
+      separatorBuilder: (_, _) => SizedBox(width: context.space.xs),
+      itemBuilder: (context, i) {
+        final p = overview.jars[i];
+        return _JarSpendTile(
+          progress: p,
+          selected: selected == p.jar.id,
+          onTap: () =>
+              ref.read(transactionsJarFilterProvider.notifier).toggle(p.jar.id),
+        );
+      },
     );
   }
 }
@@ -702,17 +727,21 @@ class _JarSpendTile extends StatelessWidget {
                     ),
                   ),
                   JarProgressBar(progress: progress, height: 4),
-                  Text(
-                    AmountVisibility.mask(
-                      context,
-                      '/ ${progress.allotted.format()}',
+                  // Hũ không đặt mức nào cho kỳ (0%, vd. "tiêu từ quỹ" không
+                  // trần) thì "/ 0 ₫" là nhiễu — xem cùng luật ở
+                  // `jars_screen.dart`'s `_JarCard`.
+                  if (progress.allotted.minorUnits > 0)
+                    Text(
+                      AmountVisibility.mask(
+                        context,
+                        '/ ${progress.allotted.format()}',
+                      ),
+                      style: context.text.labelSmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                 ],
               ),
             ),

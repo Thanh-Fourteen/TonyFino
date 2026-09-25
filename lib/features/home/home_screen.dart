@@ -83,7 +83,7 @@ class HomeScreen extends ConsumerWidget {
           context.space.screenHorizontal,
           context.space.sm,
           context.space.screenHorizontal,
-          kBottomNavReservedHeight + bottomInset,
+          kBottomNavReservedHeight + bottomInset + kFabClearance,
         ),
         // Các thẻ tổng quan tự ẩn khi chưa có dữ liệu (mục tiêu, giao dịch)
         // — nhưng KHÔNG được để lại khoảng hở. Trước đây mỗi thẻ kèm sẵn một
@@ -486,12 +486,21 @@ class _HomeJarRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                // `start`, không phải `center` mặc định: tên hũ dài xuống 2
+                // dòng thì nhãn "Còn ..." bên phải vẫn neo đúng dòng đầu,
+                // không bị kéo lệch xuống giữa.
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
+                    // Trước đây `maxLines: 1` cắt "..." giữa chừng — hai hũ
+                    // "Phát sinh ngoài quỹ dự phòng" / "Phát sinh trong quỹ
+                    // dự phòng" (cố tình tên gần giống nhau, đúng cặp hũ dễ
+                    // lẫn nhất) bị cắt thành gần như CÙNG một chuỗi. Tab Hũ
+                    // đã cho tên xuống dòng, ở đây thừa chỗ dọc để làm y hệt.
                     child: Text(
                       '${progress.jar.name} · ${progress.jar.percent}%',
                       style: context.text.labelLarge,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

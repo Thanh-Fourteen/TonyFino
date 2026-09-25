@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/money.dart';
 import '../../core/providers/database_providers.dart';
+import '../../core/router/app_bottom_nav.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
@@ -26,6 +27,7 @@ class WalletsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final balancesAsync = ref.watch(activeWalletBalancesProvider);
     final archivedAsync = ref.watch(archivedWalletsProvider);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: embedded ? Colors.transparent : null,
@@ -53,7 +55,14 @@ class WalletsScreen extends ConsumerWidget {
         data: (balances) {
           final archived = archivedAsync.value ?? const <Wallet>[];
           return ListView(
-            padding: EdgeInsets.all(context.space.screenHorizontal),
+            padding: EdgeInsets.fromLTRB(
+              context.space.screenHorizontal,
+              context.space.screenHorizontal,
+              context.space.screenHorizontal,
+              context.space.screenHorizontal +
+                  kFabClearance +
+                  (embedded ? kBottomNavReservedHeight + bottomInset : 0),
+            ),
             children: [
               for (final wb in balances)
                 _WalletTile(

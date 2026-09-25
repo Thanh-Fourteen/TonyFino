@@ -10,6 +10,14 @@ import '../../ui/glass_surface.dart';
 /// edge-to-edge Android 15+).
 const kBottomNavReservedHeight = 88.0;
 
+/// Chỗ trống THÊM một scroll view phải chừa phía trên
+/// [kBottomNavReservedHeight] khi màn đó còn có một FAB nổi riêng (56dp nút
+/// + ~16dp lề mặc định của `Scaffold`). Trước đây các màn dùng đúng
+/// [kBottomNavReservedHeight] cho CẢ đệm danh sách LẪN vị trí neo của FAB —
+/// đệm dừng đúng chỗ FAB bắt đầu nên nút luôn đè lên ~72dp cuối cùng của nội
+/// dung đã cuộn (bắt bằng ảnh chụp thật, xem project_tonyfino_gotchas).
+const kFabClearance = 72.0;
+
 class NavTabSpec {
   const NavTabSpec({required this.icon, required this.label});
   final IconData icon;
@@ -91,49 +99,61 @@ class _NavItem extends StatelessWidget {
     // phải mảng be nhạt.
     final fg = selected ? scheme.onPrimary : colors.onSurfaceVariant;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(context.radii.full),
-        child: AnimatedContainer(
-          duration: context.durations.navMorph,
-          curve: context.curves.navMorph,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          padding: EdgeInsets.symmetric(
-            horizontal: selected ? context.space.md : context.space.sm,
-            vertical: context.space.sm,
-          ),
-          decoration: BoxDecoration(
-            color: selected ? scheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(context.radii.full),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: selected ? 1.0 : 0.0),
-                duration: context.durations.navMorph,
-                curve: context.curves.navMorph,
-                builder: (context, fill, _) =>
-                    Icon(spec.icon, fill: fill, color: fg, size: 24),
-              ),
-              AnimatedSize(
-                duration: context.durations.navMorph,
-                curve: context.curves.navMorph,
-                child: selected
-                    ? Padding(
-                        padding: EdgeInsetsDirectional.only(
-                          start: context.space.xs,
-                        ),
-                        child: Text(
-                          spec.label,
-                          style: context.text.labelMedium?.copyWith(color: fg),
-                        ),
-                      )
-                    : const SizedBox(height: 24),
-              ),
-            ],
+    // Nhãn hiện thành chữ chỉ khi ĐANG chọn (xem `AnimatedSize` bên dưới) —
+    // tab chưa chọn chỉ còn icon trần, nên TalkBack/VoiceOver cần `Semantics`
+    // bù lại, không thì `content-desc` rỗng (bắt bằng `uiautomator dump`
+    // thật, xem project_tonyfino_gotchas).
+    return Semantics(
+      label: spec.label,
+      selected: selected,
+      button: true,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(context.radii.full),
+          child: AnimatedContainer(
+            duration: context.durations.navMorph,
+            curve: context.curves.navMorph,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            padding: EdgeInsets.symmetric(
+              horizontal: selected ? context.space.md : context.space.sm,
+              vertical: context.space.sm,
+            ),
+            decoration: BoxDecoration(
+              color: selected ? scheme.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(context.radii.full),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(end: selected ? 1.0 : 0.0),
+                  duration: context.durations.navMorph,
+                  curve: context.curves.navMorph,
+                  builder: (context, fill, _) =>
+                      Icon(spec.icon, fill: fill, color: fg, size: 24),
+                ),
+                AnimatedSize(
+                  duration: context.durations.navMorph,
+                  curve: context.curves.navMorph,
+                  child: selected
+                      ? Padding(
+                          padding: EdgeInsetsDirectional.only(
+                            start: context.space.xs,
+                          ),
+                          child: Text(
+                            spec.label,
+                            style: context.text.labelMedium?.copyWith(
+                              color: fg,
+                            ),
+                          ),
+                        )
+                      : const SizedBox(height: 24),
+                ),
+              ],
+            ),
           ),
         ),
       ),

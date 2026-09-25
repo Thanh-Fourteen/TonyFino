@@ -132,6 +132,15 @@ class _MonthlyTrendCardState extends State<MonthlyTrendCard>
               }
               return SideTitleWidget(
                 meta: meta,
+                // Nhãn tháng đầu/cuối căn giữa đúng MÉP biểu đồ (minX/maxX
+                // trùng index đầu/cuối) — không có `fitInside` thì fl_chart
+                // vẽ nhãn tràn ra ngoài khung và bị cắt (chụp thật: "Th5"
+                // chỉ còn "5", "Th9" chỉ còn "Th"). `fitInside` tự đẩy nhãn
+                // vào trong khi nó sắp tràn.
+                fitInside: SideTitleFitInsideData.fromTitleMeta(
+                  meta,
+                  distanceFromEdge: 0,
+                ),
                 child: Text(
                   months[index].shortLabel,
                   style: context.text.labelMedium?.copyWith(
