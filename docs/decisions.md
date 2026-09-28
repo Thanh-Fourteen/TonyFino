@@ -2765,3 +2765,20 @@ trên lát (test so thẳng với `watchTagGroupBreakdown`).
 
 Trang chủ chỉ còn một nút +. Ở màn chat, nút bên phải ô nhập: có chữ → gửi; đang nghe → dừng; ô
 trống → **dấu +**, bấm mở ra mic và quét hoá đơn (+ xoay thành ×). Gõ chữ thì tự gập lại.
+
+### Phát hành 1.0.18+59
+
+- git `80316aa` · schema **v19** (không đổi — giá thị trường không vào DB)
+- `dist/tonyfino-1.0.18+59.apk` — SHA-256
+  `6a2f6b3958aebebac9c595c29a71d9b7a5849f188ff35ce938064b6ad0b94a77`
+- File tải về qua tailnet khớp từng byte với file build — và là ĐÚNG file đã thử tay trên máy ảo.
+- Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md`.
+- Thử bản RELEASE (R8) trên `tonyfino36`: sao lưu trước (13:48, kéo thêm một bản về máy dev), cài
+  đè 1.0.17 → 1.0.18, dữ liệu −9.550.000 ₫ / 6 hũ nguyên vẹn. Màn Đăng nhập chặn trước app; bảng
+  chọn tài khoản Google mở được (plugin sống qua R8); máy ảo không có tài khoản → huỷ → lối vào
+  không tài khoản → vào app, lựa chọn được nhớ qua lần cài đè sau. Cài đặt không còn bật đăng nhập.
+  Lát "#DuLich" → danh sách 1 giao dịch, tổng −20.000 khớp lát. Dấu + ở màn chat → mic · quét · ×,
+  quét mở bảng chọn nguồn ảnh. Giá vàng/cà phê với dữ liệu sống; chế độ máy bay → số lần trước +
+  lời báo. Không lưu giao dịch thử nào.
+- Chưa kiểm được: đăng nhập Google THÀNH CÔNG (máy ảo không có tài khoản) — chờ Tony trên máy thật.
+- `tailscale serve status`: `/tonyfino/` lên, đủ 9 mục, mục của dự án khác còn nguyên.
