@@ -125,6 +125,26 @@ ThemeData _build(
       height: 1.45,
       letterSpacingEm: 0.01,
     ),
+    // 🚨 Mọi vai chữ khác cũng PHẢI khai ở đây (2026-09-28). Thiếu vai nào
+    // thì `context.text.<vai>` rơi về chữ mặc định của Material: SAI FONT
+    // (không phải Be Vietnam Pro) và KHÔNG có `leadingDistribution.even` —
+    // đúng lỗi cắt dấu Luật #12 canh. Đã có 43 chỗ dùng `labelSmall`, 14 chỗ
+    // `bodySmall`… lọt lưới như vậy. Cỡ chữ giữ đúng mặc định M3 để bố cục
+    // các màn cũ không xô lệch — chỉ đổi font + nhịp dòng.
+    displayMedium: vnStyle(size: 26, weight: FontWeight.w700, height: 1.25),
+    displaySmall: vnStyle(size: 24, weight: FontWeight.w700, height: 1.25),
+    headlineLarge: vnStyle(size: 32, weight: FontWeight.w600, height: 1.25),
+    headlineMedium: vnStyle(size: 28, weight: FontWeight.w600, height: 1.25),
+    headlineSmall: vnStyle(size: 24, weight: FontWeight.w600, height: 1.30),
+    titleSmall: vnStyle(size: 14, weight: FontWeight.w600, height: 1.40),
+    bodySmall: vnStyle(size: 12, weight: FontWeight.w400, height: 1.50),
+    labelLarge: vnStyle(size: 14, weight: FontWeight.w600, height: 1.40),
+    labelSmall: vnStyle(
+      size: 11,
+      weight: FontWeight.w500,
+      height: 1.45,
+      letterSpacingEm: 0.01,
+    ),
   );
 
   return ThemeData(

@@ -14,6 +14,7 @@ import 'backup/backup_controller.dart';
 import 'import/import_screen.dart';
 import 'settings_controller.dart';
 import '../../theme/tokens/icons.dart';
+import '../../ui/segment_track.dart';
 
 final _biometricSupportedProvider = FutureProvider<bool>((ref) {
   return BiometricService().isSupported();
@@ -62,19 +63,19 @@ class SettingsScreen extends ConsumerWidget {
         padding: EdgeInsets.all(context.space.screenHorizontal),
         children: [
           const _SectionHeader('Giao diện', first: true),
-          SegmentedButton<ThemeMode>(
-            segments: const [
-              ButtonSegment(value: ThemeMode.light, label: Text('Sáng')),
-              ButtonSegment(value: ThemeMode.dark, label: Text('Tối')),
-              ButtonSegment(
-                value: ThemeMode.system,
-                label: Text('Theo hệ thống'),
-              ),
+          // Rãnh chọn dùng chung (`SegmentTrack`) thay `SegmentedButton`:
+          // bản cũ tô cam đặc cả viên đang chọn và "Theo hệ thống" gãy
+          // thành hai dòng (ảnh chụp máy ảo, rà soát 2026-09-28).
+          SegmentTrack<ThemeMode>(
+            options: const [
+              (ThemeMode.light, 'Sáng'),
+              (ThemeMode.dark, 'Tối'),
+              (ThemeMode.system, 'Theo hệ thống'),
             ],
-            selected: {settings.themeMode},
-            onSelectionChanged: (selection) =>
-                controller.setThemeMode(selection.first),
+            value: settings.themeMode,
+            onChanged: controller.setThemeMode,
           ),
+          SizedBox(height: context.space.xs),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Đen tuyền (AMOLED)'),
@@ -259,7 +260,10 @@ class SettingsScreen extends ConsumerWidget {
                   child: OutlinedButton(
                     onPressed: backup.isWorking
                         ? null
-                        : () => _confirmRestoreFromDrive(context, backupController),
+                        : () => _confirmRestoreFromDrive(
+                            context,
+                            backupController,
+                          ),
                     child: const Text('Khôi phục từ Drive'),
                   ),
                 ),

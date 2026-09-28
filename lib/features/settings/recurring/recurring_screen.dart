@@ -6,6 +6,7 @@ import '../../../core/money/money.dart';
 import '../../../core/providers/database_providers.dart';
 import '../../../data/db/database.dart';
 import '../../../theme/context_ext.dart';
+import '../../../ui/empty_state.dart';
 import '../../../theme/tokens/icons.dart';
 import '../../../ui/category_avatar.dart';
 import '../../transactions/transactions_providers.dart';
@@ -33,17 +34,13 @@ class RecurringScreen extends ConsumerWidget {
       body: rowsAsync.when(
         data: (rows) {
           if (rows.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.space.screenHorizontal),
-                child: Text(
-                  'Chưa có giao dịch định kỳ nào. Bấm + để thêm hoá đơn/thu '
-                  'nhập lặp lại — TonyFino sẽ nhắc khi đến hạn, không tự ghi sổ.',
-                  textAlign: TextAlign.center,
-                  style: context.text.bodyMedium?.copyWith(
-                    color: context.colors.onSurfaceVariant,
-                  ),
-                ),
+            return const Center(
+              child: EmptyState(
+                icon: kIconEventRepeat,
+                title: 'Chưa có giao dịch định kỳ',
+                message:
+                    'Bấm + để thêm hoá đơn/thu nhập lặp lại — TonyFino sẽ '
+                    'nhắc khi đến hạn, không tự ghi sổ.',
               ),
             );
           }

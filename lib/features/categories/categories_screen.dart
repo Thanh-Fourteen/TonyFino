@@ -5,6 +5,7 @@ import '../../core/providers/database_providers.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
+import '../../ui/app_card.dart';
 import '../../ui/category_avatar.dart';
 import '../transactions/transactions_providers.dart';
 import 'category_detail_screen.dart';
@@ -162,11 +163,15 @@ class _CategoryGroup extends StatelessWidget {
     required this.category,
     required this.children,
     required this.allCategories,
+    this.isLast = false,
   });
 
   final Category category;
   final List<Category> children;
   final List<Category> allCategories;
+
+  /// Nhóm cuối trong thẻ — không kẻ đường dưới đáy.
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
@@ -178,6 +183,13 @@ class _CategoryGroup extends StatelessWidget {
           Padding(
             padding: EdgeInsetsDirectional.only(start: context.space.xl),
             child: _CategoryTile(category: child, allCategories: allCategories),
+          ),
+        if (!isLast)
+          Divider(
+            height: 1,
+            indent: context.space.dividerIndent + context.space.lg,
+            endIndent: context.space.lg,
+            color: context.colors.hairline,
           ),
       ],
     );
@@ -238,8 +250,10 @@ class _CategoryTile extends ConsumerWidget {
     // icon của chính nó vẫn làm được từ trong màn đó (nút bút ở AppBar).
     // Danh mục CON giữ nguyên hành vi cũ (sửa thẳng qua sheet) — con không có
     // gì để "chi tiết" thêm (không con-của-con, Phase 13 giới hạn 1 cấp).
-    return Card(
-      margin: EdgeInsets.only(bottom: context.space.xs),
+    // Dòng TRƠN (không bọc `Card` riêng): cả nhóm chi/thu nằm chung một
+    // thẻ, dòng cách nhau bằng đường kẻ mảnh — xem `_ReorderableGroups`.
+    return Material(
+      color: Colors.transparent,
       child: ListTile(
         onTap: category.parentCategoryId == null
             ? () => openCategoryDetailScreen(context, category.id)
@@ -348,26 +362,33 @@ class _ReorderableGroups extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ReorderableListView(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      onReorderItem: (oldIndex, newIndex) {
-        final reordered = [...roots];
-        final moved = reordered.removeAt(oldIndex);
-        reordered.insert(newIndex, moved);
-        ref
-            .read(categoryRepositoryProvider)
-            .reorderSiblings(reordered.map((c) => c.id).toList());
-      },
-      children: [
-        for (final category in roots)
-          _CategoryGroup(
-            key: ValueKey(category.id),
-            category: category,
-            children: childrenByParent[category.id] ?? const [],
-            allCategories: allCategories,
-          ),
-      ],
+    // MỘT thẻ cho cả nhóm (rà soát bố cục 2026-09-28): trước đây mỗi dòng
+    // một `Card` riêng — 12 danh mục chi là 12 khối nổi xếp chồng, màn nhìn
+    // như một chồng thẻ. Danh sách dữ liệu nên là một khối phẳng, kẻ mảnh.
+    return AppCard(
+      padding: EdgeInsets.symmetric(vertical: context.space.xs),
+      child: ReorderableListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        onReorderItem: (oldIndex, newIndex) {
+          final reordered = [...roots];
+          final moved = reordered.removeAt(oldIndex);
+          reordered.insert(newIndex, moved);
+          ref
+              .read(categoryRepositoryProvider)
+              .reorderSiblings(reordered.map((c) => c.id).toList());
+        },
+        children: [
+          for (var i = 0; i < roots.length; i++)
+            _CategoryGroup(
+              key: ValueKey(roots[i].id),
+              category: roots[i],
+              children: childrenByParent[roots[i].id] ?? const [],
+              allCategories: allCategories,
+              isLast: i == roots.length - 1,
+            ),
+        ],
+      ),
     );
   }
 }

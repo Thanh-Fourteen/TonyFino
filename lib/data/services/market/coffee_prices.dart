@@ -122,6 +122,8 @@ class CoffeeFuture {
     required this.previous,
     required this.volume,
     required this.time,
+    this.open = 0,
+    this.openInterest = 0,
   });
 
   /// Mã sàn, vd `RMX26` (Robusta tháng 11/2026).
@@ -139,6 +141,12 @@ class CoffeeFuture {
 
   /// Lúc khớp lệnh gần nhất.
   final DateTime time;
+
+  /// Giá mở cửa phiên.
+  final double open;
+
+  /// Hợp đồng mở (số hợp đồng chưa tất toán).
+  final int openInterest;
 }
 
 @immutable
@@ -168,6 +176,8 @@ List<CoffeeFuture> _futures(List<dynamic>? raw) => [
         previous: _d(e['Previous']),
         volume: _d(e['Volume']).round(),
         time: DateTime.fromMillisecondsSinceEpoch(_d(e['Time']).round() * 1000),
+        open: _d(e['Open']),
+        openInterest: _d(e['OpInt']).round(),
       ),
 ];
 

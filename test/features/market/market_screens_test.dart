@@ -82,7 +82,8 @@ void main() {
     await pumpApp(
       tester,
       db: db,
-      child: screen,
+      // Hai trang là THÂN của tab Thị trường (Scaffold nằm ở AppShell).
+      child: Scaffold(body: screen),
       extraOverrides: [
         marketHttpProvider.overrideWithValue(MarketHttp(client: client)),
         clockProvider.overrideWithValue(Clock.fixed(DateTime(2026, 9, 28, 14))),
@@ -97,26 +98,47 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Giá vàng: bảng nhiều doanh nghiệp, thế giới quy ra đ/lượng, '
-      'biểu đồ', (tester) async {
+  testWidgets('Giá vàng: hero = giá bán ra SJC, biểu đồ HAI đường, bảng '
+      'nhóm theo doanh nghiệp, thế giới quy ra đ/lượng', (tester) async {
     await pump(tester, const GoldPriceScreen(), _client());
 
-    expect(find.text('Vàng thế giới (XAU/USD)'), findsOneWidget);
-    expect(find.textContaining('4.182,2 USD/oz'), findsOneWidget);
-    // 4182,2 × 26.150 × 37,5 / 31,1034768 ≈ 131.851 nghìn đ/lượng.
-    expect(find.textContaining('nghìn đ/lượng (tỷ giá 26.150'), findsOneWidget);
-    expect(find.text('DOJI Hà Nội'), findsOneWidget);
-    expect(find.text('Bảo Tín Minh Châu'), findsWidgets);
-    // SJC miếng: mua 140.400 / bán 143.400 nghìn đ/lượng.
+    // Hero: vàng miếng SJC bán ra, kèm giá mua vào + chênh lệch.
+    expect(find.text('SJC · Vàng miếng SJC · bán ra'), findsOneWidget);
+    expect(
+      find.textContaining('Mua vào 140.400.000 · chênh 3.000.000'),
+      findsOneWidget,
+    );
+    // Chú thích hai đường của biểu đồ.
+    expect(find.text('Bán ra'), findsWidgets);
+    expect(find.text('Mua vào'), findsWidgets);
+    // Bảng nhóm theo doanh nghiệp; DOJI hai chi nhánh gộp một nhóm.
+    expect(find.text('DOJI'), findsOneWidget);
+    expect(find.text('Vàng miếng SJC · Hà Nội'), findsOneWidget);
+    expect(find.text('Bảo Tín Minh Châu'), findsOneWidget);
     expect(find.text('143.400'), findsWidgets);
-    expect(find.text('Tính giá trị vàng'), findsOneWidget);
+    // Thế giới: 4182,2 × 26.150 × 37,5 / 31,1034768.
+    expect(find.text('XAU/USD'), findsOneWidget);
+    expect(find.textContaining('theo tỷ giá 26.150 đ/USD'), findsOneWidget);
     await unmount(tester);
   });
 
-  testWidgets('máy tính: 1 chỉ SJC bán được 14.040.000, mua 14.340.000', (
-    tester,
-  ) async {
+  testWidgets('chạm một dòng bảng → hero đổi sang dòng đó', (tester) async {
     await pump(tester, const GoldPriceScreen(), _client());
+    await tester.tap(find.text('Nhẫn tròn trơn 9999'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Bảo Tín Minh Châu · Nhẫn tròn trơn 9999 · bán ra'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('144.100.000'), findsWidgets);
+    await unmount(tester);
+  });
+
+  testWidgets('máy tính (sheet): 1 chỉ SJC bán được 14.040.000, mua '
+      '14.340.000', (tester) async {
+    await pump(tester, const GoldPriceScreen(), _client());
+    await tester.tap(find.text('Tính giá trị vàng đang giữ'));
+    await tester.pumpAndSettle();
     expect(find.text('14.040.000 đ'), findsOneWidget);
     expect(find.text('14.340.000 đ'), findsOneWidget);
     expect(find.text('300.000 đ'), findsOneWidget);
@@ -131,6 +153,8 @@ void main() {
     );
     expect(find.text('PNJ'), findsWidgets);
     expect(find.text('Vàng miếng SJC 999.9'), findsWidgets);
+    // Dòng dự phòng không có lịch sử — nói thẳng, không vẽ biểu đồ rỗng.
+    expect(find.textContaining('không có lịch sử giá'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -141,23 +165,54 @@ void main() {
     await unmount(tester);
 
     await pump(tester, const GoldPriceScreen(), _client(offline: true));
-    expect(find.text('DOJI Hà Nội'), findsOneWidget);
+    expect(find.text('Vàng miếng SJC · Hà Nội'), findsOneWidget);
     expect(find.textContaining('Đang xem số lần trước'), findsOneWidget);
     await unmount(tester);
   });
 
-  testWidgets('Giá cà phê: 4 tỉnh (Đắk Lắk giải mã CSS), Robusta/Arabica, '
-      'quy đổi đ/kg', (tester) async {
+  testWidgets('Giá cà phê: hero Đắk Lắk (giải mã CSS), 4 tỉnh, sàn Robusta '
+      'mặc định + quy đổi đ/kg; đổi sang Arabica', (tester) async {
     await pump(tester, const CoffeePriceScreen(), _client());
 
-    expect(find.text('Đắk Lắk'), findsOneWidget);
-    expect(find.text('Lâm Đồng'), findsOneWidget);
+    expect(find.text('Cà phê nhân xô · Đắk Lắk'), findsOneWidget);
     expect(find.text('93.600'), findsWidgets);
+    expect(find.text('Lâm Đồng'), findsOneWidget);
     expect(find.text('Robusta London'), findsOneWidget);
-    expect(find.text('Arabica New York'), findsOneWidget);
-    expect(find.text('3.367'), findsWidgets);
+    expect(find.text('Kỳ hạn 11/26 · gần nhất'), findsOneWidget);
     // 3.367 USD/tấn × 26.150 / 1000 ≈ 88.047 đ/kg.
-    expect(find.textContaining('88.047 đ/kg quy đổi'), findsOneWidget);
+    expect(find.textContaining('88.047 đ/kg'), findsOneWidget);
+    // Lịch sử ICE: kỳ hạn "Nov26" hiện kiểu Việt "11/26".
+    expect(find.textContaining('hợp đồng kỳ hạn 11/26'), findsOneWidget);
+
+    await tester.tap(find.text('Arabica New York'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kỳ hạn 12/26 · gần nhất'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('chạm một kỳ hạn → mở chi tiết phiên', (tester) async {
+    await pump(tester, const CoffeePriceScreen(), _client());
+    expect(find.textContaining('Hợp đồng mở'), findsNothing);
+    await tester.tap(find.text('11/26'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Hợp đồng mở 44.701'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('🚨 tab Thị trường đang ẨN (TickerMode tắt, như khi đứng ở '
+      'tab khác của thanh dưới) → không một request mạng nào', (tester) async {
+    var requests = 0;
+    final client = MockClient((request) async {
+      requests++;
+      return http.Response('{}', 200);
+    });
+    await pump(
+      tester,
+      const TickerMode(enabled: false, child: GoldPriceScreen()),
+      client,
+    );
+    await tester.pump(const Duration(minutes: 5));
+    expect(requests, 0);
     await unmount(tester);
   });
 }

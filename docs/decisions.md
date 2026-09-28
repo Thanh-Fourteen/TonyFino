@@ -2782,3 +2782,60 @@ trống → **dấu +**, bấm mở ra mic và quét hoá đơn (+ xoay thành �
   lời báo. Không lưu giao dịch thử nào.
 - Chưa kiểm được: đăng nhập Google THÀNH CÔNG (máy ảo không có tài khoản) — chờ Tony trên máy thật.
 - `tailscale serve status`: `/tonyfino/` lên, đủ 9 mục, mục của dự án khác còn nguyên.
+
+
+## 2026-09-28 (5) · Tab Thị trường, biểu đồ hai đường + chọn khoảng, rà soát bố cục toàn app
+
+Ba yêu cầu nối tiếp của Tony sau bản 1.0.18: "cho 2 trang đó ra ngoài, vẽ biểu đồ phải cho chọn
+khoảng và cả 2 đường mua vào bán ra"; "research layout hiện đại, thoáng, đẹp"; "research các trang
+còn lại, trang nào cần design lại thì design lại luôn, commit và phát hành một lần".
+
+### Tab "Thị trường" (thanh dưới thứ 5)
+
+Tony chọn giữa: tab riêng / thẻ trên Trang chủ / icon trên thanh trên cùng → **tab riêng**, trong có
+hai tab con Vàng · Cà phê + nút tải lại. Bỏ lối vào cũ trong Quản lý (một nơi, không hai cửa). Thanh
+dưới vẫn vừa: 4 icon 48dp + viên đang chọn ~130dp < ~350dp.
+
+🚨 `StatefulShellRoute.indexedStack` giữ tab ẩn TRONG cây (chỉ tắt `TickerMode`) → provider giá vẫn
+bị `watch`, hẹn giờ tự tải lại cứ gọi mạng khi đang ở Trang chủ. Hai trang kiểm
+`TickerMode.valuesOf(context).enabled` trước mọi `watch` (`marketTabVisible`); State (dòng đang
+chọn, khoảng) vẫn giữ. Có test: tab ẩn 5 phút → 0 request.
+
+### Biểu đồ
+
+- Vàng vẽ **hai đường**: Bán ra (petrol, liền, 2px, tô nhạt) và Mua vào (xám chữ phụ, **nét đứt**
+  1,5px). Chú thích vẽ đúng kiểu nét; ô giá trị ghi tên từng đường. Bản nháp dùng cam cho Mua vào —
+  `validate_palette.js` đo cam trên nền trắng 2,93:1 và cam là màu mảng nhỏ → đổi sang xám + nét đứt.
+  Lịch sử vang.today vốn có cả mua lẫn bán → một request thay vì hai.
+- **Chọn khoảng**: rãnh 7N · 1T · 3T · 1N + nút lịch mở `showDateRangePicker` giới hạn trong những
+  ngày có dữ liệu; đang xem khoảng tự chọn thì nút hiện "10/9–20/9" (`ChartWindow`).
+
+### Bố cục "hiện đại, thoáng" (nghiên cứu có nguồn: Robinhood, Apple Stocks, Coinbase, M3 Expressive,
+giavang.org/vngold.org, giacaphe.com; bài học Google Finance 2026 bị chê vì biến bảng số thành thẻ thưa)
+
+Hero PHẲNG (giá to + viên ▲▼ + dòng phụ) → biểu đồ ngay dưới → rãnh chọn khoảng → tóm tắt → bảng MỘT
+thẻ, nhóm theo doanh nghiệp, số canh phải (bảng giá phải đặc, không mỗi dòng một thẻ) → thế giới →
+máy tính cất vào sheet. Nhãn "tốt nhất" cho giá mua cao nhất / bán thấp nhất, CHỈ so giữa các nơi bán
+vàng miếng SJC (so nhẫn với miếng là so hai thứ khác nhau). Cà phê: kỳ hạn là dòng phẳng, chạm mở chi
+tiết phiên (cao/thấp/mở cửa/khối lượng/hợp đồng mở). Rãnh chọn `SegmentTrack` (lib/ui) thay chip cam.
+
+### Sửa gốc: theme thiếu 9/15 vai chữ
+
+Agent nghiên cứu phát hiện `labelSmall` KHÔNG có trong `TextTheme`; kiểm lại thì thiếu cả
+`bodySmall`, `titleSmall`, `headline*`, `display{Medium,Small}`, `labelLarge` — rơi về chữ mặc định
+Material: SAI FONT và không `leadingDistribution.even` (Luật #12). 43 chỗ `labelSmall` + 14 chỗ
+`bodySmall` toàn app bị ảnh hưởng. Khai đủ 15 vai bằng `vnStyle`, giữ cỡ chữ M3 để bố cục cũ không xô;
+test `text_theme_roles_test.dart` chặn tái phát. 4 golden đổi dưới-pixel (nhịp dòng), đã xem tận mắt.
+
+### Rà soát các trang còn lại (chụp mọi màn trên máy ảo, dữ liệu thật)
+
+| Màn | Vấn đề | Sửa |
+|---|---|---|
+| Báo cáo | băng Wrapped cam đặc cả chiều ngang — trái luật màu | thẻ thường + chấm cam nhỏ đựng icon |
+| Cài đặt | "Theo hệ thống" gãy 2 dòng, viên cam đặc | `SegmentTrack` |
+| Danh mục, Thẻ | mỗi dòng một `Card` → chồng thẻ | một thẻ/nhóm, dòng kẻ mảnh (kéo-thả giữ nguyên) |
+| Mẫu giao dịch | nút + cao hơn mọi màn ~100px | gốc: màn mở bằng 2 navigator khác nhau → luôn đẩy lên navigator gốc, bỏ đệm thanh nav |
+| Định kỳ, Mẫu | trống = một dòng chữ trơn | `EmptyState` (icon + tiêu đề + lời dẫn) |
+
+Không đổi (nhìn ổn): Trang chủ, Giao dịch, Túi tiền, Ghi chú, Tìm kiếm, Mục tiêu, màn chat.
+Bắt khi bấm thật: chế độ tối, viên đang chọn của `SegmentTrack` trùng màu rãnh → phủ nhẹ màu chữ.

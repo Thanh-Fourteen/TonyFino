@@ -29,9 +29,13 @@ const kNavTabs = [
   NavTabSpec(icon: kIconReceiptLong, label: 'Giao dịch'),
   NavTabSpec(icon: kIconBarChart, label: 'Báo cáo'),
   NavTabSpec(icon: kIconAccountBalanceWallet, label: 'Túi tiền'),
+  // Tab thứ 5 theo lựa chọn của Tony (2026-09-28): giá vàng/cà phê xem
+  // hằng ngày, hai chạm qua Quản lý là quá xa. Vẫn vừa một hàng: 4 icon
+  // 48dp + viên đang chọn (~130dp với nhãn dài nhất) < ~350dp bề ngang.
+  NavTabSpec(icon: kIconShowChart, label: 'Thị trường'),
 ];
 
-/// Bottom nav 4 tab đúng đặc tả — trên `GlassSurface` (một trong hai chỗ
+/// Bottom nav (5 tab từ 2026-09-28) đúng đặc tả — trên `GlassSurface` (một trong hai chỗ
 /// DUY NHẤT dùng `BackdropFilter`), **pill biến hình + icon FILL 0→1** khi
 /// đổi tab: mục đang chọn tự phình rộng ra để chứa nhãn (animate chiều rộng
 /// + bo góc), KHÔNG cross-fade — đúng ý tưởng M3 Expressive mượn riêng

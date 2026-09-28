@@ -85,23 +85,16 @@ class MarketRepository {
     return pnj == null ? null : parsePnjGold(pnj);
   }
 
-  /// Giá chốt từng ngày (~310 ngày) của một dòng vang.today; [sellSide] =
-  /// giá bán ra. Dòng dự phòng của PNJ không có lịch sử → danh sách rỗng.
-  Future<List<PricePoint>> goldHistory(
-    String code, {
-    bool sellSide = true,
-  }) async {
-    if (code.startsWith('PNJ:')) return const [];
-    final uri = _vangTodayHistory(code);
-    String body;
-    try {
-      body = await _http.get(uri);
-    } on MarketFetchException {
-      final cached = await _http.cached(uri);
-      if (cached == null) rethrow;
-      body = cached;
+  /// Giá chốt từng ngày (~310 ngày) của một dòng vang.today, cả mua vào
+  /// lẫn bán ra. Dòng dự phòng của PNJ không có lịch sử → rỗng.
+  Future<GoldHistory> goldHistory(String code) async {
+    if (code.startsWith('PNJ:')) {
+      return const GoldHistory(buy: [], sell: []);
     }
-    return parseVangTodayHistory(body, code: code, sellSide: sellSide);
+    return parseVangTodayHistory(
+      await _getOrCached(_vangTodayHistory(code)),
+      code: code,
+    );
   }
 
   // ── Tỷ giá ──

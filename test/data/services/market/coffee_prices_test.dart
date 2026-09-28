@@ -55,6 +55,9 @@ void main() {
       expect(board.robusta.first.last, 3367);
       expect(board.robusta.first.change, 77);
       expect(board.robusta.first.changePercent, 2.34);
+    expect(board.robusta.first.open, 3292);
+    expect(board.robusta.first.openInterest, 44701);
+    expect(board.robusta.first.volume, 10598);
       expect(board.arabica.first.code, 'KCZ26');
       expect(board.arabica.first.last, 278.6);
     },

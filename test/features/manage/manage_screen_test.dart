@@ -20,8 +20,6 @@ void main() {
     'Ví',
     'Hũ chia thu nhập',
     'Mục tiêu & nợ vay',
-    'Giá vàng',
-    'Giá cà phê',
     'Danh mục',
     'Thẻ',
     'Giao dịch định kỳ',
@@ -29,7 +27,7 @@ void main() {
   ];
 
   testWidgets(
-    'liệt kê đủ 9 mục (trang Hạn mức đã bỏ; thêm Giá vàng, Giá cà phê), không thiếu mục nào từ Cài đặt cũ',
+    'liệt kê đủ 7 mục quản lý (trang Hạn mức đã bỏ; Giá vàng/cà phê là tab Thị trường), không thiếu mục nào từ Cài đặt cũ',
     (tester) async {
       await pumpApp(tester, db: db, child: const ManageScreen());
       await tester.pumpAndSettle();

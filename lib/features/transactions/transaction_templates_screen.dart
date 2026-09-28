@@ -7,6 +7,7 @@ import '../../core/providers/database_providers.dart';
 import '../../core/router/app_bottom_nav.dart';
 import '../../data/db/database.dart';
 import '../../theme/context_ext.dart';
+import '../../ui/empty_state.dart';
 import '../../theme/tokens/icons.dart';
 import '../../ui/category_avatar.dart';
 import 'receipt_scan.dart';
@@ -88,7 +89,11 @@ Future<void> showApplyTemplateSheet(BuildContext context, WidgetRef ref) async {
       prefill: TransactionFormPrefill.fromTemplate(picked),
     );
   } else if (picked == _manageTemplatesChoice) {
-    await Navigator.of(context).push(
+    // Navigator GỐC — cùng đường với lối vào từ Quản lý: màn phủ kín, không
+    // nằm dưới thanh nav nổi (trước đây mở vào navigator của nhánh nên phải
+    // chừa đệm cho thanh nav, còn mở từ Quản lý thì đệm đó thành khoảng hở
+    // và nút + lơ lửng cao hơn mọi màn khác).
+    await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
         builder: (_) => const TransactionTemplatesScreen(),
       ),
@@ -113,35 +118,22 @@ class TransactionTemplatesScreen extends ConsumerWidget {
     final templatesAsync = ref.watch(transactionTemplatesProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
 
-    // `extendBody` + FAB đệm đáy = chiều cao thanh nav nổi — màn này được
-    // push vào Navigator của NHÁNH hiện tại (`Navigator.of(context).push`,
-    // xem `showApplyTemplateSheet`), vẫn nằm TRONG `body` của `AppShell`
-    // ngoài nên thanh nav nổi (`extendBody: true` ở Scaffold ngoài) vẫn vẽ
-    // ĐÈ lên đáy màn này — không đệm sẽ che gần hết FAB, đúng bug đã bắt ở
-    // Phase 6 (`TransactionsScreen`), tái diễn ở đây vì màn hình MỚI.
     return Scaffold(
-      extendBody: true,
       appBar: AppBar(title: const Text('Mẫu giao dịch')),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom:
-              kBottomNavReservedHeight +
-              MediaQuery.viewPaddingOf(context).bottom,
-        ),
-        child: FloatingActionButton(
-          onPressed: () => showTransactionTemplateEditSheet(context: context),
-          child: const Icon(kIconAdd),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showTransactionTemplateEditSheet(context: context),
+        child: const Icon(kIconAdd),
       ),
       body: templatesAsync.when(
         data: (templates) {
           if (templates.isEmpty) {
-            return Center(
-              child: Text(
-                'Chưa có mẫu nào — bấm "+" để tạo mẫu đầu tiên.',
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant,
-                ),
+            return const Center(
+              child: EmptyState(
+                icon: kIconBookmark,
+                title: 'Chưa có mẫu nào',
+                message:
+                    'Khoản hay ghi (tiền nhà, cà phê sáng…) lưu thành mẫu để '
+                    'điền sẵn một chạm. Bấm + để tạo mẫu đầu tiên.',
               ),
             );
           }
@@ -149,7 +141,6 @@ class TransactionTemplatesScreen extends ConsumerWidget {
             for (final c in categoriesAsync.value ?? const <Category>[])
               c.id: c,
           };
-          final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
           return ListView(
             padding: EdgeInsets.all(context.space.screenHorizontal),
             children: [
@@ -158,7 +149,8 @@ class TransactionTemplatesScreen extends ConsumerWidget {
                   template: template,
                   category: categoriesById[template.categoryId],
                 ),
-              SizedBox(height: kBottomNavReservedHeight + bottomInset),
+              // Chừa chỗ cho nút + nổi, không để nó che dòng cuối.
+              const SizedBox(height: kFabClearance),
             ],
           );
         },

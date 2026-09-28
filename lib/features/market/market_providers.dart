@@ -27,12 +27,10 @@ final goldBoardProvider =
       MarketSnapshot<GoldBoard>
     >(GoldBoardController.new);
 
-/// Lịch sử một dòng giá vàng; khoá = (mã, giá bán ra?).
+/// Lịch sử một dòng giá vàng (mua vào + bán ra), theo mã.
 final goldHistoryProvider = FutureProvider.autoDispose
-    .family<List<PricePoint>, (String, bool)>(
-      (ref, key) => ref
-          .watch(marketRepositoryProvider)
-          .goldHistory(key.$1, sellSide: key.$2),
+    .family<GoldHistory, String>(
+      (ref, code) => ref.watch(marketRepositoryProvider).goldHistory(code),
     );
 
 final usdVndProvider = FutureProvider.autoDispose<UsdVndRate>(

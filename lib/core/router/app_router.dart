@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/home/home_screen.dart';
+import '../../features/market/market_screen.dart';
 import '../../features/money_hub/money_hub_screen.dart';
 import '../../features/quick_add/quick_add_screen.dart';
 import '../../features/reports/reports_screen.dart';
@@ -9,10 +10,11 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/transactions/transactions_screen.dart';
 import 'app_shell.dart';
 
-/// `StatefulShellRoute.indexedStack` — 4 nhánh giữ state riêng (cuộn, form
+/// `StatefulShellRoute.indexedStack` — 5 nhánh giữ state riêng (cuộn, form
 /// đang mở) khi đổi tab qua lại, đúng thứ tự nav: Trang chủ · Giao dịch ·
-/// Báo cáo · Ngân sách. Cài đặt là route riêng, ĐẨY LÊN TRÊN (không phải
-/// tab thứ 5 — "5 tab là lúc nav bắt đầu trông như thanh công cụ bảng tính").
+/// Báo cáo · Túi tiền · Thị trường. Cài đặt là route riêng, ĐẨY LÊN TRÊN.
+/// (Từng giữ 4 tab — "5 tab là lúc nav trông như thanh công cụ bảng tính" —
+/// Tony chọn tab thứ 5 cho Thị trường ngày 2026-09-28: xem giá hằng ngày.)
 ///
 /// `/quick-add` KHÔNG còn là tab: nhập liệu là một hành động, đẩy lên trên
 /// từ nút cộng. Xem doc của `HomeScreen`.
@@ -52,6 +54,14 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/money',
               builder: (context, state) => const MoneyHubScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/market',
+              builder: (context, state) => const MarketScreen(),
             ),
           ],
         ),

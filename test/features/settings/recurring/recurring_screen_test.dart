@@ -35,7 +35,7 @@ void main() {
   testWidgets('chưa có dòng nào → hiện trạng thái rỗng', (tester) async {
     await pumpRecurring(tester);
     expect(
-      find.textContaining('Chưa có giao dịch định kỳ nào'),
+      find.text('Chưa có giao dịch định kỳ'),
       findsOneWidget,
     );
   });

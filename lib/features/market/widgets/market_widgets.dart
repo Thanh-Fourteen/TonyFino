@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../../data/services/market/price_point.dart';
 import '../../../theme/context_ext.dart';
 import '../../../theme/tokens/icons.dart';
+import '../../../ui/segment_track.dart';
+
+export '../../../ui/segment_track.dart';
 
 final _grouped = NumberFormat('#,##0', 'vi_VN');
 
@@ -164,42 +167,264 @@ class MarketStatusLine extends StatelessWidget {
   }
 }
 
-/// Hàng nút 7N · 1T · 3T · 1N ở đầu biểu đồ.
-class ChartSpanSelector extends StatelessWidget {
-  const ChartSpanSelector({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+/// Viên ▲/▼ trên nền nhạt cùng màu chiều — con số tăng/giảm nổi lên được
+/// ở hero và ở từng dòng mà không cần cả một cột riêng.
+class ChangePill extends StatelessWidget {
+  const ChangePill({super.key, required this.change, required this.text});
 
-  final ChartSpan value;
-  final ValueChanged<ChartSpan> onChanged;
+  final num change;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: context.space.xs,
+    final tone = change > 0
+        ? context.colors.incomeText
+        : change < 0
+        ? context.colors.budgetOver
+        : context.colors.onSurfaceVariant;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.space.sm,
+        vertical: context.space.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(context.radii.full),
+      ),
+      child: ChangeLabel(
+        change: change,
+        text: text,
+        style: context.money.moneySmall,
+      ),
+    );
+  }
+}
+
+/// Chọn khoảng của biểu đồ: rãnh 7N · 1T · 3T · 1N + nút lịch "Tuỳ chọn"
+/// (Tony: "vẽ biểu đồ phải cho chọn khoảng"). Nút lịch mở bộ chọn khoảng
+/// ngày, giới hạn trong những ngày thật sự có dữ liệu; đang xem khoảng tự
+/// chọn thì nút hiện luôn khoảng đó ("12/8–20/9") và rãnh không viên nào
+/// sáng.
+class ChartRangeBar extends StatelessWidget {
+  const ChartRangeBar({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.available,
+  });
+
+  final ChartWindow value;
+  final ValueChanged<ChartWindow> onChanged;
+
+  /// Toàn bộ điểm đang có — biên của bộ chọn ngày. Ít hơn 2 điểm thì nút
+  /// lịch tắt.
+  final List<PricePoint> available;
+
+  Future<void> _pickCustom(BuildContext context) async {
+    final first = DateUtils.dateOnly(available.first.time);
+    final last = DateUtils.dateOnly(available.last.time);
+    DateTime clamp(DateTime d) {
+      final day = DateUtils.dateOnly(d);
+      return day.isBefore(first) ? first : (day.isAfter(last) ? last : day);
+    }
+
+    final shown = pointsInWindow(available, value);
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: first,
+      lastDate: last,
+      initialDateRange: DateTimeRange(
+        start: clamp(value.from ?? shown.firstOrNull?.time ?? first),
+        end: clamp(value.to ?? last),
+      ),
+      helpText: 'Chọn khoảng ngày',
+      saveText: 'Xem',
+    );
+    if (picked == null) return;
+    onChanged(ChartWindow.custom(picked.start, picked.end));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String dm(DateTime d) => '${d.day}/${d.month}';
+    final enabled = available.length >= 2;
+    final custom = value.isCustom;
+    return Row(
       children: [
-        for (final span in ChartSpan.values)
-          ChoiceChip(
-            label: Text(span.label),
-            selected: span == value,
-            showCheckmark: false,
-            visualDensity: VisualDensity.compact,
-            onSelected: (_) => onChanged(span),
+        Expanded(
+          child: SegmentTrack<ChartSpan>(
+            options: [for (final s in ChartSpan.values) (s, s.label)],
+            value: value.preset,
+            onChanged: (s) => onChanged(ChartWindow.preset(s)),
           ),
+        ),
+        SizedBox(width: context.space.xs),
+        custom
+            ? TextButton.icon(
+                onPressed: enabled ? () => _pickCustom(context) : null,
+                icon: const Icon(kIconCalendarToday, size: 16),
+                label: Text('${dm(value.from!)}–${dm(value.to!)}'),
+              )
+            : IconButton(
+                tooltip: 'Chọn khoảng ngày',
+                onPressed: enabled ? () => _pickCustom(context) : null,
+                icon: const Icon(kIconCalendarToday, size: 20),
+              ),
       ],
     );
   }
 }
 
+/// Tiêu đề một mục trên nền trang (không bọc thẻ): tên mục bên trái, đơn
+/// vị/ghi chú mờ bên phải.
+class MarketSectionHeader extends StatelessWidget {
+  const MarketSectionHeader({super.key, required this.title, this.trailing});
+
+  final String title;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.space.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(child: Text(title, style: context.text.titleMedium)),
+          if (trailing != null)
+            Text(
+              trailing!,
+              style: context.text.labelMedium?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Nút chọn đối tượng của hero ("SJC · Vàng miếng SJC ▾") — chữ mờ + mũi
+/// tên, bấm mở danh sách.
+class HeroPicker extends StatelessWidget {
+  const HeroPicker({super.key, required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(context.radii.full),
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: context.space.xs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                style: context.text.labelMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
+              ),
+            ),
+            if (onTap != null)
+              Icon(
+                kIconExpandMore,
+                size: 18,
+                color: context.colors.onSurfaceVariant,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Số to của hero: con số + đơn vị nhỏ đứng sau, xuống dòng được ở cỡ chữ
+/// lớn (không `FittedBox` — thu nhỏ số tiền là giấu nó đi).
+class HeroNumber extends StatelessWidget {
+  const HeroNumber({super.key, required this.value, required this.unit});
+
+  final String value;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: value, style: context.money.moneyHero),
+          TextSpan(
+            text: ' $unit',
+            style: context.text.bodyMedium?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Khung xương khi CHƯA có số lần nào — giữ đúng hình dáng trang thay vì một
+/// vòng xoay giữa màn trắng.
+class MarketSkeleton extends StatelessWidget {
+  const MarketSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar(double w, double h) => Container(
+      width: w,
+      height: h,
+      margin: EdgeInsets.only(bottom: context.space.sm),
+      decoration: BoxDecoration(
+        color: context.colors.skeletonBase,
+        borderRadius: BorderRadius.circular(context.radii.md),
+      ),
+    );
+    return Semantics(
+      label: 'Đang tải giá',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          bar(140, 14),
+          bar(220, 40),
+          bar(160, 18),
+          SizedBox(height: context.space.lg),
+          bar(double.infinity, 200),
+          SizedBox(height: context.space.lg),
+          for (var i = 0; i < 4; i++) bar(double.infinity, 48),
+        ],
+      ),
+    );
+  }
+}
+
+/// Biểu đồ + nhãn ô bảng chỉ tải khi tab ĐANG HIỆN. Tab ở thanh dưới
+/// (`StatefulShellRoute.indexedStack`) vẫn được giữ trong cây khi đổi sang
+/// tab khác — chỉ bị tắt `TickerMode`. Nếu vẫn `watch` provider giá thì hẹn
+/// giờ tự tải lại cứ gọi mạng ngầm khi Tony đang ở Trang chủ.
+bool marketTabVisible(BuildContext context) =>
+    TickerMode.valuesOf(context).enabled;
+
 /// Cao nhất / thấp nhất / thay đổi trong khoảng đang xem — đọc được ngay mà
 /// không phải rê ngón tay trên biểu đồ.
 class SpanSummary extends StatelessWidget {
-  const SpanSummary({super.key, required this.points, required this.format});
+  const SpanSummary({
+    super.key,
+    required this.points,
+    required this.format,
+    this.title,
+  });
 
   final List<PricePoint> points;
   final String Function(double) format;
+
+  /// Tên đường khi biểu đồ có nhiều đường (vd "Bán ra").
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +449,7 @@ class SpanSummary extends StatelessWidget {
         ],
       ),
     );
-    return Row(
+    final row = Row(
       children: [
         cell('Cao nhất', Text(format(hi), style: context.text.labelMedium)),
         cell('Thấp nhất', Text(format(lo), style: context.text.labelMedium)),
@@ -236,6 +461,14 @@ class SpanSummary extends StatelessWidget {
                 '${format(delta.abs())} (${formatDecimal(pct.abs(), digits: 1)}%)',
           ),
         ),
+      ],
+    );
+    if (title == null) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title!, style: context.text.labelMedium),
+        row,
       ],
     );
   }

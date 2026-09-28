@@ -151,32 +151,39 @@ GoldBoard parseVangTodayCurrent(String body) {
   );
 }
 
+/// Lịch sử một dòng giá vàng: hai đường MUA VÀO và BÁN RA (Tony muốn thấy
+/// cả hai trên cùng biểu đồ — khoảng giữa hai đường chính là chênh lệch
+/// mua–bán). Vàng thế giới chỉ có một giá → [sell] rỗng.
+@immutable
+class GoldHistory {
+  const GoldHistory({required this.buy, required this.sell});
+
+  final List<PricePoint> buy;
+  final List<PricePoint> sell;
+}
+
 /// Đọc `GET https://www.vang.today/api/prices?type=<mã>&days=<n>` — mỗi
-/// ngày một điểm (giá chốt của ngày). [sellSide] chọn giá bán ra (mặc định)
-/// hay mua vào; vàng thế giới chỉ có một giá, nằm ở `buy`.
-List<PricePoint> parseVangTodayHistory(
-  String body, {
-  required String code,
-  bool sellSide = true,
-}) {
+/// ngày một điểm (giá chốt của ngày), mới nhất trước trong phản hồi; trả
+/// về tăng dần theo thời gian. Ô giá bằng 0 (vàng thế giới có `sell: 0`)
+/// không thành điểm.
+GoldHistory parseVangTodayHistory(String body, {required String code}) {
   final json = jsonDecode(body) as Map<String, dynamic>;
   final history = json['history'] as List<dynamic>? ?? const [];
-  final points = <PricePoint>[];
+  final buy = <PricePoint>[];
+  final sell = <PricePoint>[];
   for (final day in history) {
     final d = day as Map<String, dynamic>;
     final p =
         (d['prices'] as Map<String, dynamic>)[code] as Map<String, dynamic>?;
     if (p == null) continue;
-    final side = p[sellSide ? 'sell' : 'buy'] as num? ?? 0;
-    // Vàng thế giới có `sell: 0` — rơi về `buy`.
-    final value = side == 0 ? (p['buy'] as num? ?? 0) : side;
-    if (value == 0) continue;
-    points.add(
-      PricePoint(DateTime.parse(d['date'] as String), value.toDouble()),
-    );
+    final date = DateTime.parse(d['date'] as String);
+    final b = p['buy'] as num? ?? 0;
+    final s = p['sell'] as num? ?? 0;
+    if (b != 0) buy.add(PricePoint(date, b.toDouble()));
+    if (s != 0) sell.add(PricePoint(date, s.toDouble()));
   }
-  points.sort((a, b) => a.time.compareTo(b.time));
-  return points;
+  int byTime(PricePoint a, PricePoint b) => a.time.compareTo(b.time);
+  return GoldHistory(buy: buy..sort(byTime), sell: sell..sort(byTime));
 }
 
 /// Dự phòng khi vang.today hỏng: bảng giá của riêng PNJ,

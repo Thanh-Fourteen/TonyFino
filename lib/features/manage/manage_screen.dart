@@ -4,8 +4,6 @@ import '../../theme/context_ext.dart';
 import '../../theme/tokens/icons.dart';
 import '../categories/categories_screen.dart';
 import '../jars/jars_screen.dart';
-import '../market/coffee_price_screen.dart';
-import '../market/gold_price_screen.dart';
 import '../notes/notes_screen.dart';
 import '../savings/savings_screen.dart';
 import '../settings/recurring/recurring_screen.dart';
@@ -61,26 +59,6 @@ class ManageScreen extends StatelessWidget {
                 label: 'Mục tiêu & nợ vay',
                 subtitle: 'Tiết kiệm có đích, khoản vay/cho vay',
                 builder: (_) => const SavingsScreen(),
-              ),
-            ],
-          ),
-          // Giá thị trường (cần mạng) — Tony 2026-09-28. Đặt ngay dưới
-          // "Tiền của tôi": xem giá vàng/cà phê là để quyết định mua bán,
-          // cùng họ với việc nhìn tiền mình đang có.
-          _Group(
-            title: 'Thị trường',
-            children: [
-              _ManageRow(
-                icon: kIconWorkspacePremium,
-                label: 'Giá vàng',
-                subtitle: 'SJC, DOJI, PNJ, Bảo Tín… và thế giới, có biểu đồ',
-                builder: (_) => const GoldPriceScreen(),
-              ),
-              _ManageRow(
-                icon: kIconCoffee,
-                label: 'Giá cà phê',
-                subtitle: 'Nhân xô Tây Nguyên, sàn London/New York',
-                builder: (_) => const CoffeePriceScreen(),
               ),
             ],
           ),

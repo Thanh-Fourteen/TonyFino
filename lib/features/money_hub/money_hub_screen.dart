@@ -20,8 +20,8 @@ import '../wallets/widgets/wallet_edit_sheet.dart';
 /// SỰ nằm, quỹ là tiền để dành cho một mục tiêu, hũ là tỉ lệ chia thu nhập
 /// cho kỳ này.
 ///
-/// Giữ bottom nav ở 4 tab — TODOS.md ghi rõ "5 tab là lúc nav bắt đầu trông
-/// như thanh công cụ bảng tính".
+/// Gom ba trang vào MỘT tab thay vì ba tab riêng — thanh dưới chỉ dành cho
+/// những nơi xem hằng ngày (tab thứ 5 "Thị trường" thêm 2026-09-28).
 class MoneyHubScreen extends ConsumerStatefulWidget {
   const MoneyHubScreen({super.key});
 

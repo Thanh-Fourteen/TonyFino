@@ -30,24 +30,29 @@ void main() {
   });
 
   test('lịch sử: mỗi ngày một điểm, tăng dần theo thời gian', () {
-    final points = parseVangTodayHistory(
+    final h = parseVangTodayHistory(
       _fixture('vangtoday_history_SJL1L10_30d.json'),
       code: 'SJL1L10',
     );
+    final points = h.sell;
     expect(points.length, greaterThan(20));
     for (var i = 1; i < points.length; i++) {
       expect(points[i].time.isAfter(points[i - 1].time), isTrue);
     }
     expect(points.last.value, 143400000);
+    // Cả đường MUA VÀO, cùng số ngày.
+    expect(h.buy.length, points.length);
+    expect(h.buy.last.value, 140400000);
   });
 
-  test('lịch sử thế giới: sell = 0 thì lấy buy', () {
-    final points = parseVangTodayHistory(
+  test('lịch sử thế giới: chỉ một giá (buy), sell = 0 không thành điểm', () {
+    final h = parseVangTodayHistory(
       _fixture('vangtoday_history_XAUUSD_30d.json'),
       code: 'XAUUSD',
     );
-    expect(points, isNotEmpty);
-    expect(points.last.value, 4182.2);
+    expect(h.buy, isNotEmpty);
+    expect(h.buy.last.value, 4182.2);
+    expect(h.sell, isEmpty);
   });
 
   test('quy giá thế giới ra đồng/lượng', () {
