@@ -6009,12 +6009,22 @@ class $TransactionLinesTable extends TransactionLines
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     transactionId,
     categoryId,
     amountMinor,
+    label,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6059,6 +6069,12 @@ class $TransactionLinesTable extends TransactionLines
     } else if (isInserting) {
       context.missing(_amountMinorMeta);
     }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
     return context;
   }
 
@@ -6084,6 +6100,10 @@ class $TransactionLinesTable extends TransactionLines
         DriftSqlType.int,
         data['${effectivePrefix}amount_minor'],
       )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
     );
   }
 
@@ -6098,11 +6118,17 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
   final int transactionId;
   final int? categoryId;
   final int amountMinor;
+
+  /// Tên dòng (v19) — tên món trên hoá đơn quét được ("Cơm sườn", "VAT08
+  /// SNACK POCA"), Tony sửa được trong bảng món. Nullable: dòng tách tay
+  /// (Phase 14) và mọi dòng có từ trước v19 không có tên.
+  final String? label;
   const TransactionLine({
     required this.id,
     required this.transactionId,
     this.categoryId,
     required this.amountMinor,
+    this.label,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6113,6 +6139,9 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
       map['category_id'] = Variable<int>(categoryId);
     }
     map['amount_minor'] = Variable<int>(amountMinor);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
     return map;
   }
 
@@ -6124,6 +6153,9 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
           ? const Value.absent()
           : Value(categoryId),
       amountMinor: Value(amountMinor),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
     );
   }
 
@@ -6137,6 +6169,7 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
       transactionId: serializer.fromJson<int>(json['transactionId']),
       categoryId: serializer.fromJson<int?>(json['categoryId']),
       amountMinor: serializer.fromJson<int>(json['amountMinor']),
+      label: serializer.fromJson<String?>(json['label']),
     );
   }
   @override
@@ -6147,6 +6180,7 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
       'transactionId': serializer.toJson<int>(transactionId),
       'categoryId': serializer.toJson<int?>(categoryId),
       'amountMinor': serializer.toJson<int>(amountMinor),
+      'label': serializer.toJson<String?>(label),
     };
   }
 
@@ -6155,11 +6189,13 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
     int? transactionId,
     Value<int?> categoryId = const Value.absent(),
     int? amountMinor,
+    Value<String?> label = const Value.absent(),
   }) => TransactionLine(
     id: id ?? this.id,
     transactionId: transactionId ?? this.transactionId,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     amountMinor: amountMinor ?? this.amountMinor,
+    label: label.present ? label.value : this.label,
   );
   TransactionLine copyWithCompanion(TransactionLinesCompanion data) {
     return TransactionLine(
@@ -6173,6 +6209,7 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
       amountMinor: data.amountMinor.present
           ? data.amountMinor.value
           : this.amountMinor,
+      label: data.label.present ? data.label.value : this.label,
     );
   }
 
@@ -6182,13 +6219,15 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
           ..write('id: $id, ')
           ..write('transactionId: $transactionId, ')
           ..write('categoryId: $categoryId, ')
-          ..write('amountMinor: $amountMinor')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('label: $label')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, transactionId, categoryId, amountMinor);
+  int get hashCode =>
+      Object.hash(id, transactionId, categoryId, amountMinor, label);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6196,7 +6235,8 @@ class TransactionLine extends DataClass implements Insertable<TransactionLine> {
           other.id == this.id &&
           other.transactionId == this.transactionId &&
           other.categoryId == this.categoryId &&
-          other.amountMinor == this.amountMinor);
+          other.amountMinor == this.amountMinor &&
+          other.label == this.label);
 }
 
 class TransactionLinesCompanion extends UpdateCompanion<TransactionLine> {
@@ -6204,17 +6244,20 @@ class TransactionLinesCompanion extends UpdateCompanion<TransactionLine> {
   final Value<int> transactionId;
   final Value<int?> categoryId;
   final Value<int> amountMinor;
+  final Value<String?> label;
   const TransactionLinesCompanion({
     this.id = const Value.absent(),
     this.transactionId = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.amountMinor = const Value.absent(),
+    this.label = const Value.absent(),
   });
   TransactionLinesCompanion.insert({
     this.id = const Value.absent(),
     required int transactionId,
     this.categoryId = const Value.absent(),
     required int amountMinor,
+    this.label = const Value.absent(),
   }) : transactionId = Value(transactionId),
        amountMinor = Value(amountMinor);
   static Insertable<TransactionLine> custom({
@@ -6222,12 +6265,14 @@ class TransactionLinesCompanion extends UpdateCompanion<TransactionLine> {
     Expression<int>? transactionId,
     Expression<int>? categoryId,
     Expression<int>? amountMinor,
+    Expression<String>? label,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (transactionId != null) 'transaction_id': transactionId,
       if (categoryId != null) 'category_id': categoryId,
       if (amountMinor != null) 'amount_minor': amountMinor,
+      if (label != null) 'label': label,
     });
   }
 
@@ -6236,12 +6281,14 @@ class TransactionLinesCompanion extends UpdateCompanion<TransactionLine> {
     Value<int>? transactionId,
     Value<int?>? categoryId,
     Value<int>? amountMinor,
+    Value<String?>? label,
   }) {
     return TransactionLinesCompanion(
       id: id ?? this.id,
       transactionId: transactionId ?? this.transactionId,
       categoryId: categoryId ?? this.categoryId,
       amountMinor: amountMinor ?? this.amountMinor,
+      label: label ?? this.label,
     );
   }
 
@@ -6260,6 +6307,9 @@ class TransactionLinesCompanion extends UpdateCompanion<TransactionLine> {
     if (amountMinor.present) {
       map['amount_minor'] = Variable<int>(amountMinor.value);
     }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
     return map;
   }
 
@@ -6269,7 +6319,8 @@ class TransactionLinesCompanion extends UpdateCompanion<TransactionLine> {
           ..write('id: $id, ')
           ..write('transactionId: $transactionId, ')
           ..write('categoryId: $categoryId, ')
-          ..write('amountMinor: $amountMinor')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('label: $label')
           ..write(')'))
         .toString();
   }
@@ -14070,6 +14121,7 @@ typedef $$TransactionLinesTableCreateCompanionBuilder =
       required int transactionId,
       Value<int?> categoryId,
       required int amountMinor,
+      Value<String?> label,
     });
 typedef $$TransactionLinesTableUpdateCompanionBuilder =
     TransactionLinesCompanion Function({
@@ -14077,6 +14129,7 @@ typedef $$TransactionLinesTableUpdateCompanionBuilder =
       Value<int> transactionId,
       Value<int?> categoryId,
       Value<int> amountMinor,
+      Value<String?> label,
     });
 
 final class $$TransactionLinesTableReferences
@@ -14140,6 +14193,11 @@ class $$TransactionLinesTableFilterComposer
 
   ColumnFilters<int> get amountMinor => $composableBuilder(
     column: $table.amountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14209,6 +14267,11 @@ class $$TransactionLinesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TransactionsTableOrderingComposer get transactionId {
     final $$TransactionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -14272,6 +14335,9 @@ class $$TransactionLinesTableAnnotationComposer
     column: $table.amountMinor,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
 
   $$TransactionsTableAnnotationComposer get transactionId {
     final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
@@ -14354,11 +14420,13 @@ class $$TransactionLinesTableTableManager
                 Value<int> transactionId = const Value.absent(),
                 Value<int?> categoryId = const Value.absent(),
                 Value<int> amountMinor = const Value.absent(),
+                Value<String?> label = const Value.absent(),
               }) => TransactionLinesCompanion(
                 id: id,
                 transactionId: transactionId,
                 categoryId: categoryId,
                 amountMinor: amountMinor,
+                label: label,
               ),
           createCompanionCallback:
               ({
@@ -14366,11 +14434,13 @@ class $$TransactionLinesTableTableManager
                 required int transactionId,
                 Value<int?> categoryId = const Value.absent(),
                 required int amountMinor,
+                Value<String?> label = const Value.absent(),
               }) => TransactionLinesCompanion.insert(
                 id: id,
                 transactionId: transactionId,
                 categoryId: categoryId,
                 amountMinor: amountMinor,
+                label: label,
               ),
           withReferenceMapper: (p0) => p0
               .map(

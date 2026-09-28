@@ -43,6 +43,8 @@ class TransactionFormPrefill {
     this.isExpenseHint,
     this.receiptImageBytes,
     this.receiptImageExtension,
+    this.occurredAt,
+    this.lines = const [],
   });
 
   factory TransactionFormPrefill.fromTransaction(Transaction transaction) =>
@@ -72,7 +74,7 @@ class TransactionFormPrefill {
     isExpenseHint: isDebtIOwe,
   );
 
-  /// Quét hoá đơn OCR (Phase 18) — [amountMinor]/[note] là GỢI Ý trích từ
+  /// Quét hoá đơn OCR (Phase 18) — [amountMinor]/[note]/[occurredAt] là GỢI Ý trích từ
   /// `receipt_ocr_parser.dart`, có thể `null` nếu không trích được (form vẫn
   /// mở, chỉ trống hơn, KHÔNG bao giờ tự lưu — Luật #7). Đính kèm luôn
   /// [receiptImageBytes] (chính ảnh vừa chụp/chọn để quét) làm ảnh hoá đơn
@@ -82,11 +84,15 @@ class TransactionFormPrefill {
   factory TransactionFormPrefill.fromReceiptScan({
     required int? amountMinor,
     required String? merchantName,
+    DateTime? occurredAt,
+    List<TransactionFormPrefillLine> lines = const [],
     required Uint8List receiptImageBytes,
     required String receiptImageExtension,
   }) => TransactionFormPrefill(
     amountMinor: amountMinor,
     note: merchantName,
+    occurredAt: occurredAt,
+    lines: lines,
     isExpenseHint: true,
     receiptImageBytes: receiptImageBytes,
     receiptImageExtension: receiptImageExtension,
@@ -107,6 +113,30 @@ class TransactionFormPrefill {
 
   final Uint8List? receiptImageBytes;
   final String? receiptImageExtension;
+
+  /// Ngày in trên hoá đơn quét được — `null` giữ mặc định "bây giờ".
+  final DateTime? occurredAt;
+
+  /// Bảng món của hoá đơn quét được — không rỗng thì form mở thẳng ở chế độ
+  /// tách dòng, mỗi món một dòng Tony duyệt/sửa. Xem
+  /// `receipt_scan.dart` › `_buildReceiptLines`.
+  final List<TransactionFormPrefillLine> lines;
+}
+
+/// Một dòng điền sẵn cho bảng món — mọi trường là GỢI Ý, Tony sửa được hết.
+class TransactionFormPrefillLine {
+  const TransactionFormPrefillLine({
+    required this.label,
+    this.amountMinor,
+    this.categoryId,
+  });
+
+  final String label;
+
+  /// Độ lớn (dương). `null` = đọc được tên món nhưng không đọc được tiền —
+  /// ô tiền để trống cho Tony điền.
+  final int? amountMinor;
+  final int? categoryId;
 }
 
 /// Form thêm/sửa dạng BOTTOM SHEET (không phải trang mới, Luật bố cục). Nút
@@ -152,13 +182,20 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
 }
 
 class _LineDraft {
-  _LineDraft({this.categoryId, String amountText = ''})
-    : amountController = TextEditingController(text: amountText);
+  _LineDraft({this.categoryId, String amountText = '', String label = ''})
+    : amountController = TextEditingController(text: amountText),
+      labelController = TextEditingController(text: label);
 
   int? categoryId;
   final TextEditingController amountController;
 
-  void dispose() => amountController.dispose();
+  /// Tên dòng (v19) — tên món khi quét hoá đơn, tuỳ chọn khi tách tay.
+  final TextEditingController labelController;
+
+  void dispose() {
+    amountController.dispose();
+    labelController.dispose();
+  }
 }
 
 class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
@@ -216,7 +253,10 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
     _selectedCategoryId = existing?.categoryId ?? prefill?.categoryId;
     _selectedWalletId = existing?.walletId ?? prefill?.walletId;
-    _date = existing?.occurredAt ?? ref.read(clockProvider).now();
+    _date =
+        existing?.occurredAt ??
+        prefill?.occurredAt ??
+        ref.read(clockProvider).now();
     // Gắn kết mục tiêu/khoản vay (Phase 16) — CARRY qua nguyên trạng, không
     // có UI đổi/tháo gắn kết ở form này (chỉ đọc từ giao dịch đang sửa hoặc
     // từ prefill "Đóng góp"/"Trả nợ"), tránh scope creep một bộ chọn đầy đủ
@@ -235,6 +275,19 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     // Lưu, xem `_save()`), không cần một cơ chế riêng.
     _newImageBytes = prefill?.receiptImageBytes;
     _newImageExtension = prefill?.receiptImageExtension;
+
+    // Bảng món từ hoá đơn quét được — mở thẳng ở chế độ tách dòng.
+    for (final line in prefill?.lines ?? const <TransactionFormPrefillLine>[]) {
+      _lines.add(
+        _LineDraft(
+          categoryId: line.categoryId,
+          amountText: line.amountMinor == null
+              ? ''
+              : groupDigits(line.amountMinor.toString()),
+          label: line.label,
+        ),
+      );
+    }
 
     if (existing != null) {
       _loadExistingLines(existing.id);
@@ -266,7 +319,8 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         for (final line in lines)
           _LineDraft(
             categoryId: line.categoryId,
-            amountText: line.amountMinor.abs().toString(),
+            amountText: groupDigits(line.amountMinor.abs().toString()),
+            label: line.label ?? '',
           ),
       ]);
       _linesLoaded = true;
@@ -355,6 +409,34 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       setState(() => _amountError = 'Nhập số tiền hợp lệ');
       return;
     }
+    // Dòng chưa có tiền (món quét được tên nhưng không đọc được số) — báo
+    // ĐÍCH DANH món nào, thay vì để repository báo "tổng không khớp" chung
+    // chung khiến Tony phải dò từng dòng.
+    if (_isSplit) {
+      final missing = [
+        for (final (i, l) in _lines.indexed)
+          if ((_parseAmount(l.amountController.text) ?? 0) == 0)
+            l.labelController.text.trim().isEmpty
+                ? 'dòng ${i + 1}'
+                : '"${l.labelController.text.trim()}"',
+      ];
+      if (missing.isNotEmpty) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Còn dòng chưa có số tiền'),
+            content: Text('Điền số tiền hoặc xoá: ${missing.join(', ')}.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
     setState(() {
       _amountError = null;
       _saving = true;
@@ -381,6 +463,9 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   amountMinor:
                       (_parseAmount(l.amountController.text) ?? 0) *
                       (_isExpense ? -1 : 1),
+                  label: l.labelController.text.trim().isEmpty
+                      ? null
+                      : l.labelController.text.trim(),
                 ),
               )
               .toList()
@@ -624,7 +709,10 @@ class TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     controller: _amountController,
                     keyboardType: TextInputType.number,
                     inputFormatters: const [ThousandsSeparatorInputFormatter()],
-                    autofocus: !_isEditing,
+                    // Bảng món từ hoá đơn quét được: tổng đã điền sẵn, việc
+                    // của Tony là DÒ bảng món — bàn phím tự bật sẽ che gần
+                    // hết bảng (đo trên máy ảo: còn thấy đúng 2 món).
+                    autofocus: !_isEditing && _lines.isEmpty,
                     decoration: InputDecoration(
                       labelText: _isSplit ? 'Tổng số tiền' : 'Số tiền',
                       suffixText: '₫',
@@ -894,73 +982,121 @@ class _SplitLinesEditor extends StatelessWidget {
           ],
         ),
         for (var i = 0; i < lines.length; i++)
-          Padding(
-            padding: EdgeInsets.only(bottom: context.space.xs),
-            child: Row(
+          // Mỗi dòng một ô viền — "bảng món" để Tony dò từng dòng khi duyệt
+          // hoá đơn quét được: tên món (sửa được) + xoá ở trên, tiền + danh
+          // mục ở dưới. Tên đứng riêng một hàng vì tên món siêu thị dài
+          // ("MÌ XÀO GÀ PHỞ MAI KORENO VOLCANO 118G") — chung hàng với tiền
+          // thì bị cắt còn vài chữ.
+          Container(
+            margin: EdgeInsets.only(bottom: context.space.xs),
+            padding: EdgeInsets.fromLTRB(
+              context.space.sm,
+              0,
+              0,
+              context.space.sm,
+            ),
+            decoration: BoxDecoration(
+              border: Border.all(color: context.colors.hairline),
+              borderRadius: BorderRadius.circular(context.radii.sm),
+            ),
+            child: Column(
               children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: lines[i].amountController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: const [ThousandsSeparatorInputFormatter()],
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      suffixText: '₫',
-                    ),
-                  ),
-                ),
-                SizedBox(width: context.space.xs),
-                Expanded(
-                  flex: 3,
-                  child: InkWell(
-                    onTap: () => onPickCategory(lines[i], categories),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: context.space.sm,
-                        vertical: context.space.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: context.colors.hairline),
-                        borderRadius: BorderRadius.circular(context.radii.sm),
-                      ),
-                      child: Row(
-                        children: [
-                          if (lines[i].categoryId != null &&
-                              categoriesById[lines[i].categoryId] != null) ...[
-                            CategoryAvatar(
-                              categoryColorId:
-                                  categoriesById[lines[i].categoryId]!
-                                      .categoryColorId,
-                              iconCode:
-                                  categoriesById[lines[i].categoryId]!.iconCode,
-                              size: 18,
-                            ),
-                            SizedBox(width: context.space.xs),
-                            Expanded(
-                              child: Text(
-                                categoriesById[lines[i].categoryId]!.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ] else
-                            Expanded(
-                              child: Text(
-                                'Chọn danh mục',
-                                style: TextStyle(
-                                  color: context.colors.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                        ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: ValueKey('split-line-label-$i'),
+                        controller: lines[i].labelController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          hintText: 'Tên dòng ${i + 1} (tuỳ chọn)',
+                        ),
                       ),
                     ),
-                  ),
+                    IconButton(
+                      onPressed: () => onRemoveLine(i),
+                      icon: const Icon(kIconDelete),
+                      tooltip: 'Xoá dòng',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: () => onRemoveLine(i),
-                  icon: const Icon(kIconDelete),
-                  visualDensity: VisualDensity.compact,
+                Padding(
+                  padding: EdgeInsets.only(right: context.space.sm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          key: ValueKey('split-line-amount-$i'),
+                          controller: lines[i].amountController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: const [
+                            ThousandsSeparatorInputFormatter(),
+                          ],
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            suffixText: '₫',
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: context.space.xs),
+                      Expanded(
+                        flex: 3,
+                        child: InkWell(
+                          onTap: () => onPickCategory(lines[i], categories),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.space.sm,
+                              vertical: context.space.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: context.colors.hairline,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                context.radii.sm,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                if (lines[i].categoryId != null &&
+                                    categoriesById[lines[i].categoryId] !=
+                                        null) ...[
+                                  CategoryAvatar(
+                                    categoryColorId:
+                                        categoriesById[lines[i].categoryId]!
+                                            .categoryColorId,
+                                    iconCode:
+                                        categoriesById[lines[i].categoryId]!
+                                            .iconCode,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: context.space.xs),
+                                  Expanded(
+                                    child: Text(
+                                      categoriesById[lines[i].categoryId]!.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ] else
+                                  Expanded(
+                                    child: Text(
+                                      'Chọn danh mục',
+                                      style: TextStyle(
+                                        color: context.colors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -986,7 +1122,7 @@ class _SplitLinesEditor extends StatelessWidget {
             );
             final parentAmount = _parse(parentAmountController.text) ?? 0;
             final matches = linesSum == parentAmount;
-            return Text(
+            final summary = Text(
               AmountVisibility.mask(
                 context,
                 'Tổng dòng con: ${Money.vnd(linesSum).format()} / '
@@ -997,6 +1133,27 @@ class _SplitLinesEditor extends StatelessWidget {
                     ? context.colors.onSurfaceVariant
                     : context.colors.expenseFill,
               ),
+            );
+            if (matches || linesSum == 0) return summary;
+            // "Tổng tự nhập tay cũng được" (Tony) — nhưng khi các món đã
+            // đúng mà tổng hoá đơn đọc lệch (voucher, thuế đọc sót), một
+            // chạm là khớp, không phải gõ lại con số.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                summary,
+                TextButton(
+                  onPressed: () => parentAmountController.text = groupDigits(
+                    linesSum.toString(),
+                  ),
+                  child: Text(
+                    AmountVisibility.mask(
+                      context,
+                      'Đặt tổng = ${Money.vnd(linesSum).format()}',
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),

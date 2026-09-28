@@ -1,0 +1,44 @@
+# Văn bản ML Kit THẬT (Text Recognition v2 Latin, chạy trên máy ảo tonyfino36,
+# 2026-09-28) đọc từ một ẢNH DỰNG của hoá đơn Emart (chữ của
+# emart_sala_thu_thiem.txt vẽ lại bằng PIL, ảnh thẳng — giả lập đầu ra của máy
+# quét tài liệu), đã qua `arrangeIntoRows`. KHÔNG phải ảnh chụp hoá đơn thật —
+# nhưng là đầu ra THẬT của engine, nên giữ đúng những kiểu đọc mà fixture chép
+# tay không có: dấu cách sau dấu phân cách ("23-08- 2026", "78, 000"), chữ O
+# thay số 0 ("VATO8", "NACH0"), dấu lạ ("Tôňg sô").
+emart
+Www. emart. com.vn
+Emart Sala Thủ Thiêm
+Điện thoai: (028) 3588 6999
+MST:0316940306
+10 Mai Chí Tho, P.An Khánh, TP.HCM
+Hoat động từ : 07h30  22h30
+01002 23-08- 2026 21:27  PDS: 0004-0311
+Tên sản phâm Đơn giá  SL  sô´tiên
+01) VAT08 SNACK POCA SƠI  NƯA VI MALA CAYN
+1200108005566  63,900  1  63,900
+02) VAT08 T.ỞT CHINSU CHAI EO 500G
+8936136116143  34,900  1  34,900
+03) VAT08 PHỜ GAO LỬT HỮU CƠ B.CHI 200G
+8934863371729  28,500  1  28,500
+04) VAT08 NN 7UP SODA CHANH LON 320ML
+8934588752 117  9,100  2  18,200
+05) VAT08 BVS LAURIER  SLIMGUARD 25CM 16M
+8851818708266  78, 000  1  78, 000
+06) VATO8 XXT COCKTAIL CP XK GÓI 250G
+8935058911645  36,900  36,900
+07) VAT08 BÁNH BABY CHOUX MATCHA
+2371930000000  22, 800  1  22,800
+08) VATO8 MÌ XỘT KEM BULGOGI KORENO GÓI 100G
+8936028643252  12,500  1  12,500
+09) VAT08 MÌ XÀO GÀ PHỞ MAI KORENO VOLCANO 118G
+8936028641104  13,600  1  13,600
+10) VATO8 MÍ CHAMPONG NONGSHIM 124G
+031146151905  26,900  26,900
+11) VATO8 SNACK QUÂY XOÃN CAY 140G
+8802876204603  24,900  1  24,900
+12) VAT08 SNACK NACH0 VỊ P.MAI CHEDDAR NB  155G
+8809189924136  52,900  1  52,900
+Tôňg sô  414,000
+414,000
+Sô´tiên hang mục đánh thuê  383,334
+Thuê giá trị gia tăng  30,666

@@ -303,6 +303,11 @@ class TransactionLines extends Table {
   IntColumn get categoryId =>
       integer().nullable().references(Categories, #id)();
   IntColumn get amountMinor => integer()();
+
+  /// Tên dòng (v19) — tên món trên hoá đơn quét được ("Cơm sườn", "VAT08
+  /// SNACK POCA"), Tony sửa được trong bảng món. Nullable: dòng tách tay
+  /// (Phase 14) và mọi dòng có từ trước v19 không có tên.
+  TextColumn get label => text().nullable()();
 }
 
 /// Mẫu giao dịch có tên (Phase 14) — snapshot số tiền/danh mục/ghi chú lúc

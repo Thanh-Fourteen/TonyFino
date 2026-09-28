@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -387,6 +387,12 @@ class AppDatabase extends _$AppDatabase {
       // thả đầu tiên.
       from17To18: (m, schema) async {
         await m.addColumn(schema.savingsGoals, schema.savingsGoals.sortOrder);
+      },
+      // v18→v19: `transaction_lines.label` — tên từng món khi quét hoá đơn
+      // thành một giao dịch nhiều dòng. Cột thêm thuần tuý, NULL cho mọi
+      // dòng tách tay có từ trước.
+      from18To19: (m, schema) async {
+        await m.addColumn(schema.transactionLines, schema.transactionLines.label);
       },
     ),
     beforeOpen: (details) async {

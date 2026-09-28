@@ -20,6 +20,7 @@ import 'generated/schema_v14.dart' as v14;
 import 'generated/schema_v15.dart' as v15;
 import 'generated/schema_v16.dart' as v16;
 import 'generated/schema_v17.dart' as v17;
+import 'generated/schema_v18.dart' as v18;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -1234,6 +1235,50 @@ void main() {
       // Mọi quỹ cũ về 0 — thứ tự phụ `id` giữ nguyên trật tự trước nâng cấp,
       // không hoán vị danh sách của ai cả.
       expect(goals.every((g) => g.sortOrder == 0), isTrue);
+      await db.close();
+    },
+  );
+
+  test(
+    'migration from v18 to v19 — dòng tách cũ giữ nguyên số tiền/danh mục, '
+    'tên để trống',
+    () async {
+      final schema = await verifier.schemaAt(18);
+      final oldDb = v18.DatabaseAtV18(schema.newConnection());
+      await oldDb.batch((batch) {
+        batch.insert(
+          oldDb.transactions,
+          v18.TransactionsData(
+            id: 1,
+            amountMinor: -150000,
+            currency: 'VND',
+            currencyScale: 0,
+            occurredAt: 1758000000,
+            walletId: 1,
+            isTransfer: 0,
+            createdAt: 1758000000,
+            updatedAt: 1758000000,
+          ),
+        );
+        for (final (id, amount) in [(1, -100000), (2, -50000)]) {
+          batch.insert(
+            oldDb.transactionLines,
+            v18.TransactionLinesData(
+              id: id,
+              transactionId: 1,
+              amountMinor: amount,
+            ),
+          );
+        }
+      });
+      await oldDb.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 19);
+
+      final lines = await db.select(db.transactionLines).get();
+      expect([for (final l in lines) l.amountMinor], [-100000, -50000]);
+      expect(lines.every((l) => l.label == null), isTrue);
       await db.close();
     },
   );

@@ -92,7 +92,11 @@ void main() {
       occurredAt: DateTime(2026, 9, 7),
       walletId: walletId,
       lines: [
-        TransactionLineInput(categoryId: categoryId, amountMinor: -60000),
+        TransactionLineInput(
+          categoryId: categoryId,
+          amountMinor: -60000,
+          label: 'Cơm sườn',
+        ),
         const TransactionLineInput(categoryId: null, amountMinor: -40000),
       ],
       tagIds: [tagId],
@@ -108,6 +112,8 @@ void main() {
     expect(lines, hasLength(2));
     expect(lines.map((l) => l.amountMinor).toSet(), {-60000, -40000});
     expect(lines.map((l) => l.categoryId).toSet(), {categoryId, null});
+    // Tên món (v19) về lại đúng dòng của nó; dòng không tên vẫn không tên.
+    expect(lines.map((l) => l.label).toSet(), {'Cơm sườn', null});
 
     final tagRows = await (db.select(
       db.transactionTags,

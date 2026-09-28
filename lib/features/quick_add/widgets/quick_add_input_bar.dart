@@ -65,23 +65,32 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
     super.dispose();
   }
 
-  /// Nhập giọng nói (Phase 18) — chuyển giọng nói thành văn bản rồi đẩy
-  /// THẲNG qua CHÍNH `sendMessage`/parser Phase 7 đã có, y hệt như vừa gõ
-  /// tay rồi bấm gửi — "giọng nói chỉ là một cách gõ khác", không cần một
-  /// lớp xác nhận riêng vì `sendMessage` tự nó đã luôn là "ghi lạc quan CÓ
-  /// THỂ sửa qua chip", chưa từng "tự động commit không sửa được" (xem
-  /// docs/decisions.md § Phase 18).
+  /// Nhập giọng nói (Phase 18) — chuyển giọng nói thành văn bản rồi ĐIỀN
+  /// vào ô nhập, DỪNG ở đó chờ Tony đọc lại, sửa nếu nhận dạng sai, rồi tự
+  /// bấm gửi — "giọng nói chỉ là một cách gõ khác", nên nó cũng dừng đúng
+  /// chỗ gõ tay dừng: trước nút gửi.
+  ///
+  /// 🚨 Bản cũ tự gửi ngay khi có kết quả cuối. Nhận dạng tiếng Việt sai một
+  /// chữ số ("năm mươi" → "năm") là thành một giao dịch sai đã ghi, phải đi
+  /// hoàn tác — Tony muốn thấy chữ trước (xem docs/decisions.md
+  /// § 2026-09-28).
   Future<void> _toggleListening() async {
     if (_isListening) {
       await _speech.stop();
       return;
     }
 
+    // 🚨 `SpeechToText()` là SINGLETON, và `initialize()` chỉ gắn listener ở
+    // lần gọi ĐẦU TIÊN (các lần sau trả về sớm). Ô nhập bị huỷ rồi dựng lại
+    // thì listener vẫn trỏ về State cũ đã chết — `_isListening` của State
+    // mới không bao giờ về `false`, nút kẹt ở "Đang nghe…". Gắn lại MỖI lần
+    // bấm mic thay vì tin `initialize`.
+    _speech
+      ..statusListener = _onSpeechStatus
+      ..errorListener = _onSpeechError;
     final available = await _speech.initialize(
       onStatus: _onSpeechStatus,
-      onError: (_) {
-        if (mounted) setState(() => _isListening = false);
-      },
+      onError: _onSpeechError,
     );
     if (!available) {
       if (!mounted) return;
@@ -112,19 +121,25 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
     }
   }
 
+  void _onSpeechError(Object _) {
+    if (mounted) setState(() => _isListening = false);
+  }
+
   /// Điền văn bản NHẬN ĐƯỢC (kể cả kết quả tạm thời — Tony thấy chữ hiện
   /// dần, đúng cảm giác đang được nghe) trực tiếp vào ô nhập — `_onChanged`
   /// (đã gắn từ `initState`) tự chạy theo, ghost số tiền cũng tự cập nhật
-  /// sống trong lúc nói, không cần logic riêng ở đây. Kết quả CUỐI CÙNG mới
-  /// tự gửi — kết quả tạm thời không bao giờ tự gửi dở dang.
+  /// sống trong lúc nói, không cần logic riêng ở đây. KHÔNG kết quả nào tự
+  /// gửi, kể cả kết quả cuối — xem [_toggleListening].
   void _onSpeechResult(SpeechRecognitionResult result) {
+    if (!mounted) return;
     _controller.text = result.recognizedWords;
     _controller.selection = TextSelection.collapsed(
       offset: _controller.text.length,
     );
-    if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-      _send();
-    }
+    // Kết quả cuối = phiên nghe đã xong. Trả nút về trạng thái thường ngay,
+    // không chờ status `done` (tới sau, có máy còn không gửi) — nếu không
+    // nút vẫn là "dừng nghe" dù chữ đã nằm sẵn chờ gửi.
+    if (result.finalResult) setState(() => _isListening = false);
   }
 
   void _onChanged() {
@@ -309,6 +324,15 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
+                      // Giãn tới 4 dòng thay vì cuộn ngang một dòng: câu
+                      // đọc bằng giọng nói thường dài, và đọc lại trước khi
+                      // gửi là vô nghĩa nếu đầu câu đã trôi khỏi ô.
+                      // `keyboardType: text` giữ phím Enter là GỬI — không
+                      // khai thì `maxLines > 1` tự chuyển sang bàn phím
+                      // nhiều dòng, Enter thành xuống dòng.
+                      minLines: 1,
+                      maxLines: 4,
+                      keyboardType: TextInputType.text,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
@@ -360,10 +384,22 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
                     // Nút violet khi ĐANG NGHE cũng như khi có chữ để gửi —
                     // "tô đặc = đang hoạt động", nhất quán một quy ước màu
                     // thay vì thêm một icon "đang ghi âm" riêng.
+                    //
+                    // ĐANG NGHE thì nút luôn là "dừng nghe", kể cả khi kết
+                    // quả tạm thời đã đổ chữ vào ô: nếu để `_hasText` quyết
+                    // định như lúc gõ tay, nút hoá mũi tên giữa câu nói và
+                    // một cú chạm gửi luôn nửa câu chưa ai đọc lại.
                     child: IconButton(
-                      key: ValueKey(_hasText || _isListening),
-                      onPressed: _hasText ? _send : _toggleListening,
-                      icon: Icon(_hasText ? kIconArrowUpward : kIconMic),
+                      key: ValueKey((_hasText, _isListening)),
+                      onPressed: _isListening
+                          ? _toggleListening
+                          : (_hasText ? _send : _toggleListening),
+                      tooltip: _isListening
+                          ? 'Dừng nghe'
+                          : (_hasText ? 'Gửi' : 'Nói'),
+                      icon: Icon(
+                        _hasText && !_isListening ? kIconArrowUpward : kIconMic,
+                      ),
                       style: IconButton.styleFrom(
                         backgroundColor: (_hasText || _isListening)
                             ? context.scheme.primary

@@ -448,6 +448,7 @@ class TransactionRepository {
               transactionId: transactionId,
               categoryId: Value(line.categoryId),
               amountMinor: line.amountMinor,
+              label: Value(line.label),
             ),
           );
     }
@@ -699,6 +700,10 @@ class TransactionRepository {
           TransactionLineInput(
             categoryId: line.categoryId,
             amountMinor: line.amountMinor,
+            // 🚨 Tên món phải đi theo ảnh chụp hoàn tác — cùng họ lỗi "hoàn
+            // tác làm rơi mất goalId/debtId/dòng con" (2026-09-07): xoá rồi
+            // hoàn tác một hoá đơn 12 món mà mất sạch tên món là mất dữ liệu.
+            label: line.label,
           ),
       ],
       tagIds: [for (final row in tagRows) row.tagId],
@@ -847,10 +852,15 @@ class TransactionLineInput {
   const TransactionLineInput({
     required this.categoryId,
     required this.amountMinor,
+    this.label,
   });
 
   final int? categoryId;
   final int amountMinor;
+
+  /// Tên dòng (v19) — tên món trên hoá đơn quét được; `null` cho dòng tách
+  /// tay không đặt tên.
+  final String? label;
 }
 
 class ImportBatchSummary {

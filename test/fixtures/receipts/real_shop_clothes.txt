@@ -1,0 +1,27 @@
+# Văn bản ML Kit THẬT (Text Recognition v2 Latin, máy ảo tonyfino36, 2026-09-28)
+# đọc từ ảnh hoá đơn THẬT (shop quần áo, cầm tay, giấy cong, ảnh Tony tải từ web — ảnh KHÔNG vào repo,
+# xem .gitignore assets/hoa_don/), đã qua arrangeIntoRows. Đáp án: 1.447.000. ĐÃ XOÁ tên + SĐT + địa chỉ khách hàng.
+SO9.BsO.682/ oO79.7AB.TS
+ww.facebook.com/tamducspaduongsinh
+bán: 12/07/2023 15:54:45 TN: [đã xoá]
+HOÁ ĐON BÁN HÀNG
+230232362
+Khách hàng: [đã xoá]
+Điện thoại: [đã xoá]
+Dịa chỉ: [đã xoá]
+Doanh sổ tích lüy: 2.035.000
+Chlết.
+Đơn giá SL  "Thành tiền
+khẩu
+Váy mát hè- Trắng - M
+500.000  1  50.000 450.000
+Quần tây - Vàng- S-
+500.000 1  30.000 517.000
+Áo sơ mi tay phồng- Trằng - L
+500.000 1  20.000 480.000
+Tổng tiên hàng:  1.500.000
+Chiét khấu:
+6% - 100.000
+Tồng cộng:
+1.447.000
+1.447.O00 (+ Tiềr

@@ -1,0 +1,25 @@
+# Văn bản ML Kit THẬT (Text Recognition v2 Latin, máy ảo tonyfino36, 2026-09-28)
+# đọc từ ảnh hoá đơn THẬT (Lotte Mart 2013, ảnh độ phân giải thấp, bị cắt, ảnh Tony tải từ web — ảnh KHÔNG vào repo,
+# xem .gitignore assets/hoa_don/), đã qua arrangeIntoRows. KHÔNG có dòng tổng trong ảnh — chữ vỡ nhiều.
+LOTTE Mart
+cty INH TIN Lotte Viet Nam
+Lotte Mort Nam s
+MANAGE VU TOYEN
+-0030
+s0 tien
+2 Ira
+S852756304046 109,800  109,800
+20.90
+a950171194021.70  21.,700
+73,000
+0s S TAN RAY TAI
+0 KD AL GUN 100G+BCOR
+11 G0T BONG IAY
+RUT AEO LETGEEN 1801
+21,000
+62.500  1 62,500
+16.  16,800
+106,000
+106,000
+2006G
+05290300 31,500  31,500

@@ -1,0 +1,18 @@
+# Văn bản ML Kit THẬT (Text Recognition v2 Latin, máy ảo tonyfino36, 2026-09-28)
+# đọc từ ảnh hoá đơn THẬT (nhà hàng buffet, ngón tay che số cuối, ảnh Tony tải từ web — ảnh KHÔNG vào repo,
+# xem .gitignore assets/hoa_don/), đã qua arrangeIntoRows. Tổng thật 1.542.240 bị che — OCR chỉ còn "1.542. 2/".
+Tên món  S/L  Tong
+Nguời lớn  4  0
+SET Phúc An Khang  1  799. 000
+Vé BFLine HT  4  116. 00
+Buffet đö uống (HT)  4  40.
+Khoai môn  39
+Nãm vị cua nàu  39. 00
+Cải bó xôi  29.000
+Rong bin vàng có hoa (ALC)  1  39.000
+Bắp lõi cỡ bò Wagyu 100g  1  139.000
+Muc nút  1  89.000
+Bach tuỘc baby  1  99. 000
+Töng cộng:  1.428. 000
+VAT:  114. 240
+Tong:  1.542. 2/

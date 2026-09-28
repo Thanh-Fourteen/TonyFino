@@ -2553,3 +2553,82 @@ lưu trước, và dọn bằng đường Khôi phục sau khi xong.
 - File tải về qua tailnet đã đối chiếu **khớp từng byte** với file build.
 - Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md` — nâng cấp đè được.
 - `tailscale serve status` sau khi set: đủ 9 mount, 7 mount của dự án khác còn nguyên.
+
+## 2026-09-28 · Giọng nói ĐIỀN vào ô nhập, không tự gửi
+
+**Tony yêu cầu:** đọc xong thì ghi ra khung chat trước để kiểm lại, không gửi đi luôn.
+
+Quyết định Phase 18 ("giọng nói đẩy thẳng qua `sendMessage`, không cần lớp xác nhận riêng vì thẻ
+sửa/hoàn tác được") đúng về luật #7 nhưng sai về công sức: nhận dạng tiếng Việt sai một chữ số
+("năm mươi" → "năm") là thành một giao dịch sai ĐÃ GHI, phải hoàn tác rồi nói lại. Giờ giọng nói dừng
+đúng chỗ gõ tay dừng — trước nút gửi. Không thêm lớp xác nhận mới: ô nhập chính là lớp xác nhận.
+
+- Kết quả cuối chỉ điền chữ và trả nút về trạng thái thường (mũi tên gửi). Tony đọc, sửa, tự bấm.
+- **Đang nghe thì nút luôn là "dừng nghe"**, kể cả khi kết quả tạm thời đã đổ chữ vào ô — nếu để
+  `_hasText` quyết định như lúc gõ tay, nút hoá mũi tên giữa câu và một chạm gửi luôn nửa câu.
+- Ô nhập giãn tới 4 dòng (`keyboardType: text` giữ Enter là gửi) — câu nói dài mà cuộn ngang một dòng
+  thì đầu câu trôi mất, "đọc lại" vô nghĩa.
+- **Lỗi tiềm ẩn sửa kèm:** `SpeechToText()` là singleton, `initialize()` chỉ gắn `onStatus`/`onError`
+  ở lần gọi ĐẦU (đọc thẳng `speech_to_text-7.4.0/lib/speech_to_text.dart`, `if (_initWorked) return`).
+  Ô nhập dựng lại thì listener trỏ về State đã chết, nút kẹt "Đang nghe…". Gắn lại
+  `statusListener`/`errorListener` (field public) mỗi lần bấm mic. Test
+  `quick_add_voice_input_test.dart` bắt được lỗi này khi bỏ phần sửa (đã thử ngược).
+- Test giả platform qua `speech_to_text_platform_interface` (dev dependency) — fake phải dùng CHUNG
+  một instance cả tiến trình, cùng lý do singleton ở trên.
+
+## 2026-09-28 (2) · Quét hoá đơn: máy quét tài liệu + bảng món (schema v19)
+
+**Tony yêu cầu:** nâng OCR hoá đơn (thử ML Kit hoặc thứ tốt hơn), rồi giữa chừng đổi trọng tâm:
+"tách ra từng item trong hoá đơn … có bảng để người dùng check chỉnh sửa lại; tổng tự nhập tay cũng
+được". Tony chọn: **một giao dịch nhiều dòng** (mỗi món một dòng con có tên + tiền + danh mục) và
+**danh mục tự gợi ý theo tên món**, món không khớp theo danh mục chung của hoá đơn.
+
+**Nghiên cứu (nguồn thật, 2026-09-28):** giữ ML Kit Text Recognition v2 Latin (0.17.1 là bản mới
+nhất). Thêm **ML Kit Document Scanner** (`google_mlkit_document_scanner` 0.6.1 — beta, CHỈ Android,
++~300KB, không cần quyền camera, tự cắt mép/nắn/xoá bóng qua Play Services). Loại PaddleOCR (không
+có bản v5 cho Flutter), Tesseract (dấu tiếng Việt kém), Gemini Nano (Redmi Note 13 Pro không được
+hỗ trợ). Gemini 3.5 Flash-Lite đọc ảnh qua proxy: để sau — proxy chưa có khoá PAID (free tier dùng
+dữ liệu để train), và cần một đồng ý riêng cho việc gửi ẢNH.
+
+**Đo trên văn bản ML Kit THẬT** (6 ảnh hoá đơn Tony gửi + ảnh dựng Emart, chạy trên `tonyfino36`,
+lưu thành fixture `test/fixtures/receipts/*mlkit*|real_*` — đã xoá tên/SĐT khách; ảnh gốc ở
+`assets/hoa_don/`, đã gitignore, KHÔNG đóng gói vào APK). Mỗi luật dưới đây sinh ra từ một lỗi đo
+được, không phải nghĩ ra:
+
+- **Ghép hàng theo toạ độ** (`receipt_ocr_layout.dart`): `RecognizedText.text` nối theo KHỐI, cột
+  nhãn và cột số tách rời. **Nắn nghiêng** bằng trung vị độ dốc cạnh trên (từ `cornerPoints`, dấu
+  chắc chắn đúng): ảnh nghiêng 6° từng ghép "Tổng số" với 383.334 (dòng thuế).
+- **Nhãn tổng in CUỐI thắng** (không phải "mức cao thắng"): nhà hàng thật in "Tổng cộng" TRƯỚC VAT
+  rồi "Tổng:" sau VAT. Tạm tính ("Tổng tiền hàng", "Thành tiền") chỉ là dự phòng. Thêm "Tổng:" trần.
+- Tổng nhỏ hơn 1/100 món đắt nhất là số bị cắt (ngón tay che: "1.542"); sàn KHÔNG bằng món đắt
+  nhất vì voucher là thật (WinMart: phải trả 68.097 < món 149.900).
+- ML Kit chèn dấu cách sau dấu phân cách ("23-08- 2026", "78, 000"); số chia nhóm không bắt đầu bằng
+  0 ("0.346" kg từng thành 346đ); "Tổng SL:" không phải tiêu đề cột.
+- **Ngày**: loại tương lai và cũ hơn 1 năm (hạn sử dụng, đọc sai). Không đoán khi OCR mất chữ số
+  ("06/0/2026").
+- **Tách món**: vùng giữa tiêu đề cột và nhãn tổng; tên ở hàng trên + tiền ở hàng dưới được ghép;
+  thành tiền là số NGOÀI CÙNG PHẢI; món có tên mà không đọc được tiền vẫn vào bảng với ô trống.
+  Không có tiêu đề cột → chỉ nhận hàng có cả tên lẫn tiền (không thì tên quán thành "món").
+
+**Kết quả trên dữ liệu thật:** Emart 12/12 món, cộng khớp 414.000; shop quần áo 3/3 khớp
+1.447.000; nhà hàng 6 món có tiền + 4 món bị che (ô trống); Hội An 1 món (tiền vỡ, ô trống); WinMart
+4/6 món đúng (2 món OCR đọc vỡ thành tiền → lấy nhầm đơn giá). Tổng đúng 4/4 hoá đơn còn dòng tổng
+đọc được; nhà hàng lấy được số TRƯỚC VAT vì số cuối bị che.
+
+**Schema v19:** `transaction_lines.label` (tên món, nullable). Đi theo đủ: migration + test
+v18→v19, sao lưu/khôi phục (bản cũ không có trường → NULL), ảnh chụp HOÀN TÁC (cùng họ lỗi
+2026-09-07), form mở lại giao dịch.
+
+**Form:** có bảng món → mở thẳng chế độ tách dòng, KHÔNG tự bật bàn phím (từng che còn 2 món); tổng
+lớn hơn tổng các món và mọi món có tiền → thêm dòng "Thuế, phí, khác"; nhỏ hơn → không bịa dòng âm,
+có nút "Đặt tổng = …"; lưu với dòng chưa có tiền → báo đích danh món. Ô tiền/tên có `Key` ổn định
+(test cũ tìm theo vị trí `.at(1)` đã vỡ khi thêm ô tên).
+
+**Máy quét hỏng cũng trả "huỷ":** Play Services không tải được mô-đun (máy ảo chưa đăng nhập
+Google) hiện "Something went wrong" + Cancel → plugin trả ĐÚNG kết quả huỷ. Nên thoát máy quét luôn
+kèm snackbar "Chụp thường" (lùi về camera).
+
+**Chưa kiểm được:** máy quét tài liệu chạy thật (máy ảo không tải được mô-đun); bản RELEASE qua R8
+(luật `-keep com.google.mlkit.**` có sẵn phủ `vision.documentscanner`, nhưng chưa chạy thử — xem bài
+học R8 Phase 18); gợi ý danh mục trên tên món siêu thị viết tắt gần như không khớp, và luật danh mục
+chung đẩy cả hoá đơn siêu thị về MỘT danh mục (vd băng vệ sinh thành Ăn uống) — Tony sửa trong bảng.

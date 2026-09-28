@@ -231,6 +231,7 @@ void main() {
             transactionId: txnId,
             categoryId: Value(categoryId),
             amountMinor: -1500000,
+            label: const Value('Bắp bò Wagyu'),
           ),
         );
     await db
@@ -318,6 +319,9 @@ void main() {
     )..where((l) => l.transactionId.equals(txnId))).get();
     expect(restoredLines, hasLength(1));
     expect(restoredLines.single.amountMinor, -1500000);
+    // Tên món (v19) — thiếu trong backup là mất sạch bảng món của mọi hoá
+    // đơn quét, im lặng, sau một lần gỡ cài rồi khôi phục.
+    expect(restoredLines.single.label, 'Bắp bò Wagyu');
 
     final restoredTags = await (db.select(
       db.transactionTags,

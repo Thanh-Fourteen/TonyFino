@@ -40,6 +40,9 @@ android/key.properties
 
 # ─── DỮ LIỆU TÀI CHÍNH THẬT — không bao giờ commit (Phase 2) ───────────────
 raw_rolly/
+# Ảnh hoá đơn dùng để đo OCR bằng tay — ảnh tải từ web/ảnh chứng từ thật,
+# KHÔNG bao giờ lên repo công khai (không đóng gói vào APK: pubspec không khai).
+assets/hoa_don/
 
 # ─── Quay màn hình app Rolly (24MB) — tài liệu tham khảo UX, KHÔNG commit ──
 # Vừa là nội dung của sản phẩm người khác, vừa là 24MB nhị phân không diff

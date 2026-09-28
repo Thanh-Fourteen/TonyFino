@@ -61,17 +61,23 @@ void main() {
       await tester.tap(find.text('Thêm dòng'));
       await tester.pump();
 
-      final amountFields = find.byType(TextField).evaluate().length;
-      expect(amountFields, greaterThanOrEqualTo(3)); // tổng + 2 dòng con
+      expect(find.byKey(const ValueKey('split-line-amount-1')), findsOneWidget);
 
       // Chọn danh mục cho từng dòng qua sheet "Chọn danh mục cho dòng này".
       await pickCategoryForLine(tester, categories[0].name);
       await pickCategoryForLine(tester, categories[1].name);
 
       // Điền số tiền cho 2 dòng con (tổng khớp 30000).
-      final lineAmountFields = find.byType(TextField);
-      await tester.enterText(lineAmountFields.at(1), '10000');
-      await tester.enterText(lineAmountFields.at(2), '20000');
+      // Tìm theo KEY, không theo vị trí: `.at(1)`/`.at(2)` từng trỏ vào ô
+      // tiền, cho tới khi mỗi dòng có thêm ô tên (v19) và vị trí lệch hết.
+      await tester.enterText(
+        find.byKey(const ValueKey('split-line-amount-0')),
+        '10000',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('split-line-amount-1')),
+        '20000',
+      );
       await tester.pump();
 
       await tester.tap(find.text('Lưu'));
@@ -103,7 +109,7 @@ void main() {
     await pickCategoryForLine(tester, categories[0].name);
 
     await tester.enterText(
-      find.byType(TextField).at(1),
+      find.byKey(const ValueKey('split-line-amount-0')),
       '5000',
     ); // lệch với 30000
     await tester.pump();

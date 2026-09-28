@@ -1,0 +1,16 @@
+# Văn bản ML Kit THẬT (Text Recognition v2 Latin, máy ảo tonyfino36, 2026-09-28)
+# đọc từ ảnh hoá đơn THẬT (hoá đơn khẩu trang, Hội An, ảnh Tony tải từ web — ảnh KHÔNG vào repo,
+# xem .gitignore assets/hoa_don/), đã qua arrangeIntoRows. Đáp án: 150.000.
+37 Ngvyên Phüc Chu, TP HộI An
+HÓA ĐƠN BÁN HÀNG
+Ngày 27/01/20  Số: 20011587
+Thu ngân: CA SÁNG
+In lúc: 17:50
+Khách hàng:
+Mat hàng  SL T.Tiên
+KHẨU TRANG Y
+TẾ  3  150.0
+Tống SL:
+3
+Tổng:  150.000
+Kh  150.000

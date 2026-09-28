@@ -563,6 +563,7 @@ class BackupService {
     'transactionId': l.transactionId,
     'categoryId': l.categoryId,
     'amountMinor': l.amountMinor,
+    'label': l.label,
   };
 
   TransactionLinesCompanion _transactionLineFromJson(Map<String, Object?> j) =>
@@ -571,6 +572,9 @@ class BackupService {
         transactionId: j['transactionId'] as int,
         categoryId: Value(j['categoryId'] as int?),
         amountMinor: j['amountMinor'] as int,
+        // Bản sao lưu cũ (trước v19) không có trường này — dòng không tên,
+        // đúng như lúc nó được tạo.
+        label: Value(j['label'] as String?),
       );
 
   Map<String, Object?> _transactionTemplateToJson(TransactionTemplate t) => {
