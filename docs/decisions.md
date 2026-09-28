@@ -2839,3 +2839,15 @@ test `text_theme_roles_test.dart` chặn tái phát. 4 golden đổi dưới-pix
 
 Không đổi (nhìn ổn): Trang chủ, Giao dịch, Túi tiền, Ghi chú, Tìm kiếm, Mục tiêu, màn chat.
 Bắt khi bấm thật: chế độ tối, viên đang chọn của `SegmentTrack` trùng màu rãnh → phủ nhẹ màu chữ.
+
+### Phát hành 1.0.19+60
+
+- git `eb73e14` · schema **v19** (không đổi)
+- `dist/tonyfino-1.0.19+60.apk` — SHA-256
+  `f0c16e360a63e6305aaffb081b8a5d9630029b49dfcfe17e26e6b2633e0aecf8`
+- File tải về qua tailnet khớp từng byte với file build = file đã thử tay; vân tay ký
+  `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md`.
+- Thử bản RELEASE trên `tonyfino36`, cài đè 1.0.18 → 1.0.19, dữ liệu −9.550.000 ₫ nguyên vẹn: tab
+  Thị trường (hai đường, khoảng tự chọn 10/9–20/9 qua bộ chọn ngày tiếng Việt, cà phê + kỳ hạn),
+  chế độ tối, Báo cáo, Cài đặt, Danh mục, Thẻ, Mẫu, Định kỳ. Máy ảo trả về giao diện "Theo hệ thống".
+- `tailscale serve status`: `/tonyfino/` lên, mục của dự án khác còn nguyên.
