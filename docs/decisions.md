@@ -2632,3 +2632,18 @@ kèm snackbar "Chụp thường" (lùi về camera).
 (luật `-keep com.google.mlkit.**` có sẵn phủ `vision.documentscanner`, nhưng chưa chạy thử — xem bài
 học R8 Phase 18); gợi ý danh mục trên tên món siêu thị viết tắt gần như không khớp, và luật danh mục
 chung đẩy cả hoá đơn siêu thị về MỘT danh mục (vd băng vệ sinh thành Ăn uống) — Tony sửa trong bảng.
+
+### Phát hành 1.0.16+57
+
+- git `3640b27` · schema **v19** (`transaction_lines.label`) · BUILD_TIME `2026-09-28T04:45:45Z`
+- `dist/tonyfino-1.0.16+57.apk` — SHA-256
+  `f646bea207249d19bd733aa536795d853fbed1e99f1693cc4f23da7150be0a41`
+- File tải về qua tailnet đã đối chiếu **khớp từng byte** với file build — và là ĐÚNG file đã thử tay
+  (build bằng lệnh của `tool/build_apk.sh`, thử trên máy ảo, rồi mới chép ra `dist/`).
+- Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md` — nâng cấp đè được.
+- Thử trên `tonyfino36` bản RELEASE (qua R8): sao lưu trước (bản sao cũng kéo về máy dev), cài đè
+  1.0.14 → 1.0.16, migration v18→v19 giữ nguyên dữ liệu (−9.550.000 ₫, 6 hũ khớp tuyệt đối); quét
+  hoá đơn Emart ra đủ 12 món như bản debug (ML Kit sống qua R8); máy quét tài liệu mở được Play
+  Services (lớp plugin không bị R8 cắt), Cancel → snackbar "Chụp thường" đúng. Không lưu giao dịch
+  thử nào vào dữ liệu thật.
+- `tailscale serve status` sau khi set: `/tonyfino/` lên, 4 mục của dự án khác còn nguyên.
