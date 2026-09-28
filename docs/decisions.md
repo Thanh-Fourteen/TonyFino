@@ -2669,3 +2669,19 @@ từ máy (chụp ảnh), cho phép xoay, crop rồi mới vào OCR".
   đọc rõ tên món và giá. Lộ thêm lỗi: món "010 KDR **TOTAL** GUM" bị coi là dòng tổng (tổng 40.500,
   bảng món cụt ở món 10) → nhãn tổng phải đứng ĐẦU hàng (tối đa một chữ trước nó).
 - Chưa làm: chữ trong màn uCrop ("Crop", "Rotate", "Original") là tiếng Anh mặc định của thư viện.
+
+Bổ sung cùng đợt (Tony yêu cầu): nút chính Trang chủ chỉ còn dấu **+** (tròn, cùng cỡ nút quét —
+M3 mặc định FAB vuông bo góc nên ép `CircleBorder`; "Ghi một khoản" nằm ở tooltip/trợ năng); bỏ dòng
+chú thích "Sau khi chọn ảnh…" trong bảng chọn nguồn ảnh.
+
+### Phát hành 1.0.17+58
+
+- git `e459100` · schema **v19** (không đổi) · BUILD_TIME `2026-09-28T05:35:45Z`
+- `dist/tonyfino-1.0.17+58.apk` — SHA-256
+  `493988678924241180f6c09bec31ff6671ba33e82ddcce203928c411d56d7374`
+- File tải về qua tailnet khớp từng byte với file build — và là ĐÚNG file đã thử tay trên máy ảo.
+- Vân tay ký `A7:98:A2:9D:…:32:4A` khớp `docs/release-1.0.1.md`.
+- Thử bản RELEASE (R8) trên `tonyfino36`: sao lưu trước (kéo thêm một bản về máy dev), cài đè
+  1.0.16 → 1.0.17, dữ liệu −9.550.000 ₫ nguyên vẹn; cặp nút tròn hiện đúng; chọn ảnh → màn uCrop mở
+  (lớp uCrop không bị R8 cắt) → xác nhận → OCR ra 414.000 + đủ món. Không lưu giao dịch thử nào.
+- `tailscale serve status`: `/tonyfino/` lên, 4 mục của dự án khác còn nguyên.
