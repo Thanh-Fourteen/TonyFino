@@ -249,6 +249,24 @@ Lon nước                    1O.OOO
       expect(extractReceiptInfo(ocrText, now: _now).amountMinor, 120000);
     });
 
+    test('🚨 chữ TOTAL trong TÊN MÓN không phải nhãn tổng (Lotte THẬT)', () {
+      const ocrText = '''
+Ma sp  dgia  sl  so tien
+009 Pin Energizer E91 AA
+8888021200126  55,000  1  55,000
+010 KDR TOTAL GUM 100G+BCDR
+8935102105273  40,500  1  40,500
+011 GOI BONG TAY TRANG P
+8936002690005  20,500  1  20,500
+''';
+      final r = extractReceiptInfo(ocrText, now: _now);
+      // Không có dòng tổng thật → dự phòng số lớn nhất, KHÔNG phải 40.500.
+      expect(r.amountMinor, 55000);
+      // Bảng món không bị cắt cụt ở món có chữ TOTAL.
+      expect(r.items, hasLength(3));
+      expect(r.items[1].name, 'KDR TOTAL GUM 100G+BCDR');
+    });
+
     test('ảnh chụp chuyển khoản — nhãn "Số tiền"', () {
       const ocrText = '''
 Chuyển tiền thành công

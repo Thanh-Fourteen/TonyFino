@@ -52,6 +52,12 @@
                 <action android:name="es.antonborri.home_widget.action.LAUNCH"/>
             </intent-filter>
         </activity>
+        <!-- Màn xoay/cắt ảnh hoá đơn trước khi OCR (image_cropper → uCrop,
+             2026-09-28) — README của plugin yêu cầu khai activity này. -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
         <!-- Widget "Chi tiêu từ đầu tháng" (Phase 21). exported=true bắt buộc
              từ Android 12 cho mọi receiver khớp một intent-filter. -->
         <receiver android:name=".SpendingWidgetProvider"

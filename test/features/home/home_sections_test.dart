@@ -99,4 +99,20 @@ void main() {
       expect(find.textContaining('9.000.000'), findsNothing);
     },
   );
+
+  testWidgets('nút QUÉT HOÁ ĐƠN nằm ngay Trang chủ, cạnh "Ghi một khoản" — '
+      'chạm là mở chọn nguồn ảnh', (tester) async {
+    // Trước đây lối vào duy nhất là NHẤN GIỮ nút "Thêm" ở tab Giao dịch —
+    // Tony phải hỏi "vô đâu để chụp hoá đơn".
+    await pumpHome(tester, const {});
+    // Nút chính giờ chỉ là dấu + (Tony yêu cầu) — tên nằm ở tooltip.
+    expect(find.byTooltip('Ghi một khoản'), findsOneWidget);
+    expect(find.text('Ghi một khoản'), findsNothing);
+    expect(find.byTooltip('Quét hoá đơn'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Quét hoá đơn'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chụp ảnh'), findsOneWidget);
+    expect(find.text('Chọn ảnh có sẵn'), findsOneWidget);
+  });
 }

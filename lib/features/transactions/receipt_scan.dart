@@ -14,24 +14,23 @@ import '../quick_add/domain/parser/category_matcher.dart';
 import 'domain/receipt_ocr_parser.dart';
 import 'transaction_form_sheet.dart';
 
-enum _ScanSource { documentScanner, screenshot }
-
-/// Quét hoá đơn (Phase 18, nâng cấp 2026-09-28) — lấy ảnh → OCR cục bộ (ML
-/// Kit, không mạng) → trích số tiền/tên quán/ngày → mở sheet Thêm điền sẵn,
-/// CHỜ Tony xác nhận (Luật #7 — `TransactionFormPrefill.fromReceiptScan`
-/// không bao giờ tự ghi gì vào DB). OCR lỗi/không trích được gì vẫn mở form
-/// (chỉ trống hơn), KHÔNG chặn Tony tự gõ tay — một lần quét hỏng không đáng
-/// một thông báo lỗi, chỉ đáng một form trống như mọi lần "Thêm" bình thường.
+/// Quét hoá đơn (Phase 18, làm lại 2026-09-28) — chụp/chọn ảnh → XOAY/CẮT
+/// → OCR cục bộ (ML Kit, không mạng) → trích tổng, tên quán, ngày, TỪNG MÓN
+/// → mở sheet Thêm với bảng món điền sẵn, CHỜ Tony duyệt (Luật #7 —
+/// `TransactionFormPrefill.fromReceiptScan` không bao giờ tự ghi gì vào DB).
+/// OCR lỗi/không trích được gì vẫn mở form (chỉ trống hơn), KHÔNG chặn Tony
+/// tự gõ tay — một lần quét hỏng không đáng một thông báo lỗi.
 ///
-/// Hai nguồn ảnh, vì hai loại "hoá đơn" cần xử lý khác nhau:
-/// - **Hoá đơn giấy** → máy quét tài liệu ML Kit: tự cắt mép, nắn thẳng, xoá
-///   bóng trước khi OCR. Ảnh thẳng là điều kiện để `arrangeIntoRows` ghép
-///   đúng nhãn "Tổng" với con số cùng hàng. Máy không mở được máy quét → lùi
-///   về camera thường, vẫn quét được, chỉ kém chính xác hơn.
-/// - **Ảnh chụp màn hình** (hoá đơn điện tử, chuyển khoản) → chọn thẳng từ
-///   thư viện: ảnh đã phẳng sẵn, đưa qua màn cắt mép chỉ thêm một bước thừa.
+/// Bước xoay/cắt là BẮT BUỘC, cho cả ảnh chụp lẫn ảnh có sẵn (Tony yêu cầu):
+/// cắt sát hoá đơn bỏ được nền bàn/ngón tay/chữ của tờ khác lọt vào khung,
+/// và xoay thẳng là điều kiện để `arrangeIntoRows` ghép đúng nhãn "Tổng" với
+/// con số cùng hàng. Lối vào: nút quét ở Trang chủ, và "Thêm nhanh" ở tab
+/// Giao dịch.
+///
+/// (Bản đầu 2026-09-28 dùng máy quét tài liệu ML Kit — thay bằng luồng này
+/// theo yêu cầu của Tony; xem docs/decisions.md § 2026-09-28 (3).)
 Future<void> openReceiptScanFlow(BuildContext context, WidgetRef ref) async {
-  final source = await showAppBottomSheet<_ScanSource>(
+  final fromCamera = await showAppBottomSheet<bool>(
     context: context,
     isScrollControlled: false,
     builder: (sheetContext) => SafeArea(
@@ -39,74 +38,38 @@ Future<void> openReceiptScanFlow(BuildContext context, WidgetRef ref) async {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Padding(
+            padding: EdgeInsets.all(sheetContext.space.md),
+            child: Text('Quét hoá đơn', style: sheetContext.text.titleMedium),
+          ),
           ListTile(
             leading: const Icon(kIconAddAPhoto),
-            title: const Text('Quét hoá đơn giấy'),
-            subtitle: const Text(
-              'Tự cắt mép, nắn thẳng — chụp hoặc lấy ảnh có sẵn',
-            ),
-            onTap: () =>
-                Navigator.of(sheetContext).pop(_ScanSource.documentScanner),
+            title: const Text('Chụp ảnh'),
+            subtitle: const Text('Chụp hoá đơn giấy bằng camera'),
+            onTap: () => Navigator.of(sheetContext).pop(true),
           ),
           ListTile(
             leading: const Icon(kIconImage),
-            title: const Text('Chọn ảnh chụp màn hình'),
-            subtitle: const Text('Hoá đơn điện tử, ảnh chuyển khoản'),
-            onTap: () => Navigator.of(sheetContext).pop(_ScanSource.screenshot),
+            title: const Text('Chọn ảnh có sẵn'),
+            subtitle: const Text(
+              'Ảnh trong máy, hoá đơn điện tử, ảnh chuyển khoản',
+            ),
+            onTap: () => Navigator.of(sheetContext).pop(false),
           ),
         ],
       ),
     ),
   );
-  if (source == null || !context.mounted) return;
+  if (fromCamera == null || !context.mounted) return;
 
   final capture = ref.read(receiptCaptureServiceProvider);
-  String? imagePath;
-  switch (source) {
-    case _ScanSource.screenshot:
-      imagePath = await capture.pickImage(fromCamera: false);
-    case _ScanSource.documentScanner:
-      switch (await capture.scanDocument()) {
-        case DocumentScanned(imagePath: final scanned):
-          imagePath = scanned;
-        case DocumentScanCancelled():
-          // 🚨 "Thoát" KHÔNG chắc là Tony tự thoát. Khi Play Services không
-          // tải được mô-đun máy quét, nó hiện "Something went wrong" với một
-          // nút Cancel — và plugin trả về ĐÚNG CÙNG kết quả huỷ (bắt được
-          // trên máy ảo tonyfino36 chưa đăng nhập Google: log
-          // `ZappDownloader: No successful Zapp module downloads … Docscan`).
-          // Im lặng thì Tony kẹt, không có đường nào quét được. Snackbar có
-          // nút lùi về camera: tự thoát thì bỏ qua nó, máy quét hỏng thì vẫn
-          // còn lối đi.
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Đã thoát trình quét.'),
-              action: SnackBarAction(
-                label: 'Chụp thường',
-                onPressed: () async {
-                  final path = await capture.pickImage(fromCamera: true);
-                  if (path == null || !context.mounted) return;
-                  await _recognizeAndOpenForm(context, ref, path);
-                },
-              ),
-            ),
-          );
-          return;
-        case DocumentScannerUnavailable():
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Máy chưa mở được trình quét — chụp bằng camera thường.',
-              ),
-            ),
-          );
-          imagePath = await capture.pickImage(fromCamera: true);
-      }
-  }
-  if (imagePath == null || !context.mounted) return;
-  await _recognizeAndOpenForm(context, ref, imagePath);
+  final picked = await capture.pickImage(fromCamera: fromCamera);
+  if (picked == null || !context.mounted) return;
+  // Thoát màn cắt = bỏ lần quét này (Tony chủ động bấm quay lại) — không
+  // tự OCR ảnh chưa cắt: ảnh đó chính là thứ Tony vừa từ chối.
+  final cropped = await capture.cropImage(picked);
+  if (cropped == null || !context.mounted) return;
+  await _recognizeAndOpenForm(context, ref, cropped);
 }
 
 Future<void> _recognizeAndOpenForm(

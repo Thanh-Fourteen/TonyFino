@@ -409,6 +409,14 @@ const kIconPhotoCamera = IconData(
   fontFamily: _fontFamily,
   fontPackage: _fontPackage,
 );
+// Khung quét tài liệu — nút "Quét hoá đơn" ở Trang chủ. KHÔNG dùng
+// `kIconReceiptLong`: đó là icon của tab "Giao dịch" ngay bên dưới, hai
+// thứ khác nhau mang cùng một hình thì đọc nhầm.
+const kIconDocumentScanner = IconData(
+  0xe5fa,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
 const kIconPalette = IconData(
   0xe40a,
   fontFamily: _fontFamily,

@@ -2647,3 +2647,25 @@ chung đẩy cả hoá đơn siêu thị về MỘT danh mục (vd băng vệ si
   Services (lớp plugin không bị R8 cắt), Cancel → snackbar "Chụp thường" đúng. Không lưu giao dịch
   thử nào vào dữ liệu thật.
 - `tailscale serve status` sau khi set: `/tonyfino/` lên, 4 mục của dự án khác còn nguyên.
+
+## 2026-09-28 (3) · Nút quét ở Trang chủ, bước xoay/cắt trước OCR, bỏ máy quét tài liệu
+
+**Tony hỏi "vô đâu để chụp hoá đơn"** — lối vào duy nhất là NHẤN GIỮ nút "Thêm" ở tab Giao dịch,
+không gì trên màn hình gợi ý. Yêu cầu: một nút ở màn hình chính, "layout đẹp", và luồng "chọn ảnh
+từ máy (chụp ảnh), cho phép xoay, crop rồi mới vào OCR".
+
+- **Nút:** tròn 56dp (cao bằng nút chính) đứng TRÁI "Ghi một khoản", icon `document_scanner`
+  (0xe5fa, kiểm chéo bảng codepoint của `material_symbols_icons` qua `mic` = 0xe31d). KHÔNG dùng
+  `receipt_long` — trùng icon tab "Giao dịch" ngay dưới. Nền petrol 12% `alphaBlend` lên màu thẻ:
+  nền trắng trơn trên thẻ trắng từng chìm hẳn (ảnh chụp máy ảo). Chỉ icon, không viên có chữ — hai
+  viên có chữ tràn ở cỡ chữ lớn.
+- **Luồng:** Chụp ảnh / Chọn ảnh có sẵn (`image_picker`, độ phân giải GỐC) → màn xoay/cắt uCrop
+  (`image_cropper` 12.2.1, uCrop 2.2.11 đã hỗ trợ edge-to-edge; khai `UCropActivity` trong manifest
+  theo README; uCrop tải từ JitPack — plugin tự khai kho) → thu về tối đa 1600×3200 SAU khi cắt →
+  OCR. Thoát màn cắt = bỏ lần quét, không OCR ảnh gốc Tony vừa từ chối.
+- **Bỏ máy quét tài liệu ML Kit** (`google_mlkit_document_scanner`): luồng mới thay trọn vai trò
+  của nó (cắt, xoay), giữ cả hai là ba lựa chọn gây rối; ghép hàng có nắn nghiêng vẫn đỡ ảnh lệch.
+- **Đo trên máy ảo:** ảnh Lotte THẬT từng ra chữ vỡ khi đọc nguyên khung, cắt sát từ ảnh gốc thì
+  đọc rõ tên món và giá. Lộ thêm lỗi: món "010 KDR **TOTAL** GUM" bị coi là dòng tổng (tổng 40.500,
+  bảng món cụt ở món 10) → nhãn tổng phải đứng ĐẦU hàng (tối đa một chữ trước nó).
+- Chưa làm: chữ trong màn uCrop ("Crop", "Rotate", "Original") là tiếng Anh mặc định của thư viện.

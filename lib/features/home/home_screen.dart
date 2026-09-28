@@ -19,6 +19,7 @@ import 'home_providers.dart';
 import '../wallets/selected_wallet_provider.dart';
 import '../wallets/wallets_providers.dart';
 import 'widgets/wallet_switcher_sheet.dart';
+import '../transactions/receipt_scan.dart';
 import '../transactions/transactions_providers.dart';
 import '../transactions/domain/transaction_row_display.dart';
 import '../savings/savings_providers.dart';
@@ -72,10 +73,50 @@ class HomeScreen extends ConsumerWidget {
         padding: EdgeInsets.only(
           bottom: kBottomNavReservedHeight + bottomInset,
         ),
-        child: FloatingActionButton.extended(
-          onPressed: () => context.push('/quick-add'),
-          icon: const Icon(kIconAdd),
-          label: const Text('Ghi một khoản'),
+        // Cặp nút hành động: QUÉT HOÁ ĐƠN (phụ) cạnh GHI MỘT KHOẢN (chính).
+        //
+        // Quét hoá đơn từng chỉ có lối vào là NHẤN GIỮ nút "Thêm" ở tab Giao
+        // dịch — không có gì trên màn hình gợi ý, Tony phải hỏi "vô đâu để
+        // chụp hoá đơn". Giờ nó nằm ngay đây.
+        //
+        // Hai nút TRÒN cùng cỡ, chỉ icon (không chữ — không bao giờ tràn ở
+        // cỡ chữ lớn). Quét: tông petrol nhạt → hành động phụ; +: cam đặc →
+        // hành động chính (luật màu: cam chỉ ở mảng nhỏ, đậm).
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton(
+              heroTag: 'home-scan-receipt',
+              tooltip: 'Quét hoá đơn',
+              onPressed: () => openReceiptScanFlow(context, ref),
+              // Petrol pha 12% trộn lên màu thẻ: nền trắng trơn nằm trên thẻ
+              // trắng thì nút chìm hẳn (đo trên máy ảo — chỉ còn viền mảnh).
+              // `alphaBlend` cho ra màu ĐẶC, đúng cả sáng lẫn tối, không phải
+              // thêm token mới.
+              backgroundColor: Color.alphaBlend(
+                context.colors.brandText.withValues(alpha: 0.12),
+                context.colors.card,
+              ),
+              foregroundColor: context.colors.brandText,
+              shape: CircleBorder(
+                side: BorderSide(
+                  color: context.colors.brandText.withValues(alpha: 0.28),
+                ),
+              ),
+              child: const Icon(kIconDocumentScanner),
+            ),
+            SizedBox(width: context.space.sm),
+            // Chỉ dấu + (Tony yêu cầu 2026-09-28) — tròn cùng cỡ với nút
+            // quét cho thành một cặp; M3 mặc định FAB vuông bo góc nên phải
+            // ép `CircleBorder`. Tên hành động nằm ở tooltip/trợ năng.
+            FloatingActionButton(
+              heroTag: 'home-quick-add',
+              tooltip: 'Ghi một khoản',
+              onPressed: () => context.push('/quick-add'),
+              shape: const CircleBorder(),
+              child: const Icon(kIconAdd),
+            ),
+          ],
         ),
       ),
       body: ListView(
@@ -364,7 +405,9 @@ class _JarsOverviewCard extends ConsumerWidget {
               Expanded(
                 child: JarStat(label: 'Đã tiêu', amount: overview.totalSpent),
               ),
-              Expanded(child: JarStat(label: 'Còn lại', amount: remaining)),
+              Expanded(
+                child: JarStat(label: 'Còn lại', amount: remaining),
+              ),
             ],
           ),
           if (overview.totalOverspent.minorUnits > 0)

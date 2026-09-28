@@ -265,13 +265,30 @@ int? _findTotalAmount(List<String> rawLines, {int? floor}) {
   return bestLabelAmount ?? largestAny;
 }
 
+/// Mức nhãn tổng của một hàng — 0 nếu không phải hàng tổng.
+///
+/// 🚨 Nhãn phải đứng ĐẦU hàng (cho phép tối đa MỘT chữ trước nó: "Tiền
+/// **cần thanh toán**"). Món Lotte THẬT "010 KDR TOTAL GUM 100G" có chữ
+/// TOTAL trong TÊN MÓN — không chặn vị trí thì nó thành "tổng 40.500" và bảng
+/// món bị cắt cụt ở món thứ 10. Mọi dòng tổng trên các hoá đơn thật đã thu
+/// đều bắt đầu bằng nhãn; tên món thì có số thứ tự/mã đứng trước.
 int _labelTier(String folded) {
   String? longest;
   for (final label in _totalLabelTiers.keys) {
-    if (_hasWord(folded, label) &&
-        (longest == null || label.length > longest.length)) {
-      longest = label;
-    }
+    final at = _wordIndex(folded, label);
+    if (at < 0) continue;
+    // Phần trước nhãn chỉ toàn số/dấu câu (số thứ tự, gạch trang trí)
+    // không tính là chữ. Có chữ cái thì đếm mọi cụm, kể cả mã số: "010 KDR"
+    // là HAI chữ → "TOTAL" sau nó là tên món, không phải nhãn.
+    final prefix = folded.substring(0, at);
+    final wordsBefore = RegExp(r'[a-z]').hasMatch(prefix)
+        ? prefix
+              .split(RegExp(r'\s+'))
+              .where((w) => RegExp(r'[a-z0-9]').hasMatch(w))
+              .length
+        : 0;
+    if (wordsBefore > 1) continue;
+    if (longest == null || label.length > longest.length) longest = label;
   }
   return longest == null ? 0 : _totalLabelTiers[longest]!;
 }
@@ -464,7 +481,11 @@ String? _findMerchant(List<String> lines) {
 /// "private", "total" không khớp "subtotal", "cash" không khớp "cashier".
 /// Chỉ xét biên ở phía nào [needle] kết thúc bằng chữ/số — "dt:"/".com" tự
 /// mang dấu câu làm biên.
-bool _hasWord(String folded, String needle) {
+bool _hasWord(String folded, String needle) => _wordIndex(folded, needle) >= 0;
+
+/// Vị trí đầu tiên [needle] xuất hiện như một từ trong [folded] (xem
+/// [_hasWord]), `-1` nếu không có.
+int _wordIndex(String folded, String needle) {
   var start = folded.indexOf(needle);
   while (start != -1) {
     final end = start + needle.length;
@@ -476,10 +497,10 @@ bool _hasWord(String folded, String needle) {
         !_isWordChar(needle[needle.length - 1]) ||
         end == folded.length ||
         !_isWordChar(folded[end]);
-    if (leftOk && rightOk) return true;
+    if (leftOk && rightOk) return start;
     start = folded.indexOf(needle, start + 1);
   }
-  return false;
+  return -1;
 }
 
 bool _isWordChar(String c) => RegExp(r'[a-z0-9]').hasMatch(c);

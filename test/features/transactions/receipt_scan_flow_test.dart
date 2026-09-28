@@ -1,8 +1,9 @@
-// Luồng quét hoá đơn: nguồn ảnh → OCR → form điền sẵn (KHÔNG tự lưu).
+// Luồng quét hoá đơn: nguồn ảnh → XOAY/CẮT → OCR → form bảng món (KHÔNG
+// tự lưu).
 //
-// Máy quét tài liệu và ML Kit chạy qua Play Services, không có trên host —
-// thay bằng service giả qua provider để lái đủ bốn nhánh: quét được, Tony
-// huỷ, máy không mở được máy quét (lùi về camera), ảnh chụp màn hình.
+// Camera, thư viện ảnh, màn cắt uCrop và ML Kit đều là native — thay bằng
+// service giả qua provider để lái đủ các nhánh: chụp, chọn ảnh có sẵn, huỷ
+// ở bước chọn, thoát ở bước cắt.
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,23 +33,26 @@ Tổng cộng     74.000
 ''';
 
 class _FakeCapture implements ReceiptCaptureService {
-  _FakeCapture(this.scanOutcome, this.imagePath);
+  _FakeCapture({required this.pickedPath, required this.croppedPath});
 
-  final DocumentScanOutcome scanOutcome;
-  final String imagePath;
-  int scanCalls = 0;
+  /// `null` = Tony huỷ ở bước chọn/chụp.
+  final String? pickedPath;
+
+  /// `null` = Tony thoát màn cắt.
+  final String? croppedPath;
   final pickCalls = <bool>[]; // fromCamera của từng lần gọi
-
-  @override
-  Future<DocumentScanOutcome> scanDocument() async {
-    scanCalls++;
-    return scanOutcome;
-  }
+  final cropCalls = <String>[];
 
   @override
   Future<String?> pickImage({required bool fromCamera}) async {
     pickCalls.add(fromCamera);
-    return imagePath;
+    return pickedPath;
+  }
+
+  @override
+  Future<String?> cropImage(String imagePath) async {
+    cropCalls.add(imagePath);
+    return croppedPath;
   }
 }
 
@@ -65,14 +69,17 @@ class _FakeOcr implements ReceiptOcrService {
 void main() {
   late AppDatabase db;
   late Directory tempDir;
-  late String imagePath;
+  late String originalPath;
+  late String croppedPath;
   final now = DateTime(2026, 9, 28, 9);
 
   setUp(() {
     db = openTestDatabase();
     tempDir = Directory.systemTemp.createTempSync('receipt_scan_flow');
-    imagePath = '${tempDir.path}/scan.jpg';
-    File(imagePath).writeAsBytesSync(_onePixelPng);
+    originalPath = '${tempDir.path}/goc.jpg';
+    croppedPath = '${tempDir.path}/da_cat.jpg';
+    File(originalPath).writeAsBytesSync(_onePixelPng);
+    File(croppedPath).writeAsBytesSync(_onePixelPng);
   });
   tearDown(() async {
     await db.close();
@@ -81,10 +88,14 @@ void main() {
 
   Future<(_FakeCapture, _FakeOcr)> openFlow(
     WidgetTester tester, {
-    required DocumentScanOutcome scanOutcome,
     required String choice,
+    bool cancelPick = false,
+    bool cancelCrop = false,
   }) async {
-    final capture = _FakeCapture(scanOutcome, imagePath);
+    final capture = _FakeCapture(
+      pickedPath: cancelPick ? null : originalPath,
+      croppedPath: cancelCrop ? null : croppedPath,
+    );
     final ocr = _FakeOcr();
     await pumpApp(
       tester,
@@ -108,7 +119,7 @@ void main() {
     await tester.tap(find.text(choice));
     // `XFile.readAsBytes` là I/O THẬT — trong fake async của widget test nó
     // không bao giờ xong. Nhường thời gian thật xen kẽ với dựng frame (sheet
-    // đóng → quét → đọc file → OCR → mở form) cho tới khi luồng chạy hết.
+    // đóng → chọn → cắt → đọc file → OCR → mở form) cho tới khi chạy hết.
     for (var i = 0; i < 10; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
@@ -132,80 +143,53 @@ void main() {
     expect(find.text('4.000'), findsOneWidget);
   }
 
-  testWidgets('quét được → OCR đúng ảnh đã quét, form điền số tiền + tên + '
-      'NGÀY trên hoá đơn, KHÔNG ghi gì vào DB', (tester) async {
-    final (capture, ocr) = await openFlow(
-      tester,
-      scanOutcome: DocumentScanned(imagePath),
-      choice: 'Quét hoá đơn giấy',
-    );
+  testWidgets('🚨 CHỤP → xoay/cắt → OCR đọc ảnh ĐÃ CẮT (không phải ảnh gốc) '
+      '→ form điền tổng, tên quán, ngày, bảng món; KHÔNG ghi gì vào DB', (
+    tester,
+  ) async {
+    final (capture, ocr) = await openFlow(tester, choice: 'Chụp ảnh');
 
-    expect(capture.scanCalls, 1);
-    expect(capture.pickCalls, isEmpty);
-    expect(ocr.seenPaths, [imagePath]);
+    expect(capture.pickCalls, [true]);
+    expect(capture.cropCalls, [originalPath]);
+    expect(ocr.seenPaths, [croppedPath]);
     expectPrefilledForm();
     expect(await db.select(db.transactions).get(), isEmpty);
   });
 
-  testWidgets('Tony thoát máy quét → không mở gì, KHÔNG bị đẩy sang camera', (
+  testWidgets('CHỌN ẢNH CÓ SẴN cũng qua bước xoay/cắt', (tester) async {
+    final (capture, ocr) = await openFlow(tester, choice: 'Chọn ảnh có sẵn');
+
+    expect(capture.pickCalls, [false]);
+    expect(capture.cropCalls, [originalPath]);
+    expect(ocr.seenPaths, [croppedPath]);
+    expectPrefilledForm();
+  });
+
+  testWidgets('huỷ ở bước chụp/chọn → không cắt, không OCR, không mở gì', (
     tester,
   ) async {
     final (capture, ocr) = await openFlow(
       tester,
-      scanOutcome: const DocumentScanCancelled(),
-      choice: 'Quét hoá đơn giấy',
+      choice: 'Chụp ảnh',
+      cancelPick: true,
     );
 
-    expect(capture.pickCalls, isEmpty);
+    expect(capture.cropCalls, isEmpty);
     expect(ocr.seenPaths, isEmpty);
     expect(find.text('74.000'), findsNothing);
   });
 
-  testWidgets('🚨 thoát máy quét vẫn có lối "Chụp thường" — Play Services '
-      'tải mô-đun hỏng cũng trả về "huỷ"', (tester) async {
-    final (capture, _) = await openFlow(
-      tester,
-      scanOutcome: const DocumentScanCancelled(),
-      choice: 'Quét hoá đơn giấy',
-    );
-
-    await tester.tap(find.text('Chụp thường'));
-    for (var i = 0; i < 10; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
-      );
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    await tester.pumpAndSettle();
-
-    expect(capture.pickCalls, [true]);
-    expectPrefilledForm();
-  });
-
-  testWidgets('máy không mở được máy quét → báo, lùi về CAMERA thường, vẫn '
-      'điền form', (tester) async {
-    final (capture, _) = await openFlow(
-      tester,
-      scanOutcome: const DocumentScannerUnavailable(),
-      choice: 'Quét hoá đơn giấy',
-    );
-
-    expect(capture.pickCalls, [true]);
-    expectPrefilledForm();
-  });
-
-  testWidgets('ảnh chụp màn hình → thư viện ảnh, KHÔNG qua máy quét', (
+  testWidgets('🚨 thoát màn cắt → KHÔNG tự OCR ảnh gốc Tony vừa bỏ', (
     tester,
   ) async {
-    final (capture, _) = await openFlow(
+    final (_, ocr) = await openFlow(
       tester,
-      scanOutcome: DocumentScanned(imagePath),
-      choice: 'Chọn ảnh chụp màn hình',
+      choice: 'Chọn ảnh có sẵn',
+      cancelCrop: true,
     );
 
-    expect(capture.scanCalls, 0);
-    expect(capture.pickCalls, [false]);
-    expectPrefilledForm();
+    expect(ocr.seenPaths, isEmpty);
+    expect(find.text('74.000'), findsNothing);
   });
 
   group('danh mục chung của hoá đơn', () {

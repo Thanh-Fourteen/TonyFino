@@ -51,7 +51,7 @@ Future<void> showApplyTemplateSheet(BuildContext context, WidgetRef ref) async {
           ListTile(
             leading: const Icon(kIconReceiptLong),
             title: const Text('Quét hoá đơn'),
-            subtitle: const Text('Đọc số tiền, tên quán, ngày trên hoá đơn'),
+            subtitle: const Text('Chụp/chọn ảnh, xoay cắt, đọc từng món'),
             onTap: () => Navigator.of(sheetContext).pop(_scanReceiptChoice),
           ),
           if (templates.isNotEmpty) const Divider(height: 1),
