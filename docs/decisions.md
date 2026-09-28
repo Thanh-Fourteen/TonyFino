@@ -2685,3 +2685,83 @@ chú thích "Sau khi chọn ảnh…" trong bảng chọn nguồn ảnh.
   1.0.16 → 1.0.17, dữ liệu −9.550.000 ₫ nguyên vẹn; cặp nút tròn hiện đúng; chọn ảnh → màn uCrop mở
   (lớp uCrop không bị R8 cắt) → xác nhận → OCR ra 414.000 + đủ món. Không lưu giao dịch thử nào.
 - `tailscale serve status`: `/tonyfino/` lên, 4 mục của dự án khác còn nguyên.
+
+## 2026-09-28 (4) · Giá vàng & giá cà phê, màn Đăng nhập riêng, bấm thẻ ở thống kê, quét vào dấu +
+
+Bốn yêu cầu của Tony trong một đợt.
+
+### 1. Trang Giá vàng và Giá cà phê (cần mạng)
+
+Lối vào: Quản lý → nhóm **Thị trường**. Code: `lib/data/services/market/` (parser thuần + repository),
+`lib/features/market/` (hai màn, provider, biểu đồ `PriceLineChart` dùng chung).
+
+**Nguồn — chọn bằng curl thật ngày 28/9, không theo trí nhớ** (mẫu phản hồi thật nằm ở
+`test/fixtures/market/`, HTML đã cắt còn phần CSS + bảng giá):
+
+| Cần | Nguồn chính | Dự phòng / ghi chú |
+|---|---|---|
+| Vàng trong nước nhiều doanh nghiệp + lịch sử | `vang.today/api/prices` (JSON, không khoá, ~310 ngày) | API riêng của PNJ (nghìn đ/**chỉ** → ×10.000 ra đ/lượng) |
+| Vàng thế giới | `XAUUSD` của cùng vang.today | — |
+| Tỷ giá USD | Vietcombank `api/exchangerates?date=` (bán ra) | lùi tối đa 4 ngày khi chưa có bảng hôm nay |
+| Cà phê nhân theo tỉnh | trang tỉnh giacaphe.com (7 ngày) | app **tự cộng dồn** mỗi ngày thấy được vào prefs → lịch sử dài dần |
+| Robusta/Arabica khớp lệnh | JSON live-quotes của giacaphe (cần 3 header) | tên file đổi theo thời gian → đọc lại `quotes_data_url` từ trang |
+| Lịch sử sàn | API charting của ICE (hợp đồng gần nhất, ~1 năm giá chốt) | — |
+
+Không dùng được (đã thử): SJC (Cloudflare chặn), DOJI (403/off-line), Mi Hồng (không kết nối),
+Yahoo không có Robusta. **Mã `PQ…` của vang.today là PNJ, không phải Phú Quý** — đối chiếu từng
+đồng với API PNJ (140,4/143,4 tr) trong khi Phú Quý lúc đó 139,4/142,4 tr. Hai mã `VNGSJC`,
+`VIETTINMSJC` chưa xác minh được là nhà vàng nào → giữ tên gốc của API, không đoán.
+
+**Đắk Lắk giấu số**: `<td>` chỉ có `<span class='xYz abc'>` rỗng, chữ số nằm trong CSS
+`.xYz::after{content:'93,600'}`, tên class ngẫu nhiên mỗi lần tải. Parser dựng bảng class → nội dung
+rồi tra — một parser cho cả hai kiểu trang.
+
+**Tính năng** (khảo sát các trang giá vàng/cà phê phổ biến): bảng mua/bán kèm ▲▼ so với phiên
+trước + giờ NGUỒN công bố; giá thế giới quy ra đ/lượng và chênh lệch SJC – thế giới; biểu đồ
+7N/1T/3T/1N, chạm để dóng giá từng ngày, cao/thấp/thay đổi trong khoảng; máy tính "vàng đang giữ
+bán được bao nhiêu / mua thêm hết bao nhiêu / mua xong bán ngay lỗ bao nhiêu"; cà phê: 4 tỉnh,
+Robusta (USD/tấn) + Arabica (cent/lb) đủ các kỳ hạn, quy đổi ra đ/kg theo tỷ giá VCB.
+
+**"Realtime"**: provider `autoDispose` + `Timer.periodic` — vàng 2 phút, cà phê trong nước 10
+phút, sàn thế giới 30 giây, CHỈ khi trang đang mở (rời trang là huỷ hẹn giờ, không gọi mạng nền).
+Kéo xuống để tải lại. Mọi phản hồi thành công được cất theo URL → mất mạng vẫn thấy số lần trước
+kèm dòng "Đang xem số lần trước".
+
+Giá thị trường là `double` trong bộ nhớ, **không bao giờ ghi DB** — luật "tiền là int" áp cho sổ
+của Tony, còn giá thế giới vốn có phần lẻ. Biểu đồ: một chuỗi, một trục, nét 2px petrol; ▲▼ luôn
+đi kèm màu (lên = chàm, xuống = đỏ).
+
+Bắt được khi bấm thật trên máy ảo: nhãn ngày trục X chồng nhau khi chỉ có 7–8 điểm
+("27/928/9" — fl_chart luôn vẽ thêm nhãn ở mép phải); giá cà phê chốt theo ngày mà hiện "cập nhật
+00:00". Widget test bắt thêm hai chỗ tràn chữ ở màn rộng 420px (hàng giá lớn + nhãn ▲▼) → chuyển
+sang `Wrap`/`Text.rich`.
+
+### 2. Màn Đăng nhập riêng, lần đầu phải đăng nhập
+
+Trước: phiên Google sống trong `BackupController`, khởi tạo plugin + `attemptLightweightAuthentication()`
+ngay khi màn Cài đặt dựng → cứ vào Cài đặt là bảng "đang đăng nhập" của Google trồi lên.
+
+Giờ: `AuthController` cấp app + `LoginGate` (trong `AppLockGate`, sau `OnboardingGate`) + `LoginScreen`.
+- Trạng thái "đã đăng nhập" **lưu prefs** (email, tên) — mở app lúc mất mạng không bị chặn chỉ vì
+  không xác minh lại được phiên; phiên thật chỉ khôi phục lúc gọi Drive
+  (`authorizedDriveClient`: lightweight → nếu không được thì hỏi chọn tài khoản).
+- Plugin khởi tạo lười, đúng một lần (`_initialized ??=`), không còn đăng nhập ngầm ở đâu cả.
+- Đăng xuất (Cài đặt, có hỏi lại) → về màn Đăng nhập; dữ liệu trên máy không đụng.
+- 🚨 **Lối "Vào app không tài khoản"** hiện sau MỌI lần thử không thành, kể cả huỷ. Bản đầu chỉ mở
+  cho lỗi "thật"; bấm trên máy ảo thì luồng Google tự hỏng giữa chừng ("Something went wrong",
+  Play Services treo) và đường thoát duy nhất là Back — plugin báo mã **huỷ**. Chỉ mở cho lỗi thật
+  thì máy đó bị khoá ngoài sổ chi tiêu của chính mình. Lần đầu mở app vẫn phải bấm đăng nhập trước.
+- Màn chào (Onboarding) bỏ câu "không tài khoản".
+
+### 3. Bấm thẻ ở thống kê → xem giao dịch
+
+Lát nhóm thẻ ở biểu đồ tròn (Trang chủ và Báo cáo) trước không bấm được. Giờ mở
+`TagGroupDetailScreen`: danh sách giao dịch mang **đúng tổ hợp thẻ** của lát (tham số mới
+`exactTagIds` của `watchAllWithCategory` — đủ mọi thẻ trong tập, không thẻ nào ngoài), cùng điều
+kiện với biểu đồ (chi, không chuyển tiền, không gắn quỹ, trong kỳ) → tổng đầu màn khớp con số
+trên lát (test so thẳng với `watchTagGroupBreakdown`).
+
+### 4. Nút quét vào trong dấu +
+
+Trang chủ chỉ còn một nút +. Ở màn chat, nút bên phải ô nhập: có chữ → gửi; đang nghe → dừng; ô
+trống → **dấu +**, bấm mở ra mic và quét hoá đơn (+ xoay thành ×). Gõ chữ thì tự gập lại.

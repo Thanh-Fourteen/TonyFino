@@ -6,6 +6,7 @@ import 'bootstrap.dart';
 import 'core/lifecycle/app_lock_gate.dart';
 import 'core/lifecycle/app_resume_hooks.dart';
 import 'core/lifecycle/home_widget_sync_hook.dart';
+import 'core/lifecycle/login_gate.dart';
 import 'core/lifecycle/onboarding_gate.dart';
 import 'core/router/app_router.dart';
 import 'ui/amount_visibility.dart';
@@ -52,8 +53,9 @@ class TonyFinoApp extends ConsumerWidget {
                 // che số. Xem `AmountVisibility`.
                 child: AmountVisibility(
                   hidden: settings.hideAmounts,
+                  // Chào mừng (một lần, sổ trống) → Đăng nhập → app.
                   child: OnboardingGate(
-                    child: child ?? const SizedBox.shrink(),
+                    child: LoginGate(child: child ?? const SizedBox.shrink()),
                   ),
                 ),
               ),

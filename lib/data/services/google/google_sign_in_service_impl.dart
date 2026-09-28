@@ -19,94 +19,80 @@ class GoogleSignInServiceImpl implements GoogleSignInService {
   GoogleSignInServiceImpl({required this._serverClientId});
 
   final String _serverClientId;
-  final _accountController = StreamController<GoogleAccount?>.broadcast();
 
-  GoogleAccount? _currentAccount;
+  /// Plugin đòi `initialize()` ĐÚNG MỘT LẦN trước mọi lệnh khác — nhớ lại
+  /// Future của lần đầu, mọi lối vào cùng chờ nó.
+  Future<void>? _initialized;
   GoogleSignInAccount? _rawAccount;
 
-  @override
-  GoogleAccount? get currentAccount => _currentAccount;
+  Future<void> _ensureInitialized() => _initialized ??= GoogleSignIn.instance
+      .initialize(serverClientId: _serverClientId);
 
-  @override
-  Stream<GoogleAccount?> get accountChanges => _accountController.stream;
+  static GoogleAccount _toAccount(GoogleSignInAccount account) => GoogleAccount(
+    email: account.email,
+    displayName: account.displayName,
+    photoUrl: account.photoUrl,
+  );
 
-  @override
-  Future<void> initialize() async {
-    final signIn = GoogleSignIn.instance;
-    await signIn.initialize(serverClientId: _serverClientId);
-    signIn.authenticationEvents.listen(_onAuthenticationEvent);
-    // Khôi phục phiên đã đăng nhập trước đó (nếu có) mà không hiện UI nào.
-    unawaited(signIn.attemptLightweightAuthentication());
-  }
-
-  void _onAuthenticationEvent(GoogleSignInAuthenticationEvent event) {
-    switch (event) {
-      case GoogleSignInAuthenticationEventSignIn():
-        _rawAccount = event.user;
-        _currentAccount = GoogleAccount(
-          email: event.user.email,
-          displayName: event.user.displayName,
-          photoUrl: event.user.photoUrl,
-        );
-      case GoogleSignInAuthenticationEventSignOut():
-        _rawAccount = null;
-        _currentAccount = null;
+  static AppError _errorFrom(GoogleSignInException e, String action) {
+    if (e.code == GoogleSignInExceptionCode.canceled) {
+      return AppError('Đã huỷ $action.', cause: e);
     }
-    _accountController.add(_currentAccount);
+    return AppError(
+      '${action[0].toUpperCase()}${action.substring(1)} thất bại: '
+      '${e.description ?? e.code.name}',
+      cause: e,
+    );
   }
 
   @override
   Future<Result<GoogleAccount, AppError>> signIn() async {
     try {
+      await _ensureInitialized();
       final account = await GoogleSignIn.instance.authenticate();
       _rawAccount = account;
-      _currentAccount = GoogleAccount(
-        email: account.email,
-        displayName: account.displayName,
-        photoUrl: account.photoUrl,
-      );
-      _accountController.add(_currentAccount);
-      return Result.ok(_currentAccount!);
+      return Result.ok(_toAccount(account));
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        return const Result.err(AppError('Đã huỷ đăng nhập.'));
+        return const Result.err(GoogleSignInCanceled());
       }
-      return Result.err(
-        AppError('Đăng nhập Google thất bại: ${e.description ?? e.code}', cause: e),
-      );
+      return Result.err(_errorFrom(e, 'đăng nhập Google'));
+    } catch (e) {
+      // Máy không có Google Play Services, không có mạng lúc khởi tạo… —
+      // plugin ném lỗi nền tảng thường, không phải `GoogleSignInException`.
+      return Result.err(AppError('Đăng nhập Google thất bại: $e', cause: e));
     }
   }
 
   @override
   Future<void> signOut() async {
+    await _ensureInitialized();
     // `disconnect()` thay vì `signOut()` — thu hồi luôn quyền đã cấp, để lần
     // đăng nhập lại sau xin quyền `drive.appdata` từ đầu, không kẹt ở trạng
     // thái "đã cấp quyền" ma từ phiên cũ.
     await GoogleSignIn.instance.disconnect();
     _rawAccount = null;
-    _currentAccount = null;
-    _accountController.add(null);
   }
 
   @override
   Future<Result<http.Client, AppError>> authorizedDriveClient() async {
-    final account = _rawAccount;
-    if (account == null) {
-      return const Result.err(AppError('Chưa đăng nhập Google.'));
-    }
     try {
+      await _ensureInitialized();
+      // Tiến trình mới (mở lại app) chưa có tài khoản trong bộ nhớ: thử khôi
+      // phục phiên cũ không UI trước, không được thì mới hỏi chọn tài khoản
+      // — người dùng vừa bấm một nút Drive nên hiện UI lúc này là đúng lúc.
+      final account =
+          _rawAccount ??
+          await GoogleSignIn.instance.attemptLightweightAuthentication() ??
+          await GoogleSignIn.instance.authenticate();
+      _rawAccount = account;
       final authClient = account.authorizationClient;
       final authorization =
           await authClient.authorizationForScopes(_driveScopes) ??
           await authClient.authorizeScopes(_driveScopes);
       return Result.ok(authorization.authClient(scopes: _driveScopes));
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) {
-        return const Result.err(AppError('Đã huỷ cấp quyền truy cập Drive.'));
-      }
-      return Result.err(
-        AppError('Xin quyền Google Drive thất bại: ${e.description ?? e.code}', cause: e),
-      );
+      return Result.err(_errorFrom(e, 'xin quyền Google Drive'));
     }
   }
 }

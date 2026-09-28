@@ -14,7 +14,6 @@ import '../../../data/services/backup/backup_encryption.dart';
 import '../../../data/services/backup/backup_service.dart';
 import '../../../data/services/backup/google_drive_destination.dart';
 import '../../../data/services/backup/share_sheet_destination.dart';
-import '../../../data/services/google/google_account.dart';
 import '../../../data/services/google/google_providers.dart';
 
 /// Kết quả một thao tác sao lưu/khôi phục vừa chạy — hiển thị TẠM THỜI trên
@@ -40,7 +39,6 @@ class BackupUiState {
     required this.lastBackupAt,
     required this.autoBackupEnabled,
     this.lastResult,
-    this.googleAccount,
     this.lastDriveBackupAt,
   });
 
@@ -55,8 +53,7 @@ class BackupUiState {
   final bool autoBackupEnabled;
   final BackupActionResult? lastResult;
 
-  /// Tài khoản Google đang đăng nhập — `null` nghĩa là chưa đăng nhập.
-  final GoogleAccount? googleAccount;
+  /// Tài khoản Google KHÔNG nằm ở đây nữa — xem `authControllerProvider`.
   final DateTime? lastDriveBackupAt;
 
   BackupUiState copyWith({
@@ -65,8 +62,6 @@ class BackupUiState {
     bool? autoBackupEnabled,
     BackupActionResult? lastResult,
     bool clearLastResult = false,
-    GoogleAccount? googleAccount,
-    bool clearGoogleAccount = false,
     DateTime? lastDriveBackupAt,
   }) {
     return BackupUiState(
@@ -74,9 +69,6 @@ class BackupUiState {
       lastBackupAt: lastBackupAt ?? this.lastBackupAt,
       autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
       lastResult: clearLastResult ? null : (lastResult ?? this.lastResult),
-      googleAccount: clearGoogleAccount
-          ? null
-          : (googleAccount ?? this.googleAccount),
       lastDriveBackupAt: lastDriveBackupAt ?? this.lastDriveBackupAt,
     );
   }
@@ -97,7 +89,6 @@ class BackupController extends Notifier<BackupUiState> {
   @override
   BackupUiState build() {
     unawaited(_load());
-    unawaited(_initGoogle());
     return BackupUiState.initial;
   }
 
@@ -110,29 +101,6 @@ class BackupController extends Notifier<BackupUiState> {
       autoBackupEnabled: autoEnabled,
       lastDriveBackupAt: driveIso == null ? null : DateTime.tryParse(driveIso),
     );
-  }
-
-  /// Khôi phục phiên Google đã đăng nhập trước đó (nếu có) mà không hiện
-  /// UI nào, rồi tiếp tục lắng nghe đăng nhập/đăng xuất suốt vòng đời app.
-  ///
-  /// Nuốt lỗi có chủ đích: máy không có Google Play Services (hoặc trong
-  /// `flutter_test`, không có platform channel thật — `GoogleSignInPlatform`
-  /// ném `UnimplementedError`) thì coi như CHƯA đăng nhập, không phá luôn cả
-  /// màn Cài đặt vì một tính năng phụ. Bấm "Đăng nhập Google" sau đó vẫn thử
-  /// lại được, lỗi thật sự hiện qua `lastResult` như mọi thao tác khác.
-  Future<void> _initGoogle() async {
-    try {
-      final signIn = ref.read(googleSignInServiceProvider);
-      await signIn.initialize();
-      signIn.accountChanges.listen((account) {
-        state = state.copyWith(
-          googleAccount: account,
-          clearGoogleAccount: account == null,
-        );
-      });
-    } catch (_) {
-      // Xem doc comment ở trên — im lặng là đúng ý ở đây.
-    }
   }
 
   BackupService get _backupService =>
@@ -225,22 +193,6 @@ class BackupController extends Notifier<BackupUiState> {
         lastResult: BackupActionError('Không đọc được file: $e'),
       );
     }
-  }
-
-  Future<void> signInWithGoogle() async {
-    final result = await ref.read(googleSignInServiceProvider).signIn();
-    state = state.copyWith(
-      googleAccount: result.valueOrNull,
-      lastResult: result.when(
-        ok: (account) => BackupActionSuccess('Đã đăng nhập ${account.email}.'),
-        err: (error) => BackupActionError(error.message),
-      ),
-    );
-  }
-
-  Future<void> signOutGoogle() async {
-    await ref.read(googleSignInServiceProvider).signOut();
-    state = state.copyWith(clearGoogleAccount: true);
   }
 
   /// [passphrase] do người dùng tự đặt — KHÔNG lưu ở đâu cả, quên là mất

@@ -17,6 +17,7 @@ import '../../settings/settings_controller.dart';
 import '../../../ui/category_avatar.dart';
 import '../../savings/savings_providers.dart';
 import '../../savings/widgets/savings_goal_picker.dart';
+import '../../transactions/receipt_scan.dart';
 import '../../wallets/widgets/transfer_sheet.dart';
 import '../domain/parser/amount_evaluator.dart';
 import '../domain/parser/normalizer.dart';
@@ -47,6 +48,9 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
   int? _ghostAmount;
   bool _hasText = false;
   bool _isListening = false;
+
+  /// Dấu + bên phải ô nhập đang mở ra hai nút giọng nói / quét hoá đơn.
+  bool _toolsOpen = false;
 
   @override
   void initState() {
@@ -79,6 +83,7 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
       await _speech.stop();
       return;
     }
+    if (_toolsOpen) setState(() => _toolsOpen = false);
 
     // 🚨 `SpeechToText()` là SINGLETON, và `initialize()` chỉ gắn listener ở
     // lần gọi ĐẦU TIÊN (các lần sau trả về sớm). Ô nhập bị huỷ rồi dựng lại
@@ -113,6 +118,13 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
         cancelOnError: true,
       ),
     );
+  }
+
+  /// Quét hoá đơn từ ngay màn chat — cùng luồng với mọi lối vào khác
+  /// ([openReceiptScanFlow]), kết thúc ở sheet Thêm chờ duyệt.
+  Future<void> _openScan() async {
+    setState(() => _toolsOpen = false);
+    await openReceiptScanFlow(context, ref);
   }
 
   void _onSpeechStatus(String status) {
@@ -152,6 +164,9 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
       setState(() {
         _hasText = hasText;
         _ghostAmount = ghost;
+        // Bắt đầu gõ là đã chọn cách nhập — gập dấu + lại, xoá hết chữ thì
+        // thấy lại dấu + chứ không phải hai nút còn mở từ lúc nào.
+        if (hasText) _toolsOpen = false;
       });
     }
   }
@@ -378,37 +393,10 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
                     ),
                   ),
                   SizedBox(width: context.space.xs),
-                  AnimatedSwitcher(
+                  AnimatedSize(
                     duration: context.durations.sheet,
-                    switchInCurve: Curves.easeOutCubic,
-                    // Nút violet khi ĐANG NGHE cũng như khi có chữ để gửi —
-                    // "tô đặc = đang hoạt động", nhất quán một quy ước màu
-                    // thay vì thêm một icon "đang ghi âm" riêng.
-                    //
-                    // ĐANG NGHE thì nút luôn là "dừng nghe", kể cả khi kết
-                    // quả tạm thời đã đổ chữ vào ô: nếu để `_hasText` quyết
-                    // định như lúc gõ tay, nút hoá mũi tên giữa câu nói và
-                    // một cú chạm gửi luôn nửa câu chưa ai đọc lại.
-                    child: IconButton(
-                      key: ValueKey((_hasText, _isListening)),
-                      onPressed: _isListening
-                          ? _toggleListening
-                          : (_hasText ? _send : _toggleListening),
-                      tooltip: _isListening
-                          ? 'Dừng nghe'
-                          : (_hasText ? 'Gửi' : 'Nói'),
-                      icon: Icon(
-                        _hasText && !_isListening ? kIconArrowUpward : kIconMic,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: (_hasText || _isListening)
-                            ? context.scheme.primary
-                            : Colors.transparent,
-                        foregroundColor: (_hasText || _isListening)
-                            ? context.scheme.onPrimary
-                            : context.colors.onSurfaceVariant,
-                      ),
-                    ),
+                    curve: Curves.easeOutCubic,
+                    child: _trailingActions(context),
                   ),
                 ],
               ),
@@ -416,6 +404,75 @@ class _QuickAddInputBarState extends ConsumerState<QuickAddInputBar> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Nút bên phải ô nhập — ba trạng thái, đúng một cái hiện ra:
+  ///
+  /// - **Đang nghe**: nút "dừng nghe" tô đặc. Luôn thắng, kể cả khi kết quả
+  ///   tạm thời đã đổ chữ vào ô — nếu để có-chữ quyết định như lúc gõ tay,
+  ///   nút hoá mũi tên giữa câu nói và một cú chạm gửi luôn nửa câu chưa ai
+  ///   đọc lại.
+  /// - **Có chữ**: mũi tên gửi tô đặc.
+  /// - **Ô trống**: dấu +, bấm mở ra hai nút giọng nói và quét hoá đơn (Tony
+  ///   2026-09-28: "nhấn dấu + bên phải khung chat có dấu voice và dấu
+  ///   scan"). Nút quét từng nằm riêng ở Trang chủ; gom về đây để mọi cách
+  ///   NHẬP một khoản — gõ, nói, chụp — ở cùng một chỗ.
+  Widget _trailingActions(BuildContext context) {
+    final activeStyle = IconButton.styleFrom(
+      backgroundColor: context.scheme.primary,
+      foregroundColor: context.scheme.onPrimary,
+    );
+    final quietStyle = IconButton.styleFrom(
+      foregroundColor: context.colors.onSurfaceVariant,
+    );
+    if (_isListening) {
+      return IconButton(
+        key: const ValueKey('stop'),
+        onPressed: _toggleListening,
+        tooltip: 'Dừng nghe',
+        icon: const Icon(kIconMic),
+        style: activeStyle,
+      );
+    }
+    if (_hasText) {
+      return IconButton(
+        key: const ValueKey('send'),
+        onPressed: _send,
+        tooltip: 'Gửi',
+        icon: const Icon(kIconArrowUpward),
+        style: activeStyle,
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_toolsOpen) ...[
+          IconButton(
+            onPressed: _toggleListening,
+            tooltip: 'Nói',
+            icon: const Icon(kIconMic),
+            style: quietStyle,
+          ),
+          IconButton(
+            onPressed: _openScan,
+            tooltip: 'Quét hoá đơn',
+            icon: const Icon(kIconDocumentScanner),
+            style: quietStyle,
+          ),
+        ],
+        IconButton(
+          onPressed: () => setState(() => _toolsOpen = !_toolsOpen),
+          tooltip: _toolsOpen ? 'Đóng' : 'Thêm cách nhập',
+          icon: AnimatedRotation(
+            // + xoay 45° thành × — cùng một nút mở và đóng.
+            turns: _toolsOpen ? 0.125 : 0,
+            duration: context.durations.sheet,
+            child: const Icon(kIconAdd),
+          ),
+          style: _toolsOpen ? quietStyle : activeStyle,
+        ),
+      ],
     );
   }
 }

@@ -89,9 +89,16 @@ class TransactionRepository {
   /// được một quỹ đã nạp/rút những gì: thẻ quỹ bấm vào chỉ mở sheet sửa
   /// tên/số tiền, còn trong danh sách chung thì mọi khoản quỹ đều đội lốt
   /// "Chưa phân loại".
+  /// [exactTagIds] (lát nhóm thẻ ở biểu đồ tròn) — chỉ giao dịch có tập thẻ
+  /// ĐÚNG BẰNG tập này: có đủ mọi thẻ trong đó và không có thẻ nào khác.
+  /// Khác [tagIds] ("ít nhất một"): biểu đồ gom theo TỔ HỢP thẻ
+  /// (`ReportsRepository.watchTagGroupBreakdown`), nên bấm lát "#Du lịch"
+  /// mà liệt kê cả khoản "#Du lịch + #Gia đình" thì danh sách cộng ra khác
+  /// con số trên lát.
   Stream<List<TransactionWithCategory>> watchAllWithCategory({
     int? limit,
     Set<int>? tagIds,
+    Set<int>? exactTagIds,
     Set<int>? categoryIds,
     DateTime? from,
     DateTime? to,
@@ -148,6 +155,29 @@ class TransactionRepository {
           _db.selectOnly(_db.transactionTags)
             ..addColumns([_db.transactionTags.transactionId])
             ..where(_db.transactionTags.tagId.isIn(tagIds)),
+        ),
+      );
+    }
+    if (exactTagIds != null) {
+      final tt = _db.transactionTags;
+      // Có đủ từng thẻ: mỗi thẻ một `IN (subquery)` riêng, vẫn không JOIN
+      // thẳng `transaction_tags` (cùng lý do với [tagIds] ở trên).
+      for (final tagId in exactTagIds) {
+        query.where(
+          _db.transactions.id.isInQuery(
+            _db.selectOnly(tt)
+              ..addColumns([tt.transactionId])
+              ..where(tt.tagId.equals(tagId)),
+          ),
+        );
+      }
+      // …và không có thẻ nào ngoài tập. Tập rỗng thì vế này thành "không
+      // có thẻ nào cả" — đúng nghĩa của một tổ hợp rỗng.
+      query.where(
+        _db.transactions.id.isNotInQuery(
+          _db.selectOnly(tt)
+            ..addColumns([tt.transactionId])
+            ..where(tt.tagId.isNotIn(exactTagIds)),
         ),
       );
     }

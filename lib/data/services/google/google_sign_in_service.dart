@@ -10,23 +10,29 @@ import 'google_account.dart';
 /// `backupHealthProbeProvider` bọc SAF thật ở tính năng sao lưu sẵn có).
 /// `google_sign_in` là singleton toàn cục (`GoogleSignIn.instance`), không
 /// có seam để dependency-inject trực tiếp, nên interface này LÀ seam.
+///
+/// 🚨 Không method nào tự bật giao diện đăng nhập ngầm. Bản trước khởi tạo
+/// plugin kèm `attemptLightweightAuthentication()` ngay khi màn Cài đặt
+/// dựng lên, nên cứ vào Cài đặt là thấy bảng "Đang đăng nhập…" của Google
+/// trồi lên (Tony: "cứ vào trang cài đặt là load đăng nhập"). Giờ đăng nhập
+/// chỉ xảy ra khi người dùng bấm, ở màn Đăng nhập hoặc Cài đặt; phiên cũ chỉ
+/// được khôi phục lúc THẬT SỰ cần gọi Drive ([authorizedDriveClient]).
 abstract interface class GoogleSignInService {
-  /// Tài khoản đang đăng nhập, `null` nếu chưa/không còn đăng nhập.
-  GoogleAccount? get currentAccount;
-
-  /// Bắn mỗi khi trạng thái đăng nhập đổi (đăng nhập/đăng xuất, kể cả do
-  /// `attemptLightweightAuthentication` lúc khởi động khôi phục phiên cũ).
-  Stream<GoogleAccount?> get accountChanges;
-
-  /// Gọi đúng một lần trước khi dùng bất kỳ method nào khác (thường ở
-  /// `build()` của controller).
-  Future<void> initialize();
-
+  /// Đăng nhập tương tác (bảng chọn tài khoản của Google). Tự khởi tạo
+  /// plugin ở lần gọi đầu.
   Future<Result<GoogleAccount, AppError>> signIn();
 
   Future<void> signOut();
 
-  /// `http.Client` đã có quyền `drive.appdata` — hỏi xin quyền (hiện màn
+  /// `http.Client` đã có quyền `drive.appdata` — khôi phục phiên đã đăng
+  /// nhập (không UI) nếu tiến trình này chưa có, hỏi xin quyền (hiện màn
   /// đồng ý) nếu chưa có. Gọi đủ `close()` sau khi dùng xong.
   Future<Result<http.Client, AppError>> authorizedDriveClient();
+}
+
+/// Người dùng đóng bảng chọn tài khoản (hoặc bấm Back khỏi màn lỗi của
+/// chính Google — plugin báo cùng một mã). Tách riêng để thông báo đúng
+/// giọng "đã huỷ" thay vì "thất bại".
+class GoogleSignInCanceled extends AppError {
+  const GoogleSignInCanceled() : super('Đã huỷ đăng nhập Google.');
 }

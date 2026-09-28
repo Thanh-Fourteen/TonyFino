@@ -9,6 +9,7 @@ import '../../core/build_info.dart';
 import '../../data/services/biometric/biometric_service.dart';
 import '../../debug/style_gallery.dart';
 import '../../theme/context_ext.dart';
+import '../auth/auth_controller.dart';
 import 'backup/backup_controller.dart';
 import 'import/import_screen.dart';
 import 'settings_controller.dart';
@@ -33,6 +34,7 @@ class SettingsScreen extends ConsumerWidget {
     final biometricSupported = ref.watch(_biometricSupportedProvider);
     final backup = ref.watch(backupControllerProvider);
     final backupController = ref.read(backupControllerProvider.notifier);
+    final auth = ref.watch(authControllerProvider);
 
     ref.listen(backupControllerProvider.select((s) => s.lastResult), (
       _,
@@ -199,18 +201,34 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           SizedBox(height: context.space.sm),
-          if (backup.googleAccount == null)
+          // Chỉ ĐỌC trạng thái đăng nhập ở đây — mở Cài đặt không còn khởi
+          // động plugin hay thử đăng nhập ngầm (xem `AuthController`).
+          if (auth.status != AuthStatus.signedIn) ...[
             FilledButton.tonal(
-              onPressed: backup.isWorking ? null : backupController.signInWithGoogle,
+              onPressed: auth.isWorking
+                  ? null
+                  : ref.read(authControllerProvider.notifier).signIn,
               child: const Text('Đăng nhập Google'),
-            )
-          else ...[
+            ),
+            if (auth.errorMessage != null)
+              Padding(
+                padding: EdgeInsets.only(top: context.space.xs),
+                child: Text(
+                  auth.errorMessage!,
+                  style: context.text.labelMedium?.copyWith(
+                    color: context.colors.budgetOver,
+                  ),
+                ),
+              ),
+          ] else ...[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(backup.googleAccount!.displayName ?? backup.googleAccount!.email),
-              subtitle: Text(backup.googleAccount!.email),
+              title: Text(auth.displayName ?? auth.email!),
+              subtitle: Text(auth.email!),
               trailing: TextButton(
-                onPressed: backup.isWorking ? null : backupController.signOutGoogle,
+                onPressed: backup.isWorking
+                    ? null
+                    : () => _confirmSignOut(context, ref),
                 child: const Text('Đăng xuất'),
               ),
             ),
@@ -324,6 +342,33 @@ class SettingsScreen extends ConsumerWidget {
 
 /// Khôi phục GHI ĐÈ toàn bộ dữ liệu hiện có (`BackupService.importFromJson`)
 /// — xác nhận trước, không cho một cú chạm vô tình xoá dữ liệu thật.
+/// Đăng xuất đưa về màn Đăng nhập (`LoginGate`) — hỏi trước cho khỏi bấm
+/// nhầm, và nói rõ dữ liệu trên máy không mất.
+Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Đăng xuất Google?'),
+      content: const Text(
+        'App sẽ quay về màn Đăng nhập. Sổ chi tiêu trên máy vẫn giữ nguyên; '
+        'bản sao lưu trên Drive vẫn còn đó.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Đăng xuất'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  await ref.read(authControllerProvider.notifier).signOut();
+}
+
 Future<void> _confirmRestore(
   BuildContext context,
   BackupController controller,

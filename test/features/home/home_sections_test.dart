@@ -100,19 +100,14 @@ void main() {
     },
   );
 
-  testWidgets('nút QUÉT HOÁ ĐƠN nằm ngay Trang chủ, cạnh "Ghi một khoản" — '
-      'chạm là mở chọn nguồn ảnh', (tester) async {
-    // Trước đây lối vào duy nhất là NHẤN GIỮ nút "Thêm" ở tab Giao dịch —
-    // Tony phải hỏi "vô đâu để chụp hoá đơn".
+  testWidgets('Trang chủ chỉ còn MỘT nút + — quét hoá đơn đã vào trong '
+      'màn chat (Tony 2026-09-28: "đưa nút scan vào trong dấu +")', (
+    tester,
+  ) async {
     await pumpHome(tester, const {});
-    // Nút chính giờ chỉ là dấu + (Tony yêu cầu) — tên nằm ở tooltip.
+    // Nút chính chỉ là dấu + — tên nằm ở tooltip.
     expect(find.byTooltip('Ghi một khoản'), findsOneWidget);
     expect(find.text('Ghi một khoản'), findsNothing);
-    expect(find.byTooltip('Quét hoá đơn'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Quét hoá đơn'));
-    await tester.pumpAndSettle();
-    expect(find.text('Chụp ảnh'), findsOneWidget);
-    expect(find.text('Chọn ảnh có sẵn'), findsOneWidget);
+    expect(find.byTooltip('Quét hoá đơn'), findsNothing);
   });
 }

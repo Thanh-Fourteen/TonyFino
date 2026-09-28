@@ -409,7 +409,7 @@ const kIconPhotoCamera = IconData(
   fontFamily: _fontFamily,
   fontPackage: _fontPackage,
 );
-// Khung quét tài liệu — nút "Quét hoá đơn" ở Trang chủ. KHÔNG dùng
+// Khung quét tài liệu — nút "Quét hoá đơn" sau dấu + ở màn chat. KHÔNG dùng
 // `kIconReceiptLong`: đó là icon của tab "Giao dịch" ngay bên dưới, hai
 // thứ khác nhau mang cùng một hình thì đọc nhầm.
 const kIconDocumentScanner = IconData(
@@ -611,6 +611,48 @@ const kIconMic = IconData(
 );
 const kIconArrowUpward = IconData(
   0xe5d8,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+// Trang Giá vàng / Giá cà phê (2026-09-28): tam giác tăng/giảm đi KÈM màu
+// (không bao giờ chỉ dùng màu để nói lên/xuống), gạch ngang = đứng giá.
+const kIconArrowDropUp = IconData(
+  0xe5c7,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconArrowDropDown = IconData(
+  0xe5c5,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconRemove = IconData(
+  0xe15b,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconRefresh = IconData(
+  0xe5d5,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconShowChart = IconData(
+  0xe6e1,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconCalculate = IconData(
+  0xea5f,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconCoffee = IconData(
+  0xefef,
+  fontFamily: _fontFamily,
+  fontPackage: _fontPackage,
+);
+const kIconWorkspacePremium = IconData(
+  0xe7af,
   fontFamily: _fontFamily,
   fontPackage: _fontPackage,
 );

@@ -24,7 +24,7 @@ import 'transaction_form_sheet.dart';
 /// Bước xoay/cắt là BẮT BUỘC, cho cả ảnh chụp lẫn ảnh có sẵn (Tony yêu cầu):
 /// cắt sát hoá đơn bỏ được nền bàn/ngón tay/chữ của tờ khác lọt vào khung,
 /// và xoay thẳng là điều kiện để `arrangeIntoRows` ghép đúng nhãn "Tổng" với
-/// con số cùng hàng. Lối vào: nút quét ở Trang chủ, và "Thêm nhanh" ở tab
+/// con số cùng hàng. Lối vào: dấu + cạnh ô nhập ở màn chat, và "Thêm nhanh" ở tab
 /// Giao dịch.
 ///
 /// (Bản đầu 2026-09-28 dùng máy quét tài liệu ML Kit — thay bằng luồng này

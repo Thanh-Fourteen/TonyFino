@@ -11,6 +11,7 @@ import '../../../ui/app_bottom_sheet.dart';
 import '../../../ui/app_card.dart';
 import '../../../ui/empty_state.dart';
 import '../../categories/category_detail_screen.dart';
+import '../../tags/tag_group_detail_screen.dart';
 import '../domain/category_slice.dart';
 import '../domain/report_range.dart';
 import 'report_category_color.dart';
@@ -23,14 +24,19 @@ import 'report_category_color.dart';
 /// danh mục gốc thật chỉ bấm được khi THẬT SỰ có nhiều hơn một nguồn đóng
 /// góp ([CategoryRootBreakdown.hasBreakdown]) — nếu chưa dùng danh mục con
 /// nào thì bấm vào cũng chỉ thấy lại đúng một hàng đã hiện sẵn.
+///
+/// Lát NHÓM THẺ mở danh sách giao dịch mang đúng tổ hợp thẻ đó
+/// ([openTagGroupDetail]) — Tony: bấm vào thẻ ở thống kê Trang chủ mà không
+/// xem được khoản nào thuộc thẻ đó.
 VoidCallback? categorySliceTapHandler({
   required CategorySlice slice,
   required VoidCallback openFullBreakdown,
   required void Function(int rootCategoryId) openCategoryDetail,
+  required void Function(List<int> tagIds) openTagGroupDetail,
 }) {
   if (slice.isOther) return openFullBreakdown;
-  // Nhóm thẻ không phải một danh mục — không có màn chi tiết nào để mở.
-  if (slice.isTagGroup) return null;
+  final tagIds = slice.tagIds;
+  if (tagIds != null) return () => openTagGroupDetail(tagIds);
   final id = slice.categoryId;
   // `null` = "Chưa phân loại" — không có danh mục nào để mở ra.
   if (id == null) return null;
@@ -142,6 +148,12 @@ class _CategoryPieCardState extends State<CategoryPieCard>
           rangeLabel: widget.rangeLabel,
         );
       },
+      openTagGroupDetail: (tagIds) => openTagGroupDetailScreen(
+        context,
+        tagIds,
+        range: widget.range,
+        rangeLabel: widget.rangeLabel,
+      ),
     );
   }
 
@@ -422,6 +434,15 @@ class _FullBreakdownSheet extends StatelessWidget {
                         openCategoryDetailScreen(
                           context,
                           id,
+                          range: range,
+                          rangeLabel: rangeLabel,
+                        );
+                      },
+                      openTagGroupDetail: (tagIds) {
+                        Navigator.of(context).pop();
+                        openTagGroupDetailScreen(
+                          context,
+                          tagIds,
                           range: range,
                           rangeLabel: rangeLabel,
                         );

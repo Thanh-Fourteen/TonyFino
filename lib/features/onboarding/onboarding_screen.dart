@@ -40,8 +40,9 @@ class OnboardingScreen extends ConsumerWidget {
               ),
               SizedBox(height: context.space.sm),
               Text(
-                'Một cuốn sổ cái gõ bằng câu văn tiếng Việt — không tài khoản, '
-                'không server, dữ liệu nằm hoàn toàn trên máy của bạn.',
+                'Một cuốn sổ cái gõ bằng câu văn tiếng Việt — không server, '
+                'dữ liệu nằm trên máy của bạn. Tài khoản Google chỉ dùng để '
+                'sao lưu bản đã mã hoá lên Drive của chính bạn.',
                 style: context.text.bodyLarge?.copyWith(
                   color: context.colors.onSurfaceVariant,
                 ),

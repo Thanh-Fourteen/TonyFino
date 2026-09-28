@@ -1,0 +1,397 @@
+{
+    "success": true,
+    "days": 30,
+    "type": "XAUUSD",
+    "history": [
+        {
+            "date": "2026-09-28",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4182.2,
+                    "sell": 0,
+                    "day_change_buy": -104,
+                    "day_change_sell": 0,
+                    "updates": 17
+                }
+            }
+        },
+        {
+            "date": "2026-09-27",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4286.2,
+                    "sell": 0,
+                    "day_change_buy": 0,
+                    "day_change_sell": 0,
+                    "updates": 1
+                }
+            }
+        },
+        {
+            "date": "2026-09-26",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4286.2,
+                    "sell": 0,
+                    "day_change_buy": -6.600000000000364,
+                    "day_change_sell": 0,
+                    "updates": 10
+                }
+            }
+        },
+        {
+            "date": "2026-09-25",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4292.8,
+                    "sell": 0,
+                    "day_change_buy": 15.400000000000546,
+                    "day_change_sell": 0,
+                    "updates": 44
+                }
+            }
+        },
+        {
+            "date": "2026-09-24",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4277.4,
+                    "sell": 0,
+                    "day_change_buy": -8.300000000000182,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-23",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4285.7,
+                    "sell": 0,
+                    "day_change_buy": -42.100000000000364,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-22",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4327.8,
+                    "sell": 0,
+                    "day_change_buy": -24.099999999999454,
+                    "day_change_sell": 0,
+                    "updates": 46
+                }
+            }
+        },
+        {
+            "date": "2026-09-21",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4351.9,
+                    "sell": 0,
+                    "day_change_buy": -27.100000000000364,
+                    "day_change_sell": 0,
+                    "updates": 38
+                }
+            }
+        },
+        {
+            "date": "2026-09-20",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4379,
+                    "sell": 0,
+                    "day_change_buy": 0,
+                    "day_change_sell": 0,
+                    "updates": 1
+                }
+            }
+        },
+        {
+            "date": "2026-09-19",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4379,
+                    "sell": 0,
+                    "day_change_buy": 9.399999999999636,
+                    "day_change_sell": 0,
+                    "updates": 10
+                }
+            }
+        },
+        {
+            "date": "2026-09-18",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4369.6,
+                    "sell": 0,
+                    "day_change_buy": 1.6000000000003638,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-17",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4368,
+                    "sell": 0,
+                    "day_change_buy": 21.5,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-16",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4346.5,
+                    "sell": 0,
+                    "day_change_buy": 50.5,
+                    "day_change_sell": 0,
+                    "updates": 46
+                }
+            }
+        },
+        {
+            "date": "2026-09-15",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4296,
+                    "sell": 0,
+                    "day_change_buy": -8.899999999999636,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-14",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4304.9,
+                    "sell": 0,
+                    "day_change_buy": -44.80000000000018,
+                    "day_change_sell": 0,
+                    "updates": 38
+                }
+            }
+        },
+        {
+            "date": "2026-09-13",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4349.7,
+                    "sell": 0,
+                    "day_change_buy": 0,
+                    "day_change_sell": 0,
+                    "updates": 1
+                }
+            }
+        },
+        {
+            "date": "2026-09-12",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4349.7,
+                    "sell": 0,
+                    "day_change_buy": -11.800000000000182,
+                    "day_change_sell": 0,
+                    "updates": 10
+                }
+            }
+        },
+        {
+            "date": "2026-09-11",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4361.5,
+                    "sell": 0,
+                    "day_change_buy": -2.199999999999818,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-10",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4363.7,
+                    "sell": 0,
+                    "day_change_buy": -39.80000000000018,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-09",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4403.5,
+                    "sell": 0,
+                    "day_change_buy": 10.600000000000364,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-09-08",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4392.9,
+                    "sell": 0,
+                    "day_change_buy": -22.300000000000182,
+                    "day_change_sell": 0,
+                    "updates": 42
+                }
+            }
+        },
+        {
+            "date": "2026-09-07",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4415.2,
+                    "sell": 0,
+                    "day_change_buy": -15.900000000000546,
+                    "day_change_sell": 0,
+                    "updates": 38
+                }
+            }
+        },
+        {
+            "date": "2026-09-06",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4431.1,
+                    "sell": 0,
+                    "day_change_buy": 0,
+                    "day_change_sell": 0,
+                    "updates": 1
+                }
+            }
+        },
+        {
+            "date": "2026-09-05",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4431.1,
+                    "sell": 0,
+                    "day_change_buy": -5.099999999999454,
+                    "day_change_sell": 0,
+                    "updates": 7
+                }
+            }
+        },
+        {
+            "date": "2026-09-04",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4436.2,
+                    "sell": 0,
+                    "day_change_buy": -57.400000000000546,
+                    "day_change_sell": 0,
+                    "updates": 46
+                }
+            }
+        },
+        {
+            "date": "2026-09-03",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4493.6,
+                    "sell": 0,
+                    "day_change_buy": 123.80000000000018,
+                    "day_change_sell": 0,
+                    "updates": 45
+                }
+            }
+        },
+        {
+            "date": "2026-09-02",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4369.8,
+                    "sell": 0,
+                    "day_change_buy": 14.5,
+                    "day_change_sell": 0,
+                    "updates": 46
+                }
+            }
+        },
+        {
+            "date": "2026-09-01",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4355.3,
+                    "sell": 0,
+                    "day_change_buy": -82.5,
+                    "day_change_sell": 0,
+                    "updates": 47
+                }
+            }
+        },
+        {
+            "date": "2026-08-31",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4437.8,
+                    "sell": 0,
+                    "day_change_buy": -18.599999999999454,
+                    "day_change_sell": 0,
+                    "updates": 38
+                }
+            }
+        },
+        {
+            "date": "2026-08-30",
+            "prices": {
+                "XAUUSD": {
+                    "name": "World Gold (XAU\/USD)",
+                    "buy": 4456.4,
+                    "sell": 0,
+                    "day_change_buy": 0,
+                    "day_change_sell": 0,
+                    "updates": 1
+                }
+            }
+        }
+    ]
+}

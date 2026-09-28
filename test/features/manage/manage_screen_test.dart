@@ -20,6 +20,8 @@ void main() {
     'Ví',
     'Hũ chia thu nhập',
     'Mục tiêu & nợ vay',
+    'Giá vàng',
+    'Giá cà phê',
     'Danh mục',
     'Thẻ',
     'Giao dịch định kỳ',
@@ -27,7 +29,7 @@ void main() {
   ];
 
   testWidgets(
-    'liệt kê đủ 7 mục quản lý (trang Hạn mức đã bỏ), không thiếu mục nào từ Cài đặt cũ',
+    'liệt kê đủ 9 mục (trang Hạn mức đã bỏ; thêm Giá vàng, Giá cà phê), không thiếu mục nào từ Cài đặt cũ',
     (tester) async {
       await pumpApp(tester, db: db, child: const ManageScreen());
       await tester.pumpAndSettle();
@@ -56,6 +58,10 @@ void main() {
       scrollable: find.byType(Scrollable).first,
       maxScrolls: 100,
     );
+    // `scrollUntilVisible` dừng ngay khi mục vừa ló vào khung — có thể còn
+    // nửa dưới mép màn, chạm vào tâm là trượt. Cuộn hẳn vào trong.
+    await tester.ensureVisible(find.text('Giao dịch định kỳ'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Giao dịch định kỳ'));
     await tester.pumpAndSettle();
 

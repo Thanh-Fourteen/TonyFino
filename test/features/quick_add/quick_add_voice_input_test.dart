@@ -44,7 +44,10 @@ void main() {
       .text;
 
   Future<void> startListening(WidgetTester tester) async {
-    await tester.tap(find.byIcon(kIconMic));
+    // Mic nằm sau dấu + cạnh ô nhập (cùng chỗ với nút quét hoá đơn).
+    await tester.tap(find.byTooltip('Thêm cách nhập'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Nói'));
     await tester.pump();
     expect(speech.listenCalls, 1);
     expect(find.text('Đang nghe…'), findsOneWidget);
@@ -118,7 +121,9 @@ void main() {
     // Huỷ hẳn cây widget rồi dựng State MỚI.
     await tester.pumpWidget(const SizedBox());
     await pumpQuickAdd(tester);
-    await tester.tap(find.byIcon(kIconMic));
+    await tester.tap(find.byTooltip('Thêm cách nhập'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Nói'));
     await tester.pump();
     expect(find.text('Đang nghe…'), findsOneWidget);
 
@@ -126,5 +131,37 @@ void main() {
     speech.emitStatus('notListening');
     await tester.pumpAndSettle();
     expect(find.text('Đang nghe…'), findsNothing);
+  });
+
+  testWidgets('dấu + cạnh ô nhập mở ra giọng nói VÀ quét hoá đơn; quét mở '
+      'chọn nguồn ảnh', (tester) async {
+    await pumpQuickAdd(tester);
+    expect(find.byTooltip('Quét hoá đơn'), findsNothing);
+    expect(find.byTooltip('Nói'), findsNothing);
+
+    await tester.tap(find.byTooltip('Thêm cách nhập'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Nói'), findsOneWidget);
+    expect(find.byTooltip('Quét hoá đơn'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Quét hoá đơn'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chụp ảnh'), findsOneWidget);
+    expect(find.text('Chọn ảnh có sẵn'), findsOneWidget);
+  });
+
+  testWidgets('gõ chữ thì dấu + gập lại thành nút gửi', (tester) async {
+    await pumpQuickAdd(tester);
+    await tester.tap(find.byTooltip('Thêm cách nhập'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'cà phê 35k');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Gửi'), findsOneWidget);
+    expect(find.byTooltip('Quét hoá đơn'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Thêm cách nhập'), findsOneWidget);
+    expect(find.byTooltip('Quét hoá đơn'), findsNothing);
   });
 }
